@@ -441,3 +441,134 @@ model Notification {
   @@index([userId, read])
   @@map("notifications")
 }
+
+// ============================================
+// SCHEDULED POSTS
+// ============================================
+
+model ScheduledPost {
+  id                String           @id @default(uuid())
+  videoId           String           @map("video_id")
+  creatorId         String           @map("creator_id")
+  campaignId        String           @map("campaign_id")
+
+  platform          Platform
+  scheduledFor      DateTime         @map("scheduled_for")
+  timezone          String           @default("America/New_York")
+
+  // Content
+  caption           String?
+  hashtags          String?
+  videoUrl          String           @map("video_url")
+  thumbnailUrl      String?          @map("thumbnail_url")
+
+  // Status
+  status            ScheduledPostStatus @default(PENDING)
+  publishedAt       DateTime?        @map("published_at")
+  platformPostId    String?          @map("platform_post_id") // ID from social platform
+  platformPostUrl   String?          @map("platform_post_url")
+
+  // Error tracking
+  attempts          Int              @default(0)
+  lastAttemptAt     DateTime?        @map("last_attempt_at")
+  errorMessage      String?          @map("error_message")
+
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  @@index([scheduledFor, status])
+  @@index([creatorId, status])
+  @@map("scheduled_posts")
+}
+
+enum ScheduledPostStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// VIDEO SUBMISSIONS (Watermarked)
+// ============================================
+
+model VideoSubmission {
+  id                  String    @id @default(uuid())
+  videoId             String    @map("video_id")
+  campaignId          String    @map("campaign_id")
+  creatorId           String    @map("creator_id")
+
+  // Original file
+  originalUrl         String    @map("original_url")
+  originalFilename    String    @map("original_filename")
+  fileSize            Int       @map("file_size") // in bytes
+  duration            Int?      // in seconds
+  resolution          String?   // e.g., "1920x1080"
+
+  // Watermarked version (for preview)
+  watermarkedUrl      String    @map("watermarked_url")
+  watermarkText       String    @default("NALA - PENDING APPROVAL") @map("watermark_text")
+
+  // Thumbnail
+  thumbnailUrl        String?   @map("thumbnail_url")
+
+  // Processing status
+  processingStatus    ProcessingStatus @default(PENDING) @map("processing_status")
+  processingError     String?   @map("processing_error")
+
+  // Submission metadata
+  submissionNotes     String?   @map("submission_notes")
+  version             Int       @default(1) // For revision tracking
+
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([videoId])
+  @@index([creatorId])
+  @@map("video_submissions")
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ============================================
+// AI GENERATED BRIEFS
+// ============================================
+
+model AIBrief {
+  id              String    @id @default(uuid())
+  campaignId      String?   @map("campaign_id")
+  founderId       String    @map("founder_id")
+
+  // Input parameters
+  productName     String    @map("product_name")
+  productDescription String @map("product_description")
+  targetAudience  String    @map("target_audience")
+  videoStyle      String?   @map("video_style") // 'tutorial', 'testimonial', 'unboxing', etc.
+  keyFeatures     String[]  @map("key_features")
+  tone            String?   // 'professional', 'casual', 'energetic', etc.
+
+  // AI Generated content
+  generatedScript String?   @map("generated_script")
+  talkingPoints   String[]  @map("talking_points")
+  hookIdeas       String[]  @map("hook_ideas")
+  hashtagSuggestions String[] @map("hashtag_suggestions")
+  callToAction    String?   @map("call_to_action")
+
+  // Metadata
+  model           String    @default("gpt-4") // AI model used
+  tokensUsed      Int?      @map("tokens_used")
+
+  // Status
+  used            Boolean   @default(false) // Whether it was used in a campaign
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([founderId])
+  @@map("ai_briefs")
+}

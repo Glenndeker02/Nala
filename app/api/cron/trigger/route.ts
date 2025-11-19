@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { ApiResponse } from '@/lib/api-middleware';
 import { runViewPolling } from '@/lib/cron/view-polling';
 import { runSettlement } from '@/lib/cron/settlement';
+import { runPostPublisher } from '@/lib/cron/post-publisher';
 
 /**
  * Manual trigger for cron jobs (for testing/debugging)
@@ -34,14 +35,20 @@ export async function POST(request: NextRequest) {
         result = await runSettlement();
         break;
 
+      case 'post-publisher':
+        result = await runPostPublisher();
+        break;
+
       case 'all':
         const viewPollingResult = await runViewPolling();
         // Wait a bit before settlement to ensure view counts are updated
         await new Promise((resolve) => setTimeout(resolve, 5000));
         const settlementResult = await runSettlement();
+        const publisherResult = await runPostPublisher();
         result = {
           viewPolling: viewPollingResult,
           settlement: settlementResult,
+          postPublisher: publisherResult,
         };
         break;
 
