@@ -1,0 +1,443 @@
+// Nala Platform Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hashed with bcrypt
+  role      Role     @default(CREATOR)
+  fullName  String   @map("full_name")
+
+  // Founder specific
+  companyName       String?   @map("company_name")
+  stripeCustomerId  String?   @unique @map("stripe_customer_id")
+
+  // Creator specific
+  stripeAccountId   String?   @unique @map("stripe_account_id")
+  creatorProfile    CreatorProfile?
+
+  // Common fields
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt   DateTime? @map("email_verified_at")
+  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret   String?   @map("two_factor_secret")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  lastLoginAt       DateTime? @map("last_login_at")
+
+  // Relations
+  campaigns         Campaign[]       @relation("founder_campaigns")
+  creatorCampaigns  Campaign[]       @relation("creator_campaigns")
+  payments          Payment[]
+  licenses          License[]        @relation("founder_licenses")
+  creatorLicenses   License[]        @relation("creator_licenses")
+  socialAccounts    SocialAccount[]
+
+  @@map("users")
+}
+
+enum Role {
+  FOUNDER
+  CREATOR
+  ADMIN
+}
+
+// ============================================
+// CREATOR PROFILE
+// ============================================
+
+model CreatorProfile {
+  id                  String    @id @default(uuid())
+  userId              String    @unique @map("user_id")
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bio                 String?
+  categories          String[]  // e.g., ["SaaS", "B2B", "Tech"]
+
+  // Platform-specific base fees
+  baseFeeTiktok       Decimal   @default(75.00) @map("base_fee_tiktok") @db.Decimal(10, 2)
+  baseFeeInstagram    Decimal   @default(75.00) @map("base_fee_instagram") @db.Decimal(10, 2)
+  baseFeeFacebook     Decimal   @default(75.00) @map("base_fee_facebook") @db.Decimal(10, 2)
+
+  // Portfolio
+  portfolioVideos     Json?     @map("portfolio_videos") // Array of {url, thumbnail, platform, title}
+
+  // Status
+  verificationStatus  VerificationStatus @default(PENDING) @map("verification_status")
+  availabilityStatus  String?   @map("availability_status")
+  responseTime        String?   @map("response_time") // e.g., "< 24 hours"
+
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@map("creator_profiles")
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+// ============================================
+// SOCIAL MEDIA ACCOUNTS
+// ============================================
+
+model SocialAccount {
+  id                String     @id @default(uuid())
+  creatorId         String     @map("creator_id")
+  creator           User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  platform          Platform
+  platformUserId    String     @map("platform_user_id")
+  username          String
+  followerCount     Int?       @map("follower_count")
+
+  // OAuth tokens (encrypted at application level)
+  accessToken       String?    @map("access_token")
+  refreshToken      String?    @map("refresh_token")
+  tokenExpiresAt    DateTime?  @map("token_expires_at")
+
+  verifiedAt        DateTime?  @map("verified_at")
+  lastSyncedAt      DateTime?  @map("last_synced_at")
+
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  @@unique([creatorId, platform])
+  @@map("social_accounts")
+}
+
+enum Platform {
+  TIKTOK
+  INSTAGRAM
+  FACEBOOK
+}
+
+// ============================================
+// CAMPAIGNS
+// ============================================
+
+model Campaign {
+  id                    String          @id @default(uuid())
+  founderId             String          @map("founder_id")
+  founder               User            @relation("founder_campaigns", fields: [founderId], references: [id], onDelete: Cascade)
+
+  creatorId             String?         @map("creator_id")
+  creator               User?           @relation("creator_campaigns", fields: [creatorId], references: [id])
+
+  name                  String
+  description           String?
+  status                CampaignStatus  @default(DRAFT)
+
+  // Budget
+  totalBudget           Decimal         @map("total_budget") @db.Decimal(10, 2)
+  baseFeeeBudget        Decimal         @map("base_fee_budget") @db.Decimal(10, 2)
+  performanceBudget     Decimal         @map("performance_budget") @db.Decimal(10, 2)
+  escrowBalance         Decimal         @default(0) @map("escrow_balance") @db.Decimal(10, 2)
+
+  // Videos
+  videosRequested       Int             @map("videos_requested")
+  videosCompleted       Int             @default(0) @map("videos_completed")
+
+  // Posting schedule
+  postingFrequency      String?         @map("posting_frequency") // 'daily', 'every_other_day', etc.
+  startDate             DateTime?       @map("start_date")
+
+  // Stripe
+  stripePaymentIntentId String?         @map("stripe_payment_intent_id")
+
+  // Brief data (stored as JSON for flexibility)
+  briefData             Json?           @map("brief_data")
+
+  // Final stats (populated after completion)
+  finalViewsTotal       Int?            @map("final_views_total")
+  totalPaidToCreator    Decimal?        @map("total_paid_to_creator") @db.Decimal(10, 2)
+  totalRefundedToFounder Decimal?       @map("total_refunded_to_founder") @db.Decimal(10, 2)
+  platformRevenue       Decimal?        @map("platform_revenue") @db.Decimal(10, 2)
+
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+  completedAt           DateTime?       @map("completed_at")
+
+  // Relations
+  videos                Video[]
+  payments              Payment[]
+  licenses              License[]
+
+  @@index([founderId, status])
+  @@map("campaigns")
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_CREATOR
+  IN_PROGRESS
+  IN_REVIEW
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================
+// VIDEOS
+// ============================================
+
+model Video {
+  id                    String          @id @default(uuid())
+  campaignId            String          @map("campaign_id")
+  campaign              Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Content
+  draftVideoUrl         String?         @map("draft_video_url")
+  finalPostUrl          String?         @map("final_post_url")
+  platform              Platform?
+  platformVideoId       String?         @map("platform_video_id") // Extracted from URL
+
+  // Status
+  status                VideoStatus     @default(PENDING)
+
+  // Dates
+  submittedAt           DateTime?       @map("submitted_at")
+  approvedAt            DateTime?       @map("approved_at")
+  postedAt              DateTime?       @map("posted_at")
+  lockedAt              DateTime?       @map("locked_at")
+
+  // View tracking
+  currentViewCount      Int             @default(0) @map("current_view_count")
+  lockedViewCount       Int?            @map("locked_view_count")
+  lastViewUpdate        DateTime?       @map("last_view_update")
+
+  // Payments
+  baseFeePaid           Boolean         @default(false) @map("base_fee_paid")
+  baseFeeAmount         Decimal?        @map("base_fee_amount") @db.Decimal(10, 2)
+  performanceBonusPaid  Boolean         @default(false) @map("performance_bonus_paid")
+  performanceBonusAmount Decimal?       @map("performance_bonus_amount") @db.Decimal(10, 2)
+
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  viewSnapshots         ViewSnapshot[]
+  payments              Payment[]
+  revisions             Revision[]
+  licenses              License[]
+
+  @@index([campaignId, status])
+  @@index([postedAt])
+  @@map("videos")
+}
+
+enum VideoStatus {
+  PENDING
+  DRAFT_SUBMITTED
+  IN_REVIEW
+  REVISION_REQUESTED
+  APPROVED
+  POSTED
+  LOCKED
+}
+
+// ============================================
+// VIEW TRACKING
+// ============================================
+
+model ViewSnapshot {
+  id          String    @id @default(uuid())
+  videoId     String    @map("video_id")
+  video       Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  viewCount   Int       @map("view_count")
+  dataSource  String    @map("data_source") // 'tiktok_api', 'meta_api', 'manual'
+  snapshotAt  DateTime  @default(now()) @map("snapshot_at")
+
+  @@index([videoId, snapshotAt])
+  @@map("view_snapshots")
+}
+
+// ============================================
+// CONTENT REVISIONS
+// ============================================
+
+model Revision {
+  id              String    @id @default(uuid())
+  videoId         String    @map("video_id")
+  video           Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  requestedBy     String    @map("requested_by") // User ID
+  feedback        String
+  priority        String?   // 'minor', 'significant', 'major'
+  deadline        DateTime?
+  iterationNumber Int       @default(1) @map("iteration_number")
+
+  resolvedAt      DateTime? @map("resolved_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@map("revisions")
+}
+
+// ============================================
+// PAYMENTS
+// ============================================
+
+model Payment {
+  id              String        @id @default(uuid())
+  campaignId      String?       @map("campaign_id")
+  campaign        Campaign?     @relation(fields: [campaignId], references: [id])
+
+  videoId         String?       @map("video_id")
+  video           Video?        @relation(fields: [videoId], references: [id])
+
+  recipientId     String        @map("recipient_id")
+  recipient       User          @relation(fields: [recipientId], references: [id])
+
+  amount          Decimal       @db.Decimal(10, 2)
+  type            PaymentType
+  status          PaymentStatus @default(PENDING)
+
+  // Stripe references
+  stripeTransferId  String?     @map("stripe_transfer_id")
+  stripeRefundId    String?     @map("stripe_refund_id")
+
+  // Additional metadata
+  metadata        Json?
+  failureReason   String?       @map("failure_reason")
+
+  createdAt       DateTime      @default(now()) @map("created_at")
+  processedAt     DateTime?     @map("processed_at")
+
+  @@index([campaignId, type, status])
+  @@map("payments")
+}
+
+enum PaymentType {
+  BASE_FEE
+  PERFORMANCE_BONUS
+  REFUND
+  REVENUE
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// SETTLEMENTS
+// ============================================
+
+model Settlement {
+  id                      String    @id @default(uuid())
+  videoId                 String    @unique @map("video_id")
+  campaignId              String    @map("campaign_id")
+
+  lockedViews             Int       @map("locked_views")
+  creatorPerformanceBonus Decimal   @map("creator_performance_bonus") @db.Decimal(10, 2)
+  nalaRevenue             Decimal   @map("nala_revenue") @db.Decimal(10, 2)
+  founderRefund           Decimal   @map("founder_refund") @db.Decimal(10, 2)
+
+  settledAt               DateTime  @default(now()) @map("settled_at")
+
+  @@map("settlements")
+}
+
+// ============================================
+// LICENSES
+// ============================================
+
+model License {
+  id              String    @id @default(uuid())
+  campaignId      String    @map("campaign_id")
+  campaign        Campaign  @relation(fields: [campaignId], references: [id])
+
+  videoId         String    @map("video_id")
+  video           Video     @relation(fields: [videoId], references: [id])
+
+  creatorId       String    @map("creator_id")
+  creator         User      @relation("creator_licenses", fields: [creatorId], references: [id])
+
+  founderId       String    @map("founder_id")
+  founder         User      @relation("founder_licenses", fields: [founderId], references: [id])
+
+  licenseNumber   String    @unique @map("license_number")
+  pdfUrl          String?   @map("pdf_url")
+
+  grantedAt       DateTime  @default(now()) @map("granted_at")
+
+  @@map("licenses")
+}
+
+// ============================================
+// REVENUE TRACKING
+// ============================================
+
+model Revenue {
+  id          String    @id @default(uuid())
+  campaignId  String    @map("campaign_id")
+  videoId     String?   @map("video_id")
+
+  amount      Decimal   @db.Decimal(10, 2)
+  type        String    // 'markup', 'subscription', etc.
+  viewsCount  Int?      @map("views_count")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([campaignId])
+  @@map("revenue")
+}
+
+// ============================================
+// EMAIL VERIFICATION TOKENS
+// ============================================
+
+model VerificationToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  token     String    @unique
+  type      TokenType // 'email_verification', 'password_reset'
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("verification_tokens")
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String    // 'payment', 'approval', 'deadline', etc.
+  title     String
+  message   String
+  metadata  Json?
+  read      Boolean   @default(false)
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, read])
+  @@map("notifications")
+}
