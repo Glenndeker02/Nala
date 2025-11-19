@@ -36,7 +36,15 @@ Nala is a performance-based UGC (User-Generated Content) agency platform that cr
 - ✅ Daily view polling cron job
 - ✅ 7-day metric lock and settlement system
 - ✅ Automated payment processing
+- ✅ Scheduled post publishing cron job
 - ✅ Manual cron trigger API (for testing)
+
+### Advanced Features (NEW)
+- ✅ **Social Media Post Scheduler** - Automatic posting to TikTok, Instagram, Facebook
+- ✅ **Content Submission Hub** - Secure video upload with FFmpeg watermarking
+- ✅ **AI-Powered Brief Generator** - GPT-4 integration for UGC content briefs
+- ✅ **Protected Video Streaming** - Download prevention with pre-signed S3 URLs
+- ✅ **Dual-version video storage** - Watermarked preview + original after approval
 
 ## 📋 Prerequisites
 
@@ -47,6 +55,8 @@ Nala is a performance-based UGC (User-Generated Content) agency platform that cr
 - Meta (Facebook) Developer account
 - AWS S3 bucket (for video storage)
 - Redis (for job queues and caching)
+- **FFmpeg** (for video watermarking and thumbnail generation)
+- **OpenAI API key** (for AI brief generator)
 
 ## 🛠️ Setup Instructions
 
@@ -74,6 +84,8 @@ cp .env.example .env
 - `META_APP_ID` & `META_APP_SECRET` - Meta API credentials
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET_NAME` - AWS S3 credentials
 - `ENCRYPTION_KEY` - 32-character key for encrypting sensitive data
+- `OPENAI_API_KEY` - OpenAI API key for AI brief generator
+- `CRON_SECRET` - Secret token for cron job triggers
 
 ### 3. Database Setup
 
@@ -108,6 +120,16 @@ The application will be available at `http://localhost:3000`
 ### Videos
 - `POST /api/videos/submit` - Submit video draft (Creator only)
 - `POST /api/videos/approve` - Approve video and trigger base fee payment (Founder only)
+- `POST /api/videos/upload` - Upload video with automatic watermarking (Creator only)
+- `GET /api/videos/stream/[videoId]` - Stream video securely (authenticated)
+
+### Post Scheduling (NEW)
+- `POST /api/schedule/create` - Schedule a post for automatic publishing (Creator only)
+- `POST /api/schedule/list` - List all scheduled posts (Creator only)
+- `POST /api/schedule/cancel` - Cancel a scheduled post (Creator only)
+
+### AI Features (NEW)
+- `POST /api/ai/generate-brief` - Generate UGC brief with GPT-4 (Founder only)
 
 ### Stripe
 - `POST /api/stripe/connect/onboard` - Initiate Stripe Connect onboarding (Creator only)
@@ -115,7 +137,7 @@ The application will be available at `http://localhost:3000`
 
 ### Cron Jobs
 - `POST /api/cron/trigger` - Manually trigger cron jobs (requires CRON_SECRET)
-  - Body: `{ "job": "view-polling" | "settlement" | "all" }`
+  - Body: `{ "job": "view-polling" | "settlement" | "post-publisher" | "all" }`
 
 ## 💰 Payment Flow
 
@@ -173,12 +195,13 @@ See `TODO.md` for the complete development roadmap.
 
 **High Priority:**
 - [ ] Complete Creator and Founder UI dashboards
-- [ ] Implement OAuth flows for TikTok and Meta
-- [ ] Build video upload and management UI
+- [x] Implement OAuth flows for TikTok and Meta
+- [x] Build video upload and management UI
 - [ ] Implement email notification system
 - [ ] Add comprehensive testing
 - [ ] Security audit
 - [ ] Production deployment
+- [ ] Install FFmpeg on production server
 
 ## 📝 Documentation
 
@@ -220,9 +243,11 @@ See `TODO.md` for the complete development roadmap.
 
 External Services:
 ├─ Stripe (Payments & Escrow)
-├─ TikTok API (View Tracking)
-├─ Meta API (Instagram/Facebook)
-└─ AWS S3 (Video Storage)
+├─ TikTok API (View Tracking & Publishing)
+├─ Meta API (Instagram/Facebook View Tracking & Publishing)
+├─ AWS S3 (Video Storage with Pre-signed URLs)
+├─ OpenAI (GPT-4 for AI Brief Generation)
+└─ FFmpeg (Video Watermarking & Thumbnails)
 ```
 
 ## 📄 License
@@ -235,4 +260,4 @@ For issues and questions, please refer to the PRD and userflow documentation.
 
 ---
 
-**Built with**: Next.js, TypeScript, Prisma, PostgreSQL, Stripe, TailwindCSS
+**Built with**: Next.js, TypeScript, Prisma, PostgreSQL, Stripe, TailwindCSS, OpenAI, FFmpeg
