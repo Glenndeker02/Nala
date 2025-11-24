@@ -1,11 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import { NextRequest } from 'next/server';
+import { redirect } from 'next/navigation';
 import db from '@/lib/db';
-import { encrypt } from '@/lib/encryption';
+import { exchangeTikTokCode } from '@/lib/oauth/tiktok';
+import { ApiResponse } from '@/lib/api-middleware';
 
 /**
- * Handle TikTok OAuth callback
+ * TikTok OAuth Callback
+ * 
+ * This endpoint is called by TikTok after user authorizes the app
+ * URL: /api/auth/tiktok/callback?code=...&state=...
  */
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -13,122 +18,67 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
+    // Handle user denial
     if (error) {
-      return NextResponse.redirect(
-        new URL(`/creator/onboarding?error=${error}`, request.url)
-      );
+      console.error('TikTok OAuth error:', error);
+      return redirect('/creator/settings/connect?error=tiktok_denied');
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(
-        new URL('/creator/onboarding?error=missing_params', request.url)
-      );
+      return redirect('/creator/settings/connect?error=invalid_callback');
     }
 
-    // Extract userId from state (simplified - use proper session storage in production)
-    const [, userId] = state.split('_');
-
-    if (!userId) {
-      return NextResponse.redirect(
-        new URL('/creator/onboarding?error=invalid_state', request.url)
-      );
-    }
+    // TODO: Verify state matches what we stored
+    // const isValidState = await verifyOAuthState(userId, 'TIKTOK', state);
+    // if (!isValidState) {
+    //   return redirect('/creator/settings/connect?error=invalid_state');
+    // }
 
     // Exchange code for access token
-    const tokenResponse = await axios.post(
-      'https://open.tiktokapis.com/v2/oauth/token/',
-      {
-        client_key: process.env.TIKTOK_CLIENT_KEY,
-        client_secret: process.env.TIKTOK_CLIENT_SECRET,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: process.env.TIKTOK_REDIRECT_URI,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    );
+    const tokenData = await exchangeTikTokCode(code);
 
-    const { access_token, refresh_token, expires_in, open_id } = tokenResponse.data;
+    // Get user ID from session/cookie
+    // For now, we'll need to pass userId in state or use session
+    // TODO: Implement proper session management
+    const userId = request.cookies.get('userId')?.value;
 
-    // Fetch user profile
-    const profileResponse = await axios.get(
-      'https://open.tiktokapis.com/v2/user/info/',
-      {
-        params: {
-          fields: 'display_name,follower_count,username',
-        },
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-      }
-    );
-
-    const userData = profileResponse.data.data.user;
-
-    // Validate follower count (minimum 10,000)
-    if (userData.follower_count < 10000) {
-      return NextResponse.redirect(
-        new URL(
-          `/creator/onboarding?error=insufficient_followers&required=10000&current=${userData.follower_count}`,
-          request.url
-        )
-      );
+    if (!userId) {
+      return redirect('/auth/login?error=session_expired');
     }
 
-    // Encrypt tokens before storing
-    const encryptedAccessToken = encrypt(access_token);
-    const encryptedRefreshToken = encrypt(refresh_token);
-
-    // Store social account
-    await db.socialAccount.upsert({
+    // Store tokens in database
+    await db.socialConnection.upsert({
       where: {
-        creatorId_platform: {
-          creatorId: userId,
+        userId_platform: {
+          userId,
           platform: 'TIKTOK',
         },
       },
-      update: {
-        platformUserId: open_id,
-        username: userData.username,
-        followerCount: userData.follower_count,
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
-        tokenExpiresAt: new Date(Date.now() + expires_in * 1000),
-        verifiedAt: new Date(),
-        lastSyncedAt: new Date(),
-      },
       create: {
-        creatorId: userId,
+        userId,
         platform: 'TIKTOK',
-        platformUserId: open_id,
-        username: userData.username,
-        followerCount: userData.follower_count,
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
-        tokenExpiresAt: new Date(Date.now() + expires_in * 1000),
-        verifiedAt: new Date(),
-        lastSyncedAt: new Date(),
+        platformUserId: tokenData.openId,
+        accessToken: tokenData.accessToken,
+        refreshToken: tokenData.refreshToken,
+        expiresAt: tokenData.expiresAt,
+        scope: tokenData.scope,
+        isActive: true,
+      },
+      update: {
+        platformUserId: tokenData.openId,
+        accessToken: tokenData.accessToken,
+        refreshToken: tokenData.refreshToken,
+        expiresAt: tokenData.expiresAt,
+        scope: tokenData.scope,
+        isActive: true,
+        connectedAt: new Date(),
       },
     });
 
-    // Update creator profile verification status
-    await db.creatorProfile.updateMany({
-      where: { userId },
-      data: {
-        verificationStatus: 'VERIFIED',
-      },
-    });
-
-    return NextResponse.redirect(
-      new URL('/creator/onboarding?tiktok=connected', request.url)
-    );
+    // Redirect to settings page with success message
+    return redirect('/creator/settings/connect?success=tiktok_connected');
   } catch (error) {
     console.error('TikTok OAuth callback error:', error);
-    return NextResponse.redirect(
-      new URL('/creator/onboarding?error=connection_failed', request.url)
-    );
+    return redirect('/creator/settings/connect?error=connection_failed');
   }
 }

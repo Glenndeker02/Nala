@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
         creatorProfile: {
           select: {
             verificationStatus: true,
+            isOnboardingComplete: true,
           },
         },
       },
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
         ...(user.creatorProfile && {
           creatorProfile: {
             verificationStatus: user.creatorProfile.verificationStatus,
+            isOnboardingComplete: user.creatorProfile.isOnboardingComplete,
           },
         }),
       },

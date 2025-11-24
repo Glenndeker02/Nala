@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAccessToken, JWTPayload } from './auth';
+export type { JWTPayload };
 import { Role } from '@prisma/client';
 
 export interface AuthenticatedRequest extends NextRequest {
@@ -44,7 +45,7 @@ export function requireAuth(
  * Middleware to require specific role
  */
 export function requireRole(
-  roles: Role[],
+  roles: Role | Role[],
   handler: (request: NextRequest, user: JWTPayload) => Promise<NextResponse>
 ) {
   return async (request: NextRequest): Promise<NextResponse> => {
@@ -57,7 +58,8 @@ export function requireRole(
       );
     }
 
-    if (!roles.includes(user.role)) {
+    const rolesArray = Array.isArray(roles) ? roles : [roles];
+    if (!rolesArray.includes(user.role)) {
       return NextResponse.json(
         { error: 'Forbidden - Insufficient permissions' },
         { status: 403 }

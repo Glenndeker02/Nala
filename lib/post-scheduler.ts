@@ -10,9 +10,9 @@ export async function publishToTikTok(params: {
   accessToken: string;
   videoUrl: string;
   caption: string;
-  privacy: 'PUBLIC' | 'PRIVATE' | 'FRIENDS' = 'PUBLIC';
+  privacy?: 'PUBLIC' | 'PRIVATE' | 'FRIENDS';
 }): Promise<{ postId: string; postUrl: string }> {
-  const { accessToken, videoUrl, caption, privacy } = params;
+  const { accessToken, videoUrl, caption, privacy = 'PUBLIC' } = params;
 
   try {
     // TikTok Direct Post API
@@ -328,17 +328,14 @@ export async function processScheduledPost(scheduledPostId: string): Promise<voi
       },
     });
 
-    // Send notification to founder
+    // Send notification to creator
     await db.notification.create({
       data: {
         userId: scheduledPost.creatorId,
-        type: 'post_published',
+        type: 'VIDEO_STATUS',
         title: 'Post published successfully',
-        message: `Your ${scheduledPost.platform.toLowerCase()} post has been published`,
-        metadata: {
-          scheduledPostId,
-          postUrl: result.postUrl,
-        },
+        message: `Your ${scheduledPost.platform.toLowerCase()} post has been published.`,
+        isRead: false,
       },
     });
   } catch (error) {

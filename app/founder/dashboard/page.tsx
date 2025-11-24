@@ -1,161 +1,177 @@
-'use client';
+"use client";
 
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+type Campaign = {
+  id: string;
+  name: string;
+  status: string;
+  totalBudget: number;
+  videosRequested: number;
+  videosCompleted: number;
+  createdAt: string;
+  _count?: {
+    videos: number;
+  };
+};
 
 export default function FounderDashboard() {
+  const [user, setUser] = useState<any>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    if (!token || !userData) {
+      window.location.href = "/auth/login";
+      return;
+    }
+
+    setUser(JSON.parse(userData));
+    fetchCampaigns(token);
+  }, []);
+
+  const fetchCampaigns = async (token: string) => {
+    try {
+      const response = await fetch("/api/campaigns", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setCampaigns(data.campaigns || []);
+      }
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/auth/login";
+  };
+
+  if (!user) return <div>Loading...</div>;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Founder Dashboard</h1>
-            <p className="mt-2 text-gray-600">Manage your campaigns and track performance</p>
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-gray-900">Founder Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-gray-600">Welcome, {user.fullName}</span>
+            {user.companyName && (
+              <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">
+                {user.companyName}
+              </span>
+            )}
+            <button
+              onClick={handleSignOut}
+              className="text-sm text-red-600 hover:text-red-800"
+            >
+              Sign out
+            </button>
           </div>
-          <Button variant="primary" size="lg">
-            Create Campaign +
-          </Button>
         </div>
-
-        {/* Active Campaign Overview */}
-        <Card className="mb-8">
-          <CardHeader className="bg-gradient-to-r from-primary-50 to-secondary-50">
-            <CardTitle>Q4 Product Launch Campaign</CardTitle>
-            <div className="mt-2 flex items-center space-x-4 text-sm text-gray-600">
-              <span>Budget: $1,000</span>
-              <span>•</span>
-              <span>Videos: 5/5</span>
-              <span>•</span>
-              <span>Active: 3</span>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div>
-                <div className="text-sm font-medium text-gray-600">Spent</div>
-                <div className="mt-1 flex items-baseline">
-                  <div className="text-2xl font-bold text-gray-900">$650</div>
-                  <div className="ml-2 text-sm text-gray-500">65%</div>
-                </div>
-                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '65%' }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium text-gray-600">Reserved</div>
-                <div className="mt-1 flex items-baseline">
-                  <div className="text-2xl font-bold text-gray-900">$200</div>
-                  <div className="ml-2 text-sm text-gray-500">20%</div>
-                </div>
-                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '20%' }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium text-gray-600">Refund</div>
-                <div className="mt-1 flex items-baseline">
-                  <div className="text-2xl font-bold text-green-600">$150</div>
-                  <div className="ml-2 text-sm text-gray-500">15%</div>
-                </div>
-                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '15%' }}></div>
-                </div>
-              </div>
+      </header>
+      <main>
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            {/* Create Campaign Button */}
+            <div className="mb-6">
+              <Link
+                href="/founder/campaigns/create"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                + Create New Campaign
+              </Link>
             </div>
 
-            <div className="border-t border-gray-200 pt-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Video Performance</h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-900">Video 1</span>
-                      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">TikTok</span>
-                      <span className="text-xs text-gray-500">Posted Nov 15</span>
-                    </div>
-                    <div className="mt-1 flex items-center space-x-4 text-sm text-gray-600">
-                      <span>45,232 views</span>
-                      <span>•</span>
-                      <span className="text-green-600">90% of target</span>
-                      <span>•</span>
-                      <span>Days remaining: 2 🎯</span>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    View Details
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-900">Video 2</span>
-                      <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">Instagram</span>
-                      <span className="text-xs text-gray-500">Posted Nov 16</span>
-                    </div>
-                    <div className="mt-1 flex items-center space-x-4 text-sm text-gray-600">
-                      <span>28,540 views</span>
-                      <span>•</span>
-                      <span className="text-yellow-600">57% of target</span>
-                      <span>•</span>
-                      <span>Days remaining: 3</span>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    View Details
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-900">Video 3</span>
-                      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">TikTok</span>
-                      <span className="text-xs text-orange-600">⚠️ Pending Review</span>
-                    </div>
-                    <div className="mt-1 text-sm text-gray-600">
-                      Submitted by @marythcreator • 2 hours ago
-                    </div>
-                  </div>
-                  <Button variant="primary" size="sm">
-                    Review Now
-                  </Button>
-                </div>
+            {/* Campaigns List */}
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-medium text-gray-900">Your Campaigns</h2>
               </div>
+
+              {loading ? (
+                <div className="p-6 text-center text-gray-500">Loading campaigns...</div>
+              ) : campaigns.length === 0 ? (
+                <div className="p-12 text-center">
+                  <p className="text-gray-500 text-lg mb-4">No campaigns yet</p>
+                  <p className="text-gray-400 text-sm">Create your first campaign to get started!</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200">
+                  {campaigns.map((campaign) => (
+                    <div key={campaign.id} className="p-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {campaign.name}
+                            </h3>
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full font-medium ${campaign.status === "ACTIVE"
+                                ? "bg-green-100 text-green-800"
+                                : campaign.status === "COMPLETED"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                                }`}
+                            >
+                              {campaign.status}
+                            </span>
+                          </div>
+
+                          <div className="flex gap-6 text-sm text-gray-600 mb-3">
+                            <div>
+                              <span className="font-medium">Budget:</span> ${campaign.totalBudget}
+                            </div>
+                            <div>
+                              <span className="font-medium">Videos:</span> {campaign.videosCompleted}/{campaign.videosRequested}
+                            </div>
+                            <div>
+                              <span className="font-medium">Created:</span>{" "}
+                              {new Date(campaign.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <Link
+                              href={`/founder/campaigns/${campaign.id}/applications`}
+                              className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                            >
+                              View Applications →
+                            </Link>
+                            <Link
+                              href={`/founder/campaigns/${campaign.id}/review`}
+                              className="text-sm text-green-600 hover:text-green-800 font-medium"
+                            >
+                              Review Videos →
+                            </Link>
+                            <Link
+                              href={`/founder/campaigns/${campaign.id}`}
+                              className="text-sm text-gray-600 hover:text-gray-800"
+                            >
+                              Campaign Details
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold text-gray-900 mb-2">Total Views</h3>
-              <div className="text-3xl font-bold text-gray-900">226,160</div>
-              <p className="text-sm text-gray-500 mt-1">Across all campaigns</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold text-gray-900 mb-2">Videos Delivered</h3>
-              <div className="text-3xl font-bold text-gray-900">18/20</div>
-              <p className="text-sm text-gray-500 mt-1">2 in review</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold text-gray-900 mb-2">Est. Refund</h3>
-              <div className="text-3xl font-bold text-green-600">$320</div>
-              <p className="text-sm text-gray-500 mt-1">From active campaigns</p>
-            </CardContent>
-          </Card>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

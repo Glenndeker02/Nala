@@ -83,7 +83,12 @@ export async function POST(request: NextRequest) {
     });
 
     // TODO: Send verification email
-    // await sendVerificationEmail(user.email, verificationToken);
+    // For development, we log the link to the console
+    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/verify?token=${verificationToken}`;
+    console.log('=================================================================');
+    console.log('📧 MOCK EMAIL: Verify your account');
+    console.log(`Click here: ${verificationLink}`);
+    console.log('=================================================================');
 
     // Generate tokens
     const tokens = generateTokens({

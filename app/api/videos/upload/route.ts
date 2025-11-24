@@ -1,139 +1,101 @@
 import { NextRequest } from 'next/server';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 import db from '@/lib/db';
 import { requireRole, ApiResponse } from '@/lib/api-middleware';
-import { processVideoSubmission } from '@/lib/video-processing';
 
-/**
- * Upload and process video submission with watermark
- */
 export const POST = requireRole(['CREATOR'], async (request: NextRequest, user) => {
   try {
     const formData = await request.formData();
-
-    const videoFile = formData.get('video') as File;
-    const campaignId = formData.get('campaignId') as string;
+    const file = formData.get('video') as File;
     const videoId = formData.get('videoId') as string;
-    const submissionNotes = formData.get('notes') as string | null;
+    const notes = formData.get('notes') as string;
 
-    if (!videoFile || !campaignId || !videoId) {
-      return ApiResponse.error('Missing required fields', 400);
+    if (!file) {
+      return ApiResponse.error('No video file provided', 400);
     }
 
-    // Validate file type
-    if (!videoFile.type.startsWith('video/')) {
-      return ApiResponse.error('Invalid file type. Please upload a video file.', 400);
+    if (!videoId) {
+      return ApiResponse.error('Video ID is required', 400);
     }
 
-    // Validate file size (max 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    if (videoFile.size > maxSize) {
-      return ApiResponse.error('File too large. Maximum size is 500MB.', 400);
-    }
-
-    // Verify campaign exists and creator is assigned
-    const campaign = await db.campaign.findUnique({
-      where: { id: campaignId },
-    });
-
-    if (!campaign) {
-      return ApiResponse.error('Campaign not found', 404);
-    }
-
-    if (campaign.creatorId !== user.userId) {
-      return ApiResponse.error('You are not assigned to this campaign', 403);
-    }
-
-    // Verify video exists
+    // Verify video exists and belongs to creator
     const video = await db.video.findUnique({
       where: { id: videoId },
+      include: { campaign: true },
     });
 
-    if (!video || video.campaignId !== campaignId) {
+    if (!video) {
       return ApiResponse.error('Video not found', 404);
     }
 
-    // Convert File to Buffer
-    const arrayBuffer = await videoFile.arrayBuffer();
-    const videoBuffer = Buffer.from(arrayBuffer);
+    if (video.creatorId !== user.userId) {
+      return ApiResponse.error('Unauthorized', 403);
+    }
 
-    // Process video: watermark, thumbnail, upload to S3
-    const processedVideo = await processVideoSubmission({
-      videoBuffer,
-      originalFilename: videoFile.name,
-      videoId,
-      campaignId,
-      creatorId: user.userId,
-    });
+    if (video.status !== 'PENDING' && video.status !== 'REVISION_REQUESTED') {
+      return ApiResponse.error('Video is not in a state that accepts uploads', 400);
+    }
 
-    // Create video submission record
-    const submission = await db.videoSubmission.create({
-      data: {
-        videoId,
-        campaignId,
-        creatorId: user.userId,
-        originalUrl: processedVideo.originalUrl,
-        originalFilename: videoFile.name,
-        fileSize: processedVideo.fileSize,
-        duration: processedVideo.duration,
-        resolution: processedVideo.resolution,
-        watermarkedUrl: processedVideo.watermarkedUrl,
-        thumbnailUrl: processedVideo.thumbnailUrl,
-        processingStatus: 'COMPLETED',
-        submissionNotes,
-      },
-    });
+    // Validate file type
+    const validTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+    if (!validTypes.includes(file.type)) {
+      return ApiResponse.error('Invalid file type. Only MP4, MOV, and WebM are allowed', 400);
+    }
 
-    // Update video status
-    await db.video.update({
+    // Validate file size (1GB max)
+    const maxSize = 1024 * 1024 * 1024; // 1GB
+    if (file.size > maxSize) {
+      return ApiResponse.error('File size exceeds 1GB limit', 400);
+    }
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'drafts');
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true });
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileExtension = file.name.split('.').pop();
+    const filename = `${videoId}_${timestamp}.${fileExtension}`;
+    const filepath = join(uploadsDir, filename);
+
+    // Convert file to buffer and save
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    await writeFile(filepath, buffer);
+
+    // Update video record
+    const updatedVideo = await db.video.update({
       where: { id: videoId },
       data: {
-        draftVideoUrl: processedVideo.watermarkedUrl,
+        draftVideoUrl: `/uploads/drafts/${filename}`,
         status: 'DRAFT_SUBMITTED',
         submittedAt: new Date(),
       },
     });
 
-    // Notify founder
-    await db.notification.create({
-      data: {
-        userId: campaign.founderId,
-        type: 'video_submitted',
-        title: 'New video submitted for review',
-        message: `Creator has submitted a video for ${campaign.name}`,
-        metadata: {
-          campaignId,
-          videoId,
-          submissionId: submission.id,
-        },
-      },
-    });
+    // TODO: Create notification for founder
+    // TODO: Process video for watermarking (future enhancement)
+    // TODO: Generate thumbnail
 
     return ApiResponse.success({
-      submission: {
-        id: submission.id,
-        watermarkedUrl: submission.watermarkedUrl,
-        thumbnailUrl: submission.thumbnailUrl,
-        duration: submission.duration,
-        resolution: submission.resolution,
-        fileSize: submission.fileSize,
+      message: 'Draft uploaded successfully',
+      video: {
+        id: updatedVideo.id,
+        draftVideoUrl: updatedVideo.draftVideoUrl,
+        status: updatedVideo.status,
       },
-      message:
-        'Video uploaded and watermarked successfully! Waiting for founder approval.',
     });
   } catch (error) {
-    console.error('Video upload error:', error);
-    return ApiResponse.error(
-      error instanceof Error ? error.message : 'Failed to upload video',
-      500
-    );
+    console.error('Upload error:', error);
+    return ApiResponse.error('Failed to upload video', 500);
   }
 });
 
-// Configure API route to handle large files
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '500mb',
-    },
-  },
-};
+// Route segment config for video uploads
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+// Body parser is automatically disabled for route handlers with FormData

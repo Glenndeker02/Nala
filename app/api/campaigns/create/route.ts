@@ -83,7 +83,7 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
         founderId: user.userId,
         name,
         description,
-        status: 'DRAFT',
+        status: 'ACTIVE', // TODO: Change back to DRAFT when payment flow is ready
         videosRequested,
         totalBudget,
         baseFeeeBudget: baseFeebudget,

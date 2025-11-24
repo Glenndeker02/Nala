@@ -1,117 +1,86 @@
-'use client';
+"use client";
 
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import TrendingFormatsList from "@/components/creator/TrendingFormatsList";
 
 export default function CreatorDashboard() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    if (!token || !userData) {
+      router.push("/auth/login");
+      return;
+    }
+
+    setUser(JSON.parse(userData));
+  }, [router]);
+
+  if (!user) return <div>Loading...</div>;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Creator Dashboard</h1>
-          <p className="mt-2 text-gray-600">Manage your campaigns and track your earnings</p>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm font-medium text-gray-600">Available Balance</div>
-              <div className="mt-2 text-3xl font-bold text-gray-900">$1,247.50</div>
-              <Button variant="primary" size="sm" className="mt-4">
-                Request Payout
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm font-medium text-gray-600">This Month</div>
-              <div className="mt-2 text-3xl font-bold text-gray-900">$2,430</div>
-              <div className="mt-2 text-sm text-gray-500">12 videos | 847K views</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm font-medium text-gray-600">Active Briefs</div>
-              <div className="mt-2 text-3xl font-bold text-gray-900">3</div>
-              <div className="mt-2 text-sm text-gray-500">2 due this week</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Active Briefs */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Active Briefs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="border-l-4 border-green-500 pl-4 py-3 bg-green-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">SaaS Product Launch</h4>
-                    <p className="text-sm text-gray-600 mt-1">Due: Nov 20 (2 days)</p>
-                    <p className="text-sm text-gray-500 mt-1">⏳ Draft Submitted - In Review</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600">Base: $75</div>
-                    <div className="text-sm text-gray-600">Est. Bonus: $200-400</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-l-4 border-blue-500 pl-4 py-3 bg-blue-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Mobile App Review</h4>
-                    <p className="text-sm text-gray-600 mt-1">Due: Nov 23 (5 days)</p>
-                    <p className="text-sm text-gray-500 mt-1">📝 Pending - Not Started</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600">Base: $100</div>
-                    <div className="text-sm text-gray-600">Est. Bonus: $300-500</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <h4 className="font-medium text-gray-900">Productivity Tool Review</h4>
-                  <p className="text-sm text-gray-500">TikTok • Posted Nov 15</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold text-gray-900">85,232 views</div>
-                  <div className="text-sm text-gray-500">Day 5/7 • Est. +$340</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <h4 className="font-medium text-gray-900">B2B Software Demo</h4>
-                  <p className="text-sm text-gray-500">Instagram • Posted Nov 13</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold text-gray-900">127,450 views</div>
-                  <div className="text-sm text-green-600">Completed • +$510</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-gray-900">Creator Dashboard</h1>
       </div>
+      <main>
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Browse Briefs Card */}
+              <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-indigo-400 transition-colors">
+                <div className="text-center">
+                  <div className="mb-4">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Find New Work</h3>
+                  <p className="text-gray-500 text-sm mb-4">
+                    Browse available campaigns and apply to projects that match your skills.
+                  </p>
+                  <Link
+                    href="/creator/briefs"
+                    className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 transition-colors font-medium"
+                  >
+                    Browse Available Briefs
+                  </Link>
+                </div>
+              </div>
+
+              {/* My Tasks Card */}
+              <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-green-400 transition-colors">
+                <div className="text-center">
+                  <div className="mb-4">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">My Active Tasks</h3>
+                  <p className="text-gray-500 text-sm mb-4">
+                    View and manage your assigned video projects and track your progress.
+                  </p>
+                  <Link
+                    href="/creator/tasks"
+                    className="inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors font-medium"
+                  >
+                    View My Tasks
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12">
+              <TrendingFormatsList />
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

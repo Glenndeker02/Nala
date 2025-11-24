@@ -1,0 +1,12 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/update-views",
+            "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/cron/lock-videos",
+            "schedule": "0 1 * * *"
+        }
+    ]
+}

@@ -36,3 +36,11 @@ export function CardTitle({ children, className = '' }: CardProps) {
     </h3>
   );
 }
+
+export function CardDescription({ children, className = '' }: CardProps) {
+  return (
+    <p className={`text-sm text-gray-500 ${className}`}>
+      {children}
+    </p>
+  );
+}
