@@ -1,19 +1,31 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
+// Make Stripe initialization conditional to prevent module-level errors
+let stripe: Stripe | null = null;
+
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2023-10-16',
+    typescript: true,
+  });
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia',
-  typescript: true,
-});
+// Helper to ensure Stripe is initialized
+function ensureStripe(): Stripe {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY in your environment variables.');
+  }
+  return stripe;
+}
+
+export { stripe };
 
 /**
  * Create a Stripe Connect Express account for creators
  */
 export async function createConnectAccount(email: string, userId: string): Promise<Stripe.Account> {
-  return await stripe.accounts.create({
+  const stripeClient = ensureStripe();
+  return await stripeClient.accounts.create({
     type: 'express',
     country: 'US',
     email,
@@ -35,7 +47,8 @@ export async function createAccountLink(
   refreshUrl: string,
   returnUrl: string
 ): Promise<Stripe.AccountLink> {
-  return await stripe.accountLinks.create({
+  const stripeClient = ensureStripe();
+  return await stripeClient.accountLinks.create({
     account: accountId,
     refresh_url: refreshUrl,
     return_url: returnUrl,
@@ -47,7 +60,8 @@ export async function createAccountLink(
  * Retrieve Stripe Connect account details
  */
 export async function getConnectAccount(accountId: string): Promise<Stripe.Account> {
-  return await stripe.accounts.retrieve(accountId);
+  const stripeClient = ensureStripe();
+  return await stripeClient.accounts.retrieve(accountId);
 }
 
 /**
@@ -59,7 +73,8 @@ export async function createCampaignPaymentIntent(
   campaignId: string,
   customerId?: string
 ): Promise<Stripe.PaymentIntent> {
-  return await stripe.paymentIntents.create({
+  const stripeClient = ensureStripe();
+  return await stripeClient.paymentIntents.create({
     amount,
     currency: 'usd',
     ...(customerId && { customer: customerId }),
@@ -86,8 +101,9 @@ export async function transferBaseFee(params: {
   creatorId: string;
 }): Promise<Stripe.Transfer> {
   const { amount, creatorAccountId, campaignId, videoId, founderId, creatorId } = params;
+  const stripeClient = ensureStripe();
 
-  return await stripe.transfers.create({
+  return await stripeClient.transfers.create({
     amount,
     currency: 'usd',
     destination: creatorAccountId,
@@ -114,8 +130,9 @@ export async function transferPerformanceBonus(params: {
   viewsAchieved: number;
 }): Promise<Stripe.Transfer> {
   const { amount, creatorAccountId, campaignId, videoId, viewsAchieved } = params;
+  const stripeClient = ensureStripe();
 
-  return await stripe.transfers.create({
+  return await stripeClient.transfers.create({
     amount,
     currency: 'usd',
     destination: creatorAccountId,
@@ -138,7 +155,8 @@ export async function refundUnspentBudget(
   amount: number, // In cents
   campaignId: string
 ): Promise<Stripe.Refund> {
-  return await stripe.refunds.create({
+  const stripeClient = ensureStripe();
+  return await stripeClient.refunds.create({
     payment_intent: paymentIntentId,
     amount,
     reason: 'requested_by_customer',
@@ -157,7 +175,8 @@ export async function createCustomer(
   name: string,
   metadata: { userId: string }
 ): Promise<Stripe.Customer> {
-  return await stripe.customers.create({
+  const stripeClient = ensureStripe();
+  return await stripeClient.customers.create({
     email,
     name,
     metadata,
@@ -183,7 +202,8 @@ export function verifyWebhookSignature(
   signature: string,
   secret: string
 ): Stripe.Event {
-  return stripe.webhooks.constructEvent(payload, signature, secret);
+  const stripeClient = ensureStripe();
+  return stripeClient.webhooks.constructEvent(payload, signature, secret);
 }
 
 /**

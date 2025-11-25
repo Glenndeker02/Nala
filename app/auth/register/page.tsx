@@ -3,6 +3,8 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 function RegisterForm() {
     const router = useRouter();
@@ -79,16 +81,21 @@ function RegisterForm() {
 
     if (!userType) {
         return (
-            <div className="text-center">
-                <h2 className="text-3xl font-extrabold text-gray-900 mb-8">
+            <div className="text-center max-w-2xl mx-auto">
+                <h2 className="text-3xl font-bold text-gray-900 mb-8 tracking-tight">
                     Join Nala
                 </h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <button
                         onClick={() => setUserType("founder")}
-                        className="relative rounded-lg border border-gray-300 bg-white px-6 py-12 shadow-sm flex flex-col items-center hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        className="relative rounded-2xl border border-gray-200 bg-white px-6 py-12 shadow-sm flex flex-col items-center hover:border-primary-DEFAULT hover:shadow-md transition-all duration-200 group"
                     >
-                        <span className="text-xl font-medium text-gray-900">I&apos;m a Founder</span>
+                        <div className="h-12 w-12 bg-primary-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary-100 transition-colors">
+                            <svg className="w-6 h-6 text-primary-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                        <span className="text-xl font-bold text-gray-900">I'm a Founder</span>
                         <span className="mt-2 text-sm text-gray-500">
                             Hire creators for your campaigns
                         </span>
@@ -96,9 +103,14 @@ function RegisterForm() {
 
                     <button
                         onClick={() => setUserType("creator")}
-                        className="relative rounded-lg border border-gray-300 bg-white px-6 py-12 shadow-sm flex flex-col items-center hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        className="relative rounded-2xl border border-gray-200 bg-white px-6 py-12 shadow-sm flex flex-col items-center hover:border-primary-DEFAULT hover:shadow-md transition-all duration-200 group"
                     >
-                        <span className="text-xl font-medium text-gray-900">I&apos;m a Creator</span>
+                        <div className="h-12 w-12 bg-primary-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary-100 transition-colors">
+                            <svg className="w-6 h-6 text-primary-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <span className="text-xl font-bold text-gray-900">I'm a Creator</span>
                         <span className="mt-2 text-sm text-gray-500">
                             Find campaigns and get paid
                         </span>
@@ -106,7 +118,7 @@ function RegisterForm() {
                 </div>
                 <p className="mt-8 text-sm text-gray-600">
                     Already have an account?{" "}
-                    <Link href="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                    <Link href="/auth/login" className="font-medium text-primary-DEFAULT hover:text-primary-600">
                         Sign in
                     </Link>
                 </p>
@@ -115,49 +127,47 @@ function RegisterForm() {
     }
 
     return (
-        <div>
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 max-w-md w-full mx-auto">
             <div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                <h2 className="mt-2 text-center text-3xl font-bold text-gray-900 tracking-tight">
                     Sign up as a {userType === "founder" ? "Founder" : "Creator"}
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
                     Or{" "}
                     <button
                         onClick={() => setUserType(null)}
-                        className="font-medium text-indigo-600 hover:text-indigo-500"
+                        className="font-medium text-primary-DEFAULT hover:text-primary-600"
                     >
                         change account type
                     </button>
                 </p>
             </div>
             <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                <div className="rounded-md shadow-sm -space-y-px">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="firstName" className="sr-only">
+                            <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
                                 First Name
                             </label>
-                            <input
+                            <Input
                                 id="firstName"
                                 name="firstName"
                                 type="text"
                                 required
-                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="First Name"
                                 value={formData.firstName}
                                 onChange={handleChange}
                             />
                         </div>
                         <div>
-                            <label htmlFor="lastName" className="sr-only">
+                            <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
                                 Last Name
                             </label>
-                            <input
+                            <Input
                                 id="lastName"
                                 name="lastName"
                                 type="text"
                                 required
-                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                 placeholder="Last Name"
                                 value={formData.lastName}
                                 onChange={handleChange}
@@ -166,33 +176,31 @@ function RegisterForm() {
                     </div>
 
                     {userType === "founder" && (
-                        <div className="mb-4 space-y-4">
+                        <div className="space-y-4">
                             <div>
-                                <label htmlFor="companyName" className="sr-only">
+                                <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
                                     Company Name
                                 </label>
-                                <input
+                                <Input
                                     id="companyName"
                                     name="companyName"
                                     type="text"
                                     required
-                                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                                     placeholder="Company Name"
                                     value={formData.companyName}
                                     onChange={handleChange}
                                 />
                             </div>
                             <div>
-                                <label htmlFor="website" className="sr-only">
+                                <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
                                     Website URL
                                 </label>
-                                <input
+                                <Input
                                     id="website"
                                     name="website"
                                     type="url"
                                     required
-                                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                    placeholder="Website URL (e.g. https://example.com)"
+                                    placeholder="https://example.com"
                                     value={formData.website}
                                     onChange={handleChange}
                                 />
@@ -200,71 +208,67 @@ function RegisterForm() {
                         </div>
                     )}
 
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="email-address" className="sr-only">
-                                Email address
-                            </label>
-                            <input
-                                id="email-address"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Email address"
-                                value={formData.email}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="password" className="sr-only">
-                                Password
-                            </label>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="new-password"
-                                required
-                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Password"
-                                value={formData.password}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="confirmPassword" className="sr-only">
-                                Confirm Password
-                            </label>
-                            <input
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                type="password"
-                                autoComplete="new-password"
-                                required
-                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Confirm Password"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                            />
-                        </div>
+                    <div>
+                        <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1">
+                            Email address
+                        </label>
+                        <Input
+                            id="email-address"
+                            name="email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            placeholder="you@example.com"
+                            value={formData.email}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                            Password
+                        </label>
+                        <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autoComplete="new-password"
+                            required
+                            placeholder="••••••••"
+                            value={formData.password}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                            Confirm Password
+                        </label>
+                        <Input
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            type="password"
+                            autoComplete="new-password"
+                            required
+                            placeholder="••••••••"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                        />
                     </div>
                 </div>
 
                 <div>
-                    <button
+                    <Button
                         type="submit"
                         disabled={loading}
-                        className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                        className="w-full"
+                        size="lg"
                     >
                         {loading ? "Creating account..." : "Create Account"}
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="text-center text-sm">
                     <span className="text-gray-600">Already have an account? </span>
-                    <Link href="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                    <Link href="/auth/login" className="font-medium text-primary-DEFAULT hover:text-primary-600">
                         Sign in
                     </Link>
                 </div>

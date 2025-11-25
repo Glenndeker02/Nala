@@ -217,9 +217,10 @@ export const GET = requireRole('ADMIN', async (request: NextRequest) => {
             lastSyncAt: new Date(now.getTime() - 30 * 60 * 1000), // 30 mins ago
         };
 
-        // Alerts (would be calculated based on actual conditions)
+        // Alerts (enhanced with additional types)
         const alerts = [];
 
+        // Alert: KYC Backlog
         if (pendingKYC > 50) {
             alerts.push({
                 severity: 'warning',
@@ -230,6 +231,7 @@ export const GET = requireRole('ADMIN', async (request: NextRequest) => {
             });
         }
 
+        // Alert: Open Disputes
         if (openDisputes > 0) {
             alerts.push({
                 severity: openDisputes > 5 ? 'critical' : 'warning',
@@ -237,6 +239,88 @@ export const GET = requireRole('ADMIN', async (request: NextRequest) => {
                 count: openDisputes,
                 message: `${openDisputes} active disputes need attention`,
                 actionItems: ['Review', 'Escalate', 'Auto-Resolve'],
+            });
+        }
+
+        // Alert: Failed Payments
+        const failedPayments = await db.payment.count({
+            where: {
+                status: 'FAILED',
+                createdAt: {
+                    gte: todayStart,
+                },
+            },
+        });
+
+        if (failedPayments > 0) {
+            alerts.push({
+                severity: failedPayments > 5 ? 'critical' : 'warning',
+                type: 'FAILED_PAYMENTS',
+                count: failedPayments,
+                message: `${failedPayments} payment(s) failed today`,
+                actionItems: ['Retry', 'Manual Review', 'Contact Support'],
+            });
+        }
+
+        // Alert: High Refund Rate
+        if (refundRate > 35) {
+            alerts.push({
+                severity: refundRate > 50 ? 'critical' : 'warning',
+                type: 'HIGH_REFUND_RATE',
+                count: Math.round(refundRate),
+                message: `Refund rate at ${Math.round(refundRate)}% (target: 25-35%)`,
+                actionItems: ['Analyze Campaigns', 'Review Pricing', 'Check Quality'],
+            });
+        }
+
+        // Alert: Stale Campaigns
+        const staleCampaigns = await db.campaign.count({
+            where: {
+                status: {
+                    in: ['ACTIVE', 'IN_PROGRESS'],
+                },
+                updatedAt: {
+                    lt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+                },
+            },
+        });
+
+        if (staleCampaigns > 0) {
+            alerts.push({
+                severity: 'info',
+                type: 'STALE_CAMPAIGNS',
+                count: staleCampaigns,
+                message: `${staleCampaigns} campaign(s) with no activity for 7+ days`,
+                actionItems: ['Contact Founders', 'Review Status', 'Force Close'],
+            });
+        }
+
+        // Alert: High Suspended User Count
+        if (suspendedUsers > 10) {
+            alerts.push({
+                severity: 'warning',
+                type: 'HIGH_SUSPENSIONS',
+                count: suspendedUsers,
+                message: `${suspendedUsers} users currently suspended`,
+                actionItems: ['Review Cases', 'Lift Suspensions', 'Investigate'],
+            });
+        }
+
+        // Alert: Low Creator Availability
+        const availableCreators = await db.creatorProfile.count({
+            where: {
+                verificationStatus: 'VERIFIED',
+                availabilityStatus: 'AVAILABLE',
+            },
+        });
+
+        if (availableCreators < 20) {
+            alerts.push({
+                severity: 'warning',
+                type: 'LOW_CREATOR_AVAILABILITY',
+                count: availableCreators,
+                message: `Only ${availableCreators} verified creators available`,
+                actionItems: ['Recruit Creators', 'Approve Pending', 'Send Invites'],
             });
         }
 

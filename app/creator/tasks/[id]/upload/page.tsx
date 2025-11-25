@@ -1,107 +1,174 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 
-type VideoTask = {
+type Task = {
     id: string;
+    campaignId: string;
+    campaignName: string;
+    founderName: string;
     status: string;
-    campaign: {
-        id: string;
-        name: string;
+    deadline: string;
+    baseFee: number;
+    briefData: {
         description: string;
-        briefData: any;
-        founder: {
-            fullName: string;
-            companyName: string | null;
-        };
+        talkingPoints: string[];
+        mustHaves: string[];
+        videoLength: string;
+        tone: string;
+        platforms: string[];
     };
-    baseFeeAmount: number | null;
+    revisionFeedback?: string;
 };
 
-export default function UploadDraftPage({ params }: { params: { id: string } }) {
+export default function VideoUploadPage() {
     const router = useRouter();
-    const [video, setVideo] = useState<VideoTask | null>(null);
+    const params = useParams();
+    const taskId = params.id as string;
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [notes, setNotes] = useState("");
 
-    const fetchVideoDetails = useCallback(async () => {
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>("");
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [isDragging, setIsDragging] = useState(false);
+
+    useEffect(() => {
+        if (taskId) {
+            fetchTaskDetails();
+        }
+    }, [taskId]);
+
+    const fetchTaskDetails = async () => {
         const token = localStorage.getItem("token");
         try {
-            const response = await fetch(`/api/videos/${params.id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
+            const mockTask: Task = {
+                id: taskId,
+                campaignId: "1",
+                campaignName: "Acme Product Launch",
+                founderName: "Mike Johnson",
+                status: "ASSIGNED",
+                deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+                baseFee: 50,
+                briefData: {
+                    description: "Showcase our new SaaS product with professional yet casual tone.",
+                    talkingPoints: [
+                        "Showcase the intuitive dashboard",
+                        "Demonstrate automation features",
+                        "Highlight analytics capabilities"
+                    ],
+                    mustHaves: [
+                        "Clear product demo",
+                        "Mention 14-day free trial",
+                        "Include brand name 'Acme' twice"
+                    ],
+                    videoLength: "30-60 seconds",
+                    tone: "Professional yet casual",
+                    platforms: ["TIKTOK", "INSTAGRAM"]
                 },
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setVideo(data.video);
-            }
+                revisionFeedback: undefined
+            };
+
+            setTask(mockTask);
         } catch (error) {
-            console.error("Error fetching video:", error);
+            console.error("Error fetching task:", error);
         } finally {
             setLoading(false);
         }
-    }, [params.id]);
+    };
 
-    useEffect(() => {
-        fetchVideoDetails();
-    }, [fetchVideoDetails]);
+    const handleFileSelect = (file: File) => {
+        if (!file.type.startsWith('video/')) {
+            alert("Please select a valid video file.");
+            return;
+        }
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            // Validate file type
-            const validTypes = ["video/mp4", "video/quicktime", "video/webm"];
-            if (!validTypes.includes(file.type)) {
-                alert("Please select a valid video file (MP4, MOV, or WebM)");
-                return;
-            }
+        const maxSize = 500 * 1024 * 1024;
+        if (file.size > maxSize) {
+            alert("File size must be less than 500MB.");
+            return;
+        }
 
-            // Validate file size (max 1GB)
-            const maxSize = 1024 * 1024 * 1024; // 1GB in bytes
-            if (file.size > maxSize) {
-                alert("File size must be less than 1GB");
-                return;
-            }
+        setVideoFile(file);
+        const url = URL.createObjectURL(file);
+        setVideoPreviewUrl(url);
 
-            setSelectedFile(file);
+        if (!title) {
+            const fileName = file.name.replace(/\.[^/.]+$/, "");
+            setTitle(fileName);
         }
     };
 
-    const handleUpload = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            handleFileSelect(file);
+        }
+    };
 
-        if (!selectedFile) {
-            alert("Please select a video file");
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            handleFileSelect(file);
+        }
+    };
+
+    const handleSubmit = async () => {
+        if (!videoFile) {
+            alert("Please select a video file.");
+            return;
+        }
+
+        if (!title.trim()) {
+            alert("Please enter a video title.");
             return;
         }
 
         setUploading(true);
+        setUploadProgress(0);
+
         const token = localStorage.getItem("token");
+        const formData = new FormData();
+        formData.append('video', videoFile);
+        formData.append('title', title);
+        formData.append('description', description);
+        formData.append('taskId', taskId);
 
         try {
-            const formData = new FormData();
-            formData.append("video", selectedFile);
-            formData.append("videoId", params.id);
-            formData.append("notes", notes);
-
-            // Simulate upload progress (in production, use XMLHttpRequest for real progress)
             const progressInterval = setInterval(() => {
-                setUploadProgress((prev) => {
+                setUploadProgress(prev => {
                     if (prev >= 90) {
                         clearInterval(progressInterval);
                         return 90;
                     }
                     return prev + 10;
                 });
-            }, 500);
+            }, 200);
 
-            const response = await fetch("/api/videos/upload", {
+            const response = await fetch(`/api/tasks/${taskId}/upload-draft`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -112,175 +179,346 @@ export default function UploadDraftPage({ params }: { params: { id: string } }) 
             clearInterval(progressInterval);
             setUploadProgress(100);
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || "Upload failed");
+            if (response.ok) {
+                setTimeout(() => {
+                    alert("✅ Draft uploaded successfully! The founder will review your video soon.");
+                    router.push("/creator/tasks");
+                }, 500);
+            } else {
+                throw new Error("Upload failed");
             }
-
-            alert("Draft uploaded successfully! The founder will review it soon.");
-            router.push("/creator/tasks");
         } catch (error) {
-            console.error("Upload error:", error);
-            alert(error instanceof Error ? error.message : "Upload failed");
+            console.error("Error uploading:", error);
+            alert("Failed to upload video. Please try again.");
+            setUploadProgress(0);
         } finally {
             setUploading(false);
-            setUploadProgress(0);
         }
     };
 
-    if (loading) return <div className="p-8">Loading...</div>;
-    if (!video) return <div className="p-8">Video not found</div>;
+    const formatFileSize = (bytes: number) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    };
 
-    return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto">
-                <div className="mb-8">
-                    <Link href="/creator/tasks" className="text-indigo-600 hover:text-indigo-800">
-                        &larr; Back to Tasks
-                    </Link>
-                </div>
-
-                <div className="bg-white shadow rounded-lg overflow-hidden">
-                    {/* Campaign Info Header */}
-                    <div className="bg-indigo-50 px-6 py-4 border-b border-indigo-100">
-                        <h1 className="text-2xl font-bold text-gray-900">{video.campaign.name}</h1>
-                        <p className="text-sm text-gray-600 mt-1">
-                            by {video.campaign.founder.companyName || video.campaign.founder.fullName}
-                        </p>
-                    </div>
-
-                    {/* Brief Details */}
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-3">Campaign Brief</h2>
-                        <div className="prose max-w-none text-gray-600">
-                            <p>{video.campaign.description}</p>
-
-                            {video.campaign.briefData && (
-                                <div className="mt-4 space-y-2">
-                                    {video.campaign.briefData.talkingPoints && (
-                                        <div>
-                                            <h3 className="text-sm font-medium text-gray-700">Key Talking Points:</h3>
-                                            <ul className="list-disc list-inside text-sm">
-                                                {video.campaign.briefData.talkingPoints.map((point: string, idx: number) => (
-                                                    <li key={idx}>{point}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                    {video.campaign.briefData.platforms && (
-                                        <div>
-                                            <h3 className="text-sm font-medium text-gray-700">Platforms:</h3>
-                                            <p className="text-sm">{video.campaign.briefData.platforms.join(", ")}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Upload Form */}
-                    <form onSubmit={handleUpload} className="px-6 py-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload Your Draft</h2>
-
-                        {/* File Upload */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Video File
-                            </label>
-                            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-indigo-400 transition-colors">
-                                <div className="space-y-1 text-center">
-                                    <svg
-                                        className="mx-auto h-12 w-12 text-gray-400"
-                                        stroke="currentColor"
-                                        fill="none"
-                                        viewBox="0 0 48 48"
-                                    >
-                                        <path
-                                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                            strokeWidth={2}
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </svg>
-                                    <div className="flex text-sm text-gray-600">
-                                        <label
-                                            htmlFor="file-upload"
-                                            className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none"
-                                        >
-                                            <span>Upload a file</span>
-                                            <input
-                                                id="file-upload"
-                                                name="file-upload"
-                                                type="file"
-                                                className="sr-only"
-                                                accept="video/mp4,video/quicktime,video/webm"
-                                                onChange={handleFileSelect}
-                                                disabled={uploading}
-                                            />
-                                        </label>
-                                        <p className="pl-1">or drag and drop</p>
-                                    </div>
-                                    <p className="text-xs text-gray-500">MP4, MOV, or WebM up to 1GB</p>
-                                    {selectedFile && (
-                                        <p className="text-sm text-green-600 font-medium mt-2">
-                                            Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Notes */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Notes for Founder (Optional)
-                            </label>
-                            <textarea
-                                rows={4}
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                                placeholder="Any additional context or notes about your video..."
-                                disabled={uploading}
-                            />
-                        </div>
-
-                        {/* Upload Progress */}
-                        {uploading && (
-                            <div className="mb-6">
-                                <div className="flex justify-between text-sm text-gray-600 mb-1">
-                                    <span>Uploading...</span>
-                                    <span>{uploadProgress}%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div
-                                        className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                                        style={{ width: `${uploadProgress}%` }}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Submit Button */}
-                        <div className="flex justify-end gap-3">
-                            <Link
-                                href="/creator/tasks"
-                                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                            >
-                                Cancel
-                            </Link>
-                            <button
-                                type="submit"
-                                disabled={!selectedFile || uploading}
-                                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {uploading ? "Uploading..." : "Submit Draft"}
-                            </button>
-                        </div>
-                    </form>
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-DEFAULT mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading task details...</p>
                 </div>
             </div>
+        );
+    }
+
+    if (!task) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Task Not Found</h2>
+                    <p className="text-gray-600 mb-6">This task may no longer be available.</p>
+                    <Link href="/creator/tasks">
+                        <Button>← Back to Tasks</Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    const isRevision = task.revisionFeedback !== undefined;
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <main>
+                <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                    <div className="mb-8">
+                        <Link
+                            href="/creator/tasks"
+                            className="text-primary-DEFAULT hover:text-primary-600 font-medium mb-4 inline-block transition-colors"
+                        >
+                            ← Back to Tasks
+                        </Link>
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                                    {isRevision ? "Upload Revision" : "Upload Draft"}
+                                </h1>
+                                <p className="mt-2 text-gray-600">
+                                    {task.campaignName} • {task.founderName}
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm text-gray-600">Deadline</p>
+                                <p className="text-lg font-bold text-gray-900">
+                                    {new Date(task.deadline).toLocaleDateString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            {isRevision && task.revisionFeedback && (
+                                <Card className="border-2 border-orange-200 bg-orange-50">
+                                    <CardHeader>
+                                        <CardTitle className="text-orange-900">
+                                            📝 Revision Feedback
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-orange-800">{task.revisionFeedback}</p>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Video File</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="video/*"
+                                        onChange={handleFileInputChange}
+                                        className="hidden"
+                                    />
+
+                                    {!videoFile ? (
+                                        <div
+                                            onDragOver={handleDragOver}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={handleDrop}
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${isDragging
+                                                    ? 'border-primary-DEFAULT bg-primary-50'
+                                                    : 'border-gray-300 hover:border-primary-DEFAULT hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <svg className="w-8 h-8 text-primary-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                                {isDragging ? "Drop video here" : "Upload Video"}
+                                            </h3>
+                                            <p className="text-gray-600 mb-4">
+                                                Drag and drop or click to browse
+                                            </p>
+                                            <p className="text-sm text-gray-500">
+                                                Supported formats: MP4, MOV, AVI • Max size: 500MB
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div className="relative bg-black rounded-xl overflow-hidden">
+                                                <video
+                                                    src={videoPreviewUrl}
+                                                    controls
+                                                    className="w-full"
+                                                    style={{ maxHeight: '400px' }}
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
+                                                        <svg className="w-5 h-5 text-primary-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">{videoFile.name}</p>
+                                                        <p className="text-sm text-gray-600">{formatFileSize(videoFile.size)}</p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setVideoFile(null);
+                                                        setVideoPreviewUrl("");
+                                                        if (fileInputRef.current) {
+                                                            fileInputRef.current.value = "";
+                                                        }
+                                                    }}
+                                                >
+                                                    Change Video
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {videoFile && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Video Details</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-900 mb-2">
+                                                Video Title *
+                                            </label>
+                                            <Input
+                                                type="text"
+                                                value={title}
+                                                onChange={(e) => setTitle(e.target.value)}
+                                                placeholder="Enter a descriptive title for your video"
+                                                maxLength={100}
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {title.length}/100 characters
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-900 mb-2">
+                                                Description (Optional)
+                                            </label>
+                                            <textarea
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                rows={4}
+                                                maxLength={500}
+                                                placeholder="Add any notes or context for the founder..."
+                                                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-DEFAULT focus:ring-offset-2"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {description.length}/500 characters
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {uploading && (
+                                <Card>
+                                    <CardContent className="p-6">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm font-medium text-gray-900">
+                                                    Uploading video...
+                                                </span>
+                                                <span className="text-sm text-gray-600">
+                                                    {uploadProgress}%
+                                                </span>
+                                            </div>
+                                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary-DEFAULT transition-all duration-300"
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            <div className="flex gap-4">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => router.push("/creator/tasks")}
+                                    disabled={uploading}
+                                    className="flex-1"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleSubmit}
+                                    disabled={!videoFile || !title.trim() || uploading}
+                                    className="flex-1"
+                                    size="lg"
+                                >
+                                    {uploading ? "Uploading..." : "Submit for Review"}
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Campaign Brief</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900 mb-1">Description</p>
+                                        <p className="text-sm text-gray-700">{task.briefData.description}</p>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900 mb-2">Key Talking Points</p>
+                                        <ul className="space-y-1">
+                                            {task.briefData.talkingPoints.map((point, index) => (
+                                                <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                                                    <span className="text-primary-DEFAULT mt-0.5">•</span>
+                                                    <span>{point}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900 mb-2">Must-Haves</p>
+                                        <ul className="space-y-1">
+                                            {task.briefData.mustHaves.map((item, index) => (
+                                                <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                                                    <span className="text-green-600 mt-0.5">✓</span>
+                                                    <span>{item}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Video Specs</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div>
+                                        <p className="text-sm text-gray-600">Length</p>
+                                        <p className="font-medium text-gray-900">{task.briefData.videoLength}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-600">Tone</p>
+                                        <p className="font-medium text-gray-900">{task.briefData.tone}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-600">Platforms</p>
+                                        <p className="font-medium text-gray-900">
+                                            {task.briefData.platforms.join(", ")}
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-blue-50 border-blue-200">
+                                <CardContent className="p-6">
+                                    <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                        <span>💡</span>
+                                        Tips for Success
+                                    </h3>
+                                    <ul className="space-y-2 text-sm text-blue-800">
+                                        <li>• Review all requirements before recording</li>
+                                        <li>• Ensure good lighting and clear audio</li>
+                                        <li>• Follow the specified video length</li>
+                                        <li>• Include all must-have elements</li>
+                                        <li>• Be authentic and enthusiastic</li>
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }

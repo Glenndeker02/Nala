@@ -226,6 +226,10 @@ model Campaign {
   totalRefundedToFounder Decimal?       @map("total_refunded_to_founder") @db.Decimal(10, 2)
   platformRevenue       Decimal?        @map("platform_revenue") @db.Decimal(10, 2)
 
+  // Budget calculator options
+  guaranteedSpend       Boolean         @default(false) @map("guaranteed_spend")
+  targetViews           Int?            @map("target_views")
+
   createdAt             DateTime        @default(now()) @map("created_at")
   updatedAt             DateTime        @updatedAt @map("updated_at")
   completedAt           DateTime?       @map("completed_at")

@@ -12,28 +12,36 @@ export default function RoiCalculator() {
     // Founder State
     const [founderBudget, setFounderBudget] = useState(100);
     const [founderVideoCount, setFounderVideoCount] = useState(1);
-    const [targetViews, setTargetViews] = useState(2500);
+    const [targetViews, setTargetViews] = useState(0);
 
     // Creator State
     const [creatorVideoCount, setCreatorVideoCount] = useState(5);
     const [viewsPerVideo, setViewsPerVideo] = useState(5000);
 
     // Constants
+    const MIN_BUDGET = 100; // Minimum budget $100
     const FOUNDER_RATE_PER_1000_VIEWS = 5; // $5 per 1000 views
-    const BASE_VIDEO_COST = 25; // Base cost per video
+    const BASE_VIDEO_COST_BULK = 20; // $20 per video for 5+ videos
+    const BASE_VIDEO_COST_SMALL = 25; // $25 per video for <5 videos
     const CREATOR_RATE_PER_1000_VIEWS = 15; // Fixed $15 CPM for creators
     const AVG_VIEWS_PER_VIDEO = 2500;
 
+    // Dynamic base fee calculation
+    const getBaseFeePerVideo = (videoCount: number) => {
+        return videoCount >= 5 ? BASE_VIDEO_COST_BULK : BASE_VIDEO_COST_SMALL;
+    };
+
     // Handlers for decoupled inputs
     const handleBudgetChange = (newBudget: number) => {
-        // Constraint: Budget cannot be less than Base Cost of current videos
-        const minBudget = founderVideoCount * BASE_VIDEO_COST;
-        const actualBudget = Math.max(newBudget, minBudget);
+        // Constraint: Budget cannot be less than MIN_BUDGET or Base Cost of current videos
+        const baseFeePerVideo = getBaseFeePerVideo(founderVideoCount);
+        const minBudgetForVideos = founderVideoCount * baseFeePerVideo;
+        const actualBudget = Math.max(newBudget, MIN_BUDGET, minBudgetForVideos);
 
         setFounderBudget(actualBudget);
 
         // Calculate Views based on remaining budget (Videos constant)
-        const remainingBudget = actualBudget - minBudget;
+        const remainingBudget = actualBudget - minBudgetForVideos;
         const newViews = Math.floor((remainingBudget / FOUNDER_RATE_PER_1000_VIEWS) * 1000);
         setTargetViews(Math.max(0, newViews));
     };
@@ -42,12 +50,14 @@ export default function RoiCalculator() {
         setFounderVideoCount(newVideoCount);
 
         // Budget is fixed (unless too low)
-        const baseCost = newVideoCount * BASE_VIDEO_COST;
+        const baseFeePerVideo = getBaseFeePerVideo(newVideoCount);
+        const baseCost = newVideoCount * baseFeePerVideo;
         let currentBudget = founderBudget;
 
-        if (currentBudget < baseCost) {
-            // If budget is too low for videos, increase budget
-            currentBudget = baseCost;
+        // Ensure budget meets minimum requirements
+        const requiredMinBudget = Math.max(MIN_BUDGET, baseCost);
+        if (currentBudget < requiredMinBudget) {
+            currentBudget = requiredMinBudget;
             setFounderBudget(currentBudget);
             setTargetViews(0); // No money left for views
         } else {
@@ -66,9 +76,10 @@ export default function RoiCalculator() {
     };
 
     const calculateCost = (videos: number, views: number) => {
-        const baseCost = videos * BASE_VIDEO_COST;
+        const baseFeePerVideo = getBaseFeePerVideo(videos);
+        const baseCost = videos * baseFeePerVideo;
         const perfCost = (views / 1000) * FOUNDER_RATE_PER_1000_VIEWS;
-        return Math.round(baseCost + perfCost);
+        return Math.max(MIN_BUDGET, Math.round(baseCost + perfCost));
     };
 
     // Creator Calculations
@@ -281,6 +292,45 @@ export default function RoiCalculator() {
                                         </>
                                     )}
                                 </div>
+
+                                {/* Budget Breakdown - Visible for Founders */}
+                                {userType === 'founder' && (
+                                    <div className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200">
+                                        <div className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                            <DollarSign className="w-4 h-4" />
+                                            Budget Breakdown
+                                        </div>
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-600">Base Fee ({founderVideoCount} × ${getBaseFeePerVideo(founderVideoCount)})</span>
+                                                <span className="font-semibold text-gray-900">${(founderVideoCount * getBaseFeePerVideo(founderVideoCount)).toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-600">Performance Budget</span>
+                                                <span className="font-semibold text-gray-900">${(founderBudget - (founderVideoCount * getBaseFeePerVideo(founderVideoCount))).toLocaleString()}</span>
+                                            </div>
+                                            <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
+                                                <span className="font-semibold text-gray-700">Total Budget</span>
+                                                <span className="font-bold text-primary-600 text-lg">${founderBudget.toLocaleString()}</span>
+                                            </div>
+                                            {founderVideoCount >= 5 && (
+                                                <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                                                    <p className="text-xs text-green-700 flex items-center gap-1">
+                                                        <TrendingUp className="w-3 h-3" />
+                                                        <span className="font-medium">Bulk discount applied!</span> $20/video for 5+ videos
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {founderVideoCount < 5 && (
+                                                <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                                                    <p className="text-xs text-blue-700">
+                                                        💡 Order 5+ videos to get $20/video (save $5 per video!)
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {userType === 'founder' && refundAmount > 0 && (
                                     <div className="p-4 bg-green-50 rounded-xl border border-green-100 flex items-start gap-3 relative">
