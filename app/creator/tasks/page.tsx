@@ -40,77 +40,19 @@ export default function CreatorTasksPage() {
     const fetchTasks = async () => {
         const token = localStorage.getItem("token");
         try {
-            // Mock data for demonstration
-            const mockTasks: Task[] = [
-                {
-                    id: "1",
-                    campaignId: "1",
-                    campaignName: "Acme Product Launch",
-                    founderName: "Mike Johnson",
-                    status: "ASSIGNED",
-                    assignedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-                    baseFee: 50
+            const response = await fetch("/api/creator/tasks", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
                 },
-                {
-                    id: "2",
-                    campaignId: "2",
-                    campaignName: "Fitness App Promotion",
-                    founderName: "Sarah Williams",
-                    status: "REVISION_REQUESTED",
-                    assignedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-                    baseFee: 75,
-                    draftUrl: "https://example.com/draft1.mp4",
-                    revisionFeedback: "Great energy! Please add a product demo at the 0:20 mark showing the app interface.",
-                    revisionDeadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "3",
-                    campaignId: "3",
-                    campaignName: "E-commerce Store Launch",
-                    founderName: "David Chen",
-                    status: "APPROVED",
-                    assignedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-                    baseFee: 60,
-                    draftUrl: "https://example.com/draft2.mp4"
-                },
-                {
-                    id: "4",
-                    campaignId: "4",
-                    campaignName: "Tech Startup Launch",
-                    founderName: "Emma Davis",
-                    status: "POSTED",
-                    assignedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                    baseFee: 50,
-                    draftUrl: "https://example.com/draft3.mp4",
-                    postingUrl: "https://tiktok.com/@user/video123",
-                    views: 12500,
-                    performanceBonus: 50,
-                    totalEarnings: 100,
-                    daysUntilLock: 3
-                },
-                {
-                    id: "5",
-                    campaignId: "5",
-                    campaignName: "Beauty Product Review",
-                    founderName: "Lisa Anderson",
-                    status: "COMPLETED",
-                    assignedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(),
-                    baseFee: 65,
-                    draftUrl: "https://example.com/draft4.mp4",
-                    postingUrl: "https://instagram.com/p/abc123",
-                    views: 18900,
-                    performanceBonus: 75.6,
-                    totalEarnings: 140.6,
-                    daysUntilLock: 0
-                }
-            ];
+            });
 
-            setTasks(mockTasks);
+            if (response.ok) {
+                const result = await response.json();
+                const data = result.data || result;
+                setTasks(data);
+            } else {
+                console.error("Failed to fetch tasks");
+            }
         } catch (error) {
             console.error("Error fetching tasks:", error);
         } finally {

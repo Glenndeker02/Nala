@@ -25,9 +25,9 @@ export function extractUser(request: NextRequest): JWTPayload | null {
  * Middleware to require authentication
  */
 export function requireAuth(
-  handler: (request: NextRequest, user: JWTPayload) => Promise<NextResponse>
+  handler: (request: NextRequest, user: JWTPayload, ...args: any[]) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest): Promise<NextResponse> => {
+  return async (request: NextRequest, ...args: any[]): Promise<NextResponse> => {
     const user = extractUser(request);
 
     if (!user) {
@@ -37,7 +37,7 @@ export function requireAuth(
       );
     }
 
-    return handler(request, user);
+    return handler(request, user, ...args);
   };
 }
 
@@ -46,9 +46,9 @@ export function requireAuth(
  */
 export function requireRole(
   roles: Role | Role[],
-  handler: (request: NextRequest, user: JWTPayload) => Promise<NextResponse>
+  handler: (request: NextRequest, user: JWTPayload, ...args: any[]) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest): Promise<NextResponse> => {
+  return async (request: NextRequest, ...args: any[]): Promise<NextResponse> => {
     const user = extractUser(request);
 
     if (!user) {
@@ -66,7 +66,7 @@ export function requireRole(
       );
     }
 
-    return handler(request, user);
+    return handler(request, user, ...args);
   };
 }
 

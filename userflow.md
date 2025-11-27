@@ -1,6454 +1,3951 @@
-# Nala Platform - Detailed User Flows
-
-## Table of Contents
-1. [Creator Onboarding Flow](#1-creator-onboarding-flow)
-2. [Founder Campaign Creation Flow](#2-founder-campaign-creation-flow)
-3. [Content Creation & Review Flow](#3-content-creation--review-flow)
-4. [Payment Processing Flow](#4-payment-processing-flow)
-5. [Performance Tracking Flow](#5-performance-tracking-flow)
-6. [Dispute Resolution Flow](#6-dispute-resolution-flow)
+# NALA AGENCY PLATFORM
+## Comprehensive Product Requirements Document v2.0
+**AI Agent Development Specification**
 
 ---
 
-## 1. Creator Onboarding Flow
+## TABLE OF CONTENTS
+1. Executive Summary
+2. Product Overview
+3. User Personas & Stories
+4. Financial Model & Payment Structure
+5. Feature Requirements (Detailed Specifications)
+6. User Flows & Journey Maps
+7. Technical Architecture & Requirements
+8. Database Schema Requirements
+9. API Integration Requirements
+10. Security & Compliance
+11. Testing & Validation Requirements
+12. Success Metrics & KPIs
+13. Rollout & Deployment Plan
 
-### 1.1 Account Registration
+---
 
-**Entry Point:** Landing page → "Sign Up as Creator" button
+## 1. EXECUTIVE SUMMARY
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Basic Information                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Creator enters:                                             │
-│  • Full Name                                                │
-│  • Email Address                                            │
-│  • Password (8+ chars, 1 number, 1 special)                │
-│  • Confirm Password                                         │
-│                                                             │
-│ [Checkbox] I agree to Terms of Service & Privacy Policy    │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Validate email format and uniqueness                    │
-│  2. Hash password (bcrypt)                                  │
-│  3. Create user record (role: 'creator')                    │
-│  4. Send verification email                                 │
-│  5. Create empty creator_profile record                     │
-│  6. Generate session token                                  │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Email Verification                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Screen: "Check your email"                                  │
-│  📧 We sent a verification link to mary@email.com          │
-│                                                             │
-│ Creator clicks link in email →                              │
-│                                                             │
-│ System Actions:                                             │
-│  1. Verify token from email link                            │
-│  2. Update user.email_verified = true                       │
-│  3. Redirect to platform onboarding                         │
-└─────────────────────────────────────────────────────────────┘
-```
+**Product Name:** Nala Agency Platform (UGC Managed Marketplace)
 
-### 1.2 Social Media Account Connection
+**Version:** 2.0 (AI-Ready Development)
 
-**Critical Path:** This determines creator eligibility
+**Status:** Approved for Development
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Connect Your Platforms                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Connect your social accounts to start earning"             │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 🎵 TikTok         [Connect Account]   Not Connected │   │
-│ │    Minimum: 10,000 followers                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📸 Instagram      [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ │    ⚠️ Requires Business Account                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 👍 Facebook       [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Note: Connect at least one platform to continue            │
-│                                                             │
-│ [Skip for now]  [Continue]  ← Disabled until 1 connected   │
-└─────────────────────────────────────────────────────────────┘
-```
+**Core Value Proposition:** Nala is a managed User-Generated Content (UGC) marketplace that connects SaaS Founders with professional UGC Creators through a transparent hybrid payment model. The platform eliminates risk for Founders by guaranteeing content quality and performance-based pricing, while providing Creators with guaranteed base compensation and unlimited upside through performance bonuses.
 
-#### 1.2.1 TikTok Connection Sub-Flow
+**Business Model:** Revenue generation via $1.00 per 1,000 views markup on variable performance budgets. Target: 100+ campaigns monthly with 75% average view fulfillment rate.
+
+**Success Criteria:**
+- Profitability within 12 months
+- 99.9% accuracy in views tracking and automated payments
+- Support for TikTok, Instagram, and Facebook integration
+- 50% Founder repeat campaign rate (3+ campaigns)
+
+---
+
+## 2. PRODUCT OVERVIEW
+
+### 2.1 Platform Architecture
+
+The Nala platform operates as a three-sided marketplace with distinct user roles, each with specialized modules and workflows:
+
+**Role Hierarchy:**
+1. **Nala Admin** - Platform administration, compliance, dispute resolution
+2. **Founder** - SaaS client purchasing UGC services and video performance
+3. **Creator** - Freelance UGC professionals producing and posting content
+
+### 2.2 Core Workflow (High-Level)
 
 ```
-Creator clicks "Connect Account" on TikTok
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ POPUP: TikTok OAuth                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Generate OAuth state token (CSRF protection)            │
-│  2. Redirect to TikTok Login Kit:                           │
-│     https://www.tiktok.com/auth/authorize/                  │
-│     ?client_key={CLIENT_KEY}                                │
-│     &scope=user.info.basic,video.list,video.insights        │
-│     &response_type=code                                     │
-│     &redirect_uri={CALLBACK_URL}                            │
-│     &state={STATE_TOKEN}                                    │
-│                                                             │
-│ Creator sees TikTok login screen →                          │
-│  • Logs into TikTok (if not already)                        │
-│  • Reviews permissions request                              │
-│  • Clicks "Authorize"                                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ CALLBACK: TikTok Returns to Nala                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Receive authorization code                              │
-│  2. Verify state token (prevent CSRF)                       │
-│  3. Exchange code for access token:                         │
-│     POST https://open-api.tiktok.com/oauth/access_token/    │
-│  4. Fetch user profile:                                     │
-│     GET /v2/user/info/                                      │
-│  5. Extract: username, follower_count, user_id              │
-│                                                             │
-│  6. Validate eligibility:                                   │
-│     IF follower_count < 10,000:                             │
-│       ❌ Show error: "Minimum 10K followers required"       │
-│       STOP                                                  │
-│                                                             │
-│  7. Store in database:                                      │
-│     INSERT INTO social_accounts (                           │
-│       creator_id, platform, platform_user_id,               │
-│       username, follower_count,                             │
-│       access_token [ENCRYPTED], refresh_token [ENCRYPTED],  │
-│       token_expires_at, verified_at                         │
-│     )                                                       │
-│                                                             │
-│  8. Update creator_profile.verification_status = 'verified' │
-│  9. Show success message                                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ SUCCESS SCREEN                                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ✅ TikTok Connected Successfully!                           │
-│                                                             │
-│ @marythcreator                                              │
-│ 47,234 followers                                            │
-│                                                             │
-│ [Connect Another Platform]  [Continue →]                    │
-└─────────────────────────────────────────────────────────────┘
+CAMPAIGN LIFECYCLE:
+Founder Creates Brief → Funding/Escrow → Creator Accepts → Creator Produces → 
+Founder Reviews → Phase 1 Payout → Creator Posts → 7-Day Tracking → 
+Phase 2 Settlement (Refund + Performance Bonus) → Completion
 ```
 
-#### 1.2.2 Instagram Connection Sub-Flow
+### 2.3 Key Principles
 
-**Note:** More complex due to Business Account requirement
+- **Escrow Security:** 100% of campaign budgets held in Stripe Connect escrow until delivery or refund
+- **Transparent Tracking:** Real-time view counts via official APIs (TikTok, Meta Graph)
+- **Automated Payments:** No manual intervention for standard flows
+- **Performance-Aligned:** Creators earn more when content performs; Founders pay only for results
 
+---
+
+## 3. USER PERSONAS & DETAILED STORIES
+
+### 3.1 Primary Personas
+
+#### PERSONA 1: Mike (SaaS Founder/Client)
+**Demographics:** 28-40 years old, B2B SaaS founder, tech-savvy, budget-conscious
+**Goals:** Acquire authentic UGC content for social proof without upfront risk
+**Pain Points:** 
+- Worried about budget waste if UGC doesn't perform
+- Needs content for product launches quickly
+- Struggles with creator consistency and reliability
+- Wants guaranteed results before spending
+
+**Behaviors:**
+- Uses Stripe/payment platforms regularly
+- Checks analytics dashboards obsessively
+- Needs mobile and desktop access
+- Wants clear ROI calculations
+
+---
+
+#### PERSONA 2: Mary (UGC Creator/Freelancer)
+**Demographics:** 22-35 years old, content creator, platform-native, performance-driven
+**Goals:** Earn consistent income with high upside potential from viral content
+**Pain Points:**
+- Needs guaranteed base income for financial stability
+- Wants portfolio building and social proof
+- Concerned about exploitation or non-payment
+- Needs flexibility to manage multiple clients
+
+**Behaviors:**
+- Active on TikTok, Instagram, YouTube
+- Checks earnings multiple times daily
+- Values transparency in payment calculations
+- Needs quick setup and onboarding
+
+---
+
+#### PERSONA 3: Sarah (Nala Admin/Operations)
+**Demographics:** 25-45 years old, operations/compliance background
+**Goals:** Ensure platform integrity, prevent fraud, resolve disputes
+**Pain Points:**
+- Must verify creator legitimacy and content rights
+- Needs to detect payment fraud or content violations
+- Requires audit trails for all transactions
+- Managing creator and founder disputes
+
+**Behaviors:**
+- Reviews analytics and performance reports
+- Flags suspicious activities
+- Processes dispute escalations
+- Manages creator verification queue
+
+---
+
+### 3.2 Detailed User Stories
+
+#### STORY 1: Founder Brief Creation & Campaign Launch
 ```
-Creator clicks "Connect Account" on Instagram
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Check Account Type                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Do you have an Instagram Business or Creator Account?"     │
-│                                                             │
-│ [Yes, I have a Business Account] → Continue to OAuth        │
-│ [No, I have a Personal Account] → Show conversion guide     │
-│                                                             │
-│ IF "No" selected:                                           │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ ℹ️  How to Convert to Business Account:            │   │
-│ │                                                     │   │
-│ │ 1. Open Instagram app                              │   │
-│ │ 2. Go to Settings → Account                        │   │
-│ │ 3. Select "Switch to Professional Account"         │   │
-│ │ 4. Choose "Business"                               │   │
-│ │ 5. Connect to Facebook Page                        │   │
-│ │                                                     │   │
-│ │ [Watch Video Tutorial]  [I've Converted]           │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Facebook Login (Required for Instagram)             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Redirect to Facebook OAuth:                             │
-│     https://www.facebook.com/v18.0/dialog/oauth             │
-│     ?client_id={APP_ID}                                     │
-│     &redirect_uri={CALLBACK}                                │
-│     &scope=instagram_basic,instagram_manage_insights,       │
-│             pages_read_engagement                           │
-│                                                             │
-│ Creator:                                                    │
-│  • Logs into Facebook                                       │
-│  • Selects connected Instagram Business Account            │
-│  • Grants permissions                                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Fetch Instagram Data                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Exchange code for access token                          │
-│  2. Get Instagram Business Account ID:                      │
-│     GET /{facebook-page-id}?fields=instagram_business_accou │
-│     nt                                                      │
-│  3. Get Instagram profile data:                             │
-│     GET /{ig-user-id}?fields=username,followers_count       │
-│                                                             │
-│  4. Validate:                                               │
-│     IF followers_count < 5,000:                             │
-│       ❌ Error: "Minimum 5K followers required"             │
-│     IF account_type != 'BUSINESS':                          │
-│       ❌ Error: "Business account required"                 │
-│                                                             │
-│  5. Store data (same as TikTok flow)                        │
-└─────────────────────────────────────────────────────────────┘
+AS: Mike (Founder)
+I WANT: To create a new UGC campaign with specific requirements
+SO THAT: I can receive high-quality, on-brand content from qualified creators
+
+ACCEPTANCE CRITERIA:
+✓ Can define 1-10 videos per campaign
+✓ Can select posting platforms (TikTok, Instagram Reels, Facebook)
+✓ Can set posting schedule (daily, weekly, custom)
+✓ Can define content brief with tone, key messages, product features
+✓ Can set total budget (fixed + variable split automatic)
+✓ Can see estimated creator pool based on requirements
+✓ Escrow funding required before brief goes live
+✓ Brief visibility to qualified creators only
 ```
 
-### 1.3 Profile Setup
-
+#### STORY 2: Creator Application & Content Production
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 4: Set Your Rates                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "How much do you charge per video?"                         │
-│                                                             │
-│ TikTok Base Fee:                                            │
-│ [$75] ◄────●────────────────► [$500]                       │
-│  $50                                  Max                   │
-│                                                             │
-│ 💡 Most creators charge: $75-$150                           │
-│ 📊 Your potential earnings for 100K views:                  │
-│     Base Fee: $75 + Performance: $400 = $475 total          │
-│                                                             │
-│ Instagram Base Fee:                                         │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ Facebook Base Fee:                                          │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile with base fees                    │
-│  • Calculate average fee for matching algorithm             │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 5: Build Your Portfolio                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Upload 3-10 sample videos to showcase your style"          │
-│                                                             │
-│ [Drag & Drop Videos Here]                                   │
-│  or [Browse Files]                                          │
-│                                                             │
-│ Uploaded (2/10):                                            │
-│ ┌─────────┐  ┌─────────┐                                   │
-│ │ [Video] │  │ [Video] │  [+ Add More]                     │
-│ │  30s    │  │  45s    │                                   │
-│ └─────────┘  └─────────┘                                   │
-│                                                             │
-│ For each video:                                             │
-│  • Title: [Product Review - SaaS Tool]                      │
-│  • Platform: [TikTok ▼]                                     │
-│                                                             │
-│ [Skip for now]  [Continue →]                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Upload to S3 (max 500MB per video)                      │
-│  2. Generate thumbnail (frame at 2s)                        │
-│  3. Transcode to web format (H.264, 720p)                   │
-│  4. Store metadata in creator_profile.portfolio_videos      │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 6: Category & Bio                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What niches do you specialize in? (Select all that apply)   │
-│                                                             │
-│ ☑ SaaS & Software    ☐ E-commerce     ☐ Health & Fitness   │
-│ ☑ B2B Tech           ☐ Beauty         ☐ Food & Beverage    │
-│ ☐ Finance            ☐ Fashion        ☐ Gaming             │
-│                                                             │
-│ Tell brands about yourself: (500 char max)                  │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Hi! I'm Mary, a tech enthusiast who creates          │   │
-│ │ engaging video reviews for SaaS products. My         │   │
-│ │ audience loves honest, detailed breakdowns...        │   │
-│ │                                                      │   │
-│ │ 347/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ [Back]  [Complete Setup →]                                  │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile.categories                        │
-│  • Update creator_profile.bio                               │
-│  • Set profile_completed = true                             │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 7: Payment Setup (Stripe Connect)                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Last step: Set up payouts"                                 │
-│                                                             │
-│ Nala uses Stripe to send you payments securely.             │
-│                                                             │
-│ [Connect Stripe Account]                                    │
-│                                                             │
-│ System Actions:                                             │
-│  1. Create Stripe Connect Express account link:             │
-│     POST /v1/account_links                                  │
-│     type: 'account_onboarding'                              │
-│  2. Redirect creator to Stripe hosted onboarding            │
-│                                                             │
-│ Creator completes on Stripe:                                │
-│  • Personal information (name, DOB, SSN)                    │
-│  • Business details (if applicable)                         │
-│  • Bank account for deposits                                │
-│  • Identity verification (photo ID)                         │
-│                                                             │
-│ Stripe redirects back to Nala with account_id               │
-│                                                             │
-│ System Actions:                                             │
-│  1. Store stripe_account_id in users table                  │
-│  2. Verify account capabilities:                            │
-│     - transfers: 'active'                                   │
-│     - card_payments: 'active' (if needed)                   │
-│  3. Mark creator as payment_ready = true                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ 🎉 SUCCESS: You're All Set!                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your creator profile is live!                               │
-│                                                             │
-│ ✅ TikTok connected (47K followers)                         │
-│ ✅ Base fee set ($75/video)                                 │
-│ ✅ Portfolio added (2 videos)                               │
-│ ✅ Payments ready                                           │
-│                                                             │
-│ Next steps:                                                 │
-│ • Brands will discover your profile                         │
-│ • You'll receive brief invitations                          │
-│ • Start earning with performance-based pay!                 │
-│                                                             │
-│ [Go to Dashboard →]                                         │
-└─────────────────────────────────────────────────────────────┘
+AS: Mary (Creator)
+I WANT: To receive briefs matching my style and content capabilities
+SO THAT: I can produce high-quality content and earn both base fee and performance bonus
+
+ACCEPTANCE CRITERIA:
+✓ View available briefs filtered by platform expertise
+✓ See brief details: tone, key messages, base fee offered
+✓ Apply with portfolio links and past performance data
+✓ Receive approval within 24 hours
+✓ Access task dashboard with clear deadlines
+✓ Upload draft video for founder review
+✓ Receive revision requests with clear feedback
+✓ Submit final video with posting URL after approval
+✓ Understand base fee payout timing
+```
+
+#### STORY 3: Founder Content Review & Approval
+```
+AS: Mike (Founder)
+I WANT: To review creator-produced videos before posting
+SO THAT: I can ensure brand alignment and quality before base fee payment
+
+ACCEPTANCE CRITERIA:
+✓ Receive notification when draft is ready
+✓ Watch draft video in content review portal
+✓ Provide detailed revision feedback (text + optional video markup)
+✓ Request unlimited revisions until satisfied
+✓ Approve draft once satisfied (triggers Phase 1 payout)
+✓ View revision history for all videos
+✓ Set review deadline (default 3 days)
+✓ Automatic approval if deadline passes (configurable)
+```
+
+#### STORY 4: Performance Tracking & Payment Settlement
+```
+AS: Mike (Founder)
+I WANT: To see real-time performance of posted videos
+SO THAT: I can understand content ROI and calculate my final refund amount
+
+ACCEPTANCE CRITERIA:
+✓ Dashboard shows views achieved vs. maximum purchasable
+✓ Real-time view count updates (daily sync)
+✓ Projected refund amount clearly displayed
+✓ 7-day lockdown period clearly marked
+✓ After 7 days: automatic settlement, refund issued, bonus paid
+✓ Can export performance report (PDF)
+✓ See cost-per-view calculation
+✓ Compare performance across videos/creators
+```
+
+#### STORY 5: Creator Earnings & Payout
+```
+AS: Mary (Creator)
+I WANT: To see my earned base fee and real-time performance bonus
+SO THAT: I can understand my earnings and request payouts at any time
+
+ACCEPTANCE CRITERIA:
+✓ Wallet dashboard shows base fee earned and pending
+✓ Performance bonus updates daily based on views
+✓ Can see breakdown: base fee + bonus per video
+✓ Request instant payout to connected bank account
+✓ Payout history with dates and amounts
+✓ Understand payment split ($4.00 per 1k views)
+✓ See earnings projection for next 3 days
+✓ Receive payout notifications
 ```
 
 ---
 
-## 2. Founder Campaign Creation Flow
+## 4. FINANCIAL MODEL & PAYMENT STRUCTURE
 
-### 2.1 Campaign Initiation
+### 4.1 Payment Architecture
 
-**Entry Point:** Dashboard → "Create Campaign" button
+**Principle:** All campaign budgets held in Stripe Connect escrow. Zero funds released until verified delivery and performance tracking.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Create New Campaign                     [Save Draft] [Exit] │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Progress: ●──○──○──○──○──○  Step 1 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 1: Campaign Basics                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Name: *                                            │
-│ [Q4 Product Launch Campaign                              ] │
-│                                                             │
-│ What are you promoting?                                     │
-│ [ProductivityPro - AI-powered task management SaaS       ] │
-│                                                             │
-│ Target Audience:                                            │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Professionals aged 25-40, interested in              │   │
-│ │ productivity tools, remote workers, small business   │   │
-│ │ owners.                                              │   │
-│ │                                                      │   │
-│ │ 178/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Campaign Goal:                                              │
-│ ○ Brand Awareness    ● Website Traffic    ○ Signups        │
-│ ○ Sales              ○ App Downloads                        │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Auto-save every 30 seconds                               │
-│  • Create draft campaign record                             │
-│  • Status: 'draft'                                          │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──○──○──○──○  Step 2 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 2: Content Requirements                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ How many videos do you need?                                │
-│ [5▼] videos                                                 │
-│  (Min: 1, Max: 10 per campaign)                             │
-│                                                             │
-│ Preferred video length:                                     │
-│ ○ 15 seconds     ● 30 seconds                               │
-│ ○ 60 seconds     ○ Creator's choice                         │
-│                                                             │
-│ Which platforms? (Select all that apply)                    │
-│ ☑ TikTok    ☑ Instagram Reels    ☐ Facebook Reels          │
-│                                                             │
-│ Video style preference:                                     │
-│ ☑ Product Tutorial    ☐ Unboxing    ☐ Testimonial          │
-│ ☐ Behind the Scenes   ☐ Comparison                          │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Update campaign.videos_requested = 5                     │
-│  • Store platform preferences in brief_data JSONB           │
-│  • Calculate estimated budget preview                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──○──○──○  Step 3 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 3: Creative Brief                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Key Talking Points: (What should the creator highlight?)    │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ • AI-powered task prioritization                    │   │
-│ │ • Integrates with 50+ tools (Slack, Gmail, etc)     │   │
-│ │ • Saves 2 hours per day on average                  │   │
-│ │ • Free 14-day trial available                       │   │
-│ │                                                      │   │
-│ │ [+ Add Point]                                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Brand Guidelines: (Upload PDF, images, or describe)         │
-│ [📄 Brand_Guidelines.pdf] [✓ Uploaded]  [Remove]           │
-│ [+ Upload Assets] (Logo, product images, etc.)              │
-│                                                             │
-│ Do's:                          │ Don'ts:                    │
-│ • Be authentic                 │ • Compare to competitors   │
-│ • Show real use cases          │ • Make health claims       │
-│ • Use trending audio           │ • Show competitor logos    │
-│ [+ Add]                        │ [+ Add]                    │
-│                                                             │
-│ Required Hashtags/Mentions:                                 │
-│ [#ProductivityPro #AItools @productivitypro_official     ] │
-│                                                             │
-│ Reference Videos: (Optional - paste URLs)                   │
-│ [https://tiktok.com/@competitor/video/123                ] │
-│ [+ Add Another]                                             │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Store all data in campaign.brief_data (JSONB)            │
-│  • Upload brand assets to S3                                │
-│  • Generate brief preview PDF                               │
-└─────────────────────────────────────────────────────────────┘
-```
+### 4.2 Detailed Budget Allocation Example
 
-### 2.2 Posting Schedule & Budget Configuration
+**Scenario:** $1,000 Campaign, 5 Videos, $50 Base Fee per Video
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──○──○  Step 4 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 4: Posting Schedule                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ When should the first video go live?                        │
-│ [Nov 25, 2025 ▼]  📅                                        │
-│  (Minimum 5 days from today for creator prep)               │
-│                                                             │
-│ How often should videos be posted?                          │
-│ ● One per day           ○ Every other day                   │
-│ ○ Every 3 days          ○ Weekly                            │
-│ ○ Custom schedule                                           │
-│                                                             │
-│ 📅 Your Posting Calendar:                                   │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Video 1:  Nov 25 (Mon) 📱 TikTok                    │   │
-│ │ Video 2:  Nov 26 (Tue) 📱 TikTok                    │   │
-│ │ Video 3:  Nov 27 (Wed) 📸 Instagram                 │   │
-│ │ Video 4:  Nov 28 (Thu) 📸 Instagram                 │   │
-│ │ Video 5:  Nov 29 (Fri) 📱 TikTok                    │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Preferred posting time: (Optional)                          │
-│ [09:00 AM ▼]  [EST ▼]                                       │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Calculate posting dates                                  │
-│  • Store in campaign.start_date, posting_frequency          │
-│  • Validate timeline (min 5 days buffer)                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──●──○  Step 5 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 5: Budget Configuration                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ 💰 Set Your Total Budget                                    │
-│                                                             │
-│ Total Campaign Budget:                                      │
-│ $ [1000.00]                                                 │
-│   (Minimum: $500 | Maximum: $50,000)                        │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📊 BUDGET BREAKDOWN                                  │   │
-│ │                                                      │   │
-│ │ Fixed Production Costs:         $250.00 (25%)       │   │
-│ │ └─ 5 videos × $50 base fee                          │   │
-│ │                                                      │   │
-│ │ Variable Performance Budget:    $750.00 (75%)       │   │
-│ │ └─ Pays for actual views achieved                   │   │
-│ │                                                      │   │
-│ │ ─────────────────────────────────────────────────   │   │
-│ │                                                      │   │
-│ │ Maximum Views You Can Purchase:                     │   │
-│ │ 150,000 views @ $5.00 per 1,000                     │   │
-│ │                                                      │   │
-│ │ ═════════════════════════════════════════════════   │   │
-│ │                                                      │   │
-│ │ 💡 How Performance Budget Works:                    │   │
-│ │                                                      │   │
-│ │ If videos achieve 120K views (80% of max):          │   │
-│ │  • You pay: $250 + $600 = $850                      │   │
-│ │  • You save: $150 (refunded automatically)          │   │
-│ │                                                      │   │
-│ │ If videos achieve 150K views (100% of max):         │   │
-│ │  • You pay: $250 + $750 = $1,000 (full budget)      │   │
-│ │  • You save: $0 (great performance!)                │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ☑ I understand that:                                        │
-│    • Base fees are paid when I approve content              │
-│    • Performance budget is charged based on actual views    │
-│    • Unused budget is refunded automatically after 7 days   │
-│                                                             │
-│ [← Back]  [Continue to Creator Selection →]                 │
-│                                                             │
-│ System Actions:                                             │
-│  • Validate budget (min $500)                               │
-│  • Calculate: base_fee_budget, performance_budget           │
-│  • Store in campaigns table                                 │
-│  • Update max_views_purchasable                             │
-└─────────────────────────────────────────────────────────────┘
-│                                                             │
-│ Next up: Video 2 (Due Nov 23)                               │
-│                                                             │
-│ [View All Briefs]  [Upload Next Video]                      │
-└─────────────────────────────────────────────────────────────┘
+TOTAL BUDGET:                          $1,000.00
+├─ Fixed Production Budget:              $250.00 (5 videos × $50)
+│  ├─ Phase 1 Payout (upon approval):   $250.00 → Creator
+│  └─ Timing: Immediate after founder approves drafts
+│
+├─ Variable Performance Budget:          $750.00
+│  ├─ Maximum Views Purchasable:        150,000 views
+│  ├─ Rate: $5.00 per 1,000 views
+│  │
+│  ├─ PHASE 2 SETTLEMENT (7-day mark):
+│  │  ├─ Assume: 120,000 views achieved
+│  │  ├─ Spend: 120,000 views × $5.00/1k = $600.00
+│  │  │
+│  │  ├─ Creator Bonus Payout: $480.00
+│  │  │  └─ Calculation: 120,000 views × $4.00/1k views
+│  │  │
+│  │  ├─ Nala Revenue: $120.00
+│  │  │  └─ Calculation: 120,000 views × $1.00/1k views
+│  │  │
+│  │  └─ Founder Refund: $150.00
+│  │     └─ Calculation: ($750.00 - $600.00 unspent budget)
+│  │
+│  └─ Timing: Automated at 7-day metric lock
+│
+└─ TOTAL CREATOR COMPENSATION:           $730.00
+   ├─ Base Fee:                          $250.00
+   └─ Performance Bonus:                 $480.00
 ```
 
-### 3.3 Founder Content Review
-
-**Trigger:** Founder receives notification of new draft
+### 4.3 Payment Flow Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ FOUNDER DASHBOARD - Content Review Queue                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🔔 1 video ready for review                                 │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Q4 Product Launch Campaign                           │   │
-│ │                                                      │   │
-│ │ 🎥 Video 1 of 5 - TikTok                            │   │
-│ │ Submitted by @marythcreator  |  2 hours ago         │   │
-│ │                                                      │   │
-│ │ [Review Now →]                                       │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                ↓ (Founder clicks "Review Now")
-┌─────────────────────────────────────────────────────────────┐
-│ 📹 CONTENT REVIEW INTERFACE                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ┌─────────────────────────┬───────────────────────────┐   │
-│ │ 🎥 VIDEO PLAYER         │ 📋 BRIEF REQUIREMENTS     │   │
-│ │                         │                           │   │
-│ │  ┌─────────────────┐   │ ✓ 30 seconds              │   │
-│ │  │                 │   │ ✓ Product tutorial style  │   │
-│ │  │  [▶ Play]       │   │ ✓ #ProductivityPro used   │   │
-│ │  │                 │   │                           │   │
-│ │  │  Mary's Draft   │   │ Key Talking Points:       │   │
-│ │  │  Video          │   │ • AI prioritization ✓     │   │
-│ │  │                 │   │ • 50+ integrations ✓      │   │
-│ │  │  0:15 / 0:30    │   │ • Free trial ✓            │   │
-│ │  └─────────────────┘   │                           │   │
-│ │                         │ Do's/Don'ts Check:        │   │
-│ │  [0.5x] [1x] [2x]      │ ✓ Authentic               │   │
-│ │  [Download]            │ ✓ Real use case shown     │   │
-│ │                         │ ✓ No competitor mentions  │   │
-│ └─────────────────────────┴───────────────────────────┘   │
-│                                                             │
-│ Creator's Notes:                                            │
-│ "I focused on the AI prioritization feature as requested.   │
-│  Used trending audio 'That's Crazy'."                       │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ YOUR FEEDBACK                                               │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Add Comments: (Timestamped annotations)                     │
-│ [Click on video timeline to add feedback at specific times] │
-│                                                             │
-│ ┌─ Annotations ───────────────────────────────────────┐   │
-│ │ 0:05 - "Love the opening hook!" - You                │   │
-│ │ 0:15 - "Can you show the UI here?" - You             │   │
-│ │ [+ Add Comment]                                      │   │
-│ └──────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ DECISION                                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ [✅ Approve]   [📝 Request Revision]   [❌ Reject]          │
-│                                                             │
-│ ⚠️ Important: Approving will trigger payment of $75 to      │
-│    creator. This cannot be undone.                          │
-└─────────────────────────────────────────────────────────────┘
+DAY 0: Founder Deposits Budget
+├─ Stripe: $1,000.00 → Nala Platform Account (Escrow)
+
+DAY 0-1: Creator Produces & Uploads Draft
+├─ No payment yet (awaiting approval)
+
+DAY 1-2: Founder Reviews & Approves
+├─ Stripe: Initiates Transfer → Creator Account: $250.00
+├─ Nala: Tags Phase 1 Complete
+└─ Creator: Receives base fee notification
+
+DAY 2: Creator Posts Video to Platforms
+├─ Video posts with tracking enabled
+
+DAY 2-8: Automated View Tracking (Daily Polls)
+├─ Cron Job: Queries TikTok API & Meta Graph API
+├─ Updates: View count dashboard real-time
+└─ Creator: Sees performance bonus accrual daily
+
+DAY 9 (00:00 UTC): 7-Day Metric Lock Triggered
+├─ System: Locks final view count
+├─ Calculates: Creator bonus, Nala markup, Founder refund
+│
+├─ Stripe Transfer 1: Mary's Bonus → Creator Account
+├─ Stripe Refund 1: Unspent Budget → Founder
+│
+├─ Nala: Retains $120.00 (1M views × $1/1k)
+└─ Send: Payment confirmation emails to all parties
 ```
 
-#### 3.3.1 Approval Flow
+### 4.4 Edge Cases & Special Handling
 
+**Case 1: Video Underperforms**
+- Views achieved: 30,000 (20% of possible)
+- Creator bonus: 30,000 × $4.00/1k = $120.00
+- Founder refund: $750.00 - $150.00 = $600.00
+- Creator still receives: $250.00 (base) + $120.00 (bonus) = $370.00
+
+**Case 2: Video Overperforms (All Views Purchased)**
+- Views achieved: 150,000 (100% of possible)
+- Creator bonus: 150,000 × $4.00/1k = $600.00
+- Founder refund: $750.00 - $750.00 = $0.00
+- Creator receives: $250.00 (base) + $600.00 (bonus) = $850.00
+
+**Case 3: Creator Requests Instant Payout**
+- After Phase 1 (base fee received): Can request payout
+- Performance bonus: Available for instant payout after Day 5 (60% of tracking period)
+- Minimum payout: $10.00
+- Processing time: 1-3 business days via Stripe
+
+---
+
+## 5. FEATURE REQUIREMENTS (DETAILED SPECIFICATIONS)
+
+### 5.1 CREATOR MODULE (MARY)
+
+#### Feature C-101: Account Authentication & Onboarding
+**Priority:** P0 (Critical)
+
+**Description:** Creator registration, identity verification, and platform access setup.
+
+**Sub-Features:**
+- C-101A: Email/Password Registration with email verification
+- C-101B: Social Platform Authentication (TikTok, Instagram, Facebook)
+- C-101C: Identity Verification (Government ID, proof of address)
+- C-101D: Bank Account Connection (Stripe for payouts)
+- C-101E: Profile Completion (Bio, expertise, platforms, rates, portfolio links)
+
+**Acceptance Criteria:**
 ```
-Founder clicks "✅ Approve"
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ ⚠️ CONFIRM APPROVAL                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ You are about to approve Video 1                            │
-│                                                             │
-│ This will:                                                  │
-│ ✓ Authorize creator to post on Nov 25                       │
-│ ✓ Release $75 payment to @marythcreator                     │
-│ ✓ Grant you perpetual content usage rights                  │
-│                                                             │
-│ ⚠️ This action cannot be undone                             │
-│                                                             │
-│ [Cancel]  [Confirm Approval]                                │
-│                                                             │
-│ System Actions (Confirm):                                   │
-│  1. Update video.status = 'approved'                        │
-│  2. Update video.approved_at = NOW()                        │
-│  3. Trigger Phase 1 Payment (T-305):                        │
-│     a. Verify escrow has sufficient funds                   │
-│     b. Create Stripe transfer:                              │
-│        POST /v1/transfers                                   │
-│        {                                                    │
-│          amount: 7500, // $75 in cents                      │
-│          currency: 'usd',                                   │
-│          destination: mary.stripe_account_id,               │
-│          transfer_group: campaign.id,                       │
-│          metadata: {                                        │
-│            campaign_id, video_id,                           │
-│            payment_type: 'base_fee'                         │
-│          }                                                  │
-│        }                                                    │
-│     c. Create payment record in database                    │
-│     d. Update video.base_fee_paid = true                    │
-│  4. Send notifications:                                     │
-│     • Creator: "Payment sent! $75 on the way"               │
-│     • Founder: "Approval confirmed"                         │
-│  5. Update campaign.videos_approved += 1                    │
-│  6. Decrement escrow balance                                │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ ✅ VIDEO APPROVED                                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Video 1 has been approved!                                  │
-│                                                             │
-│ ✓ $75 payment sent to @marythcreator                        │
-│ ✓ Creator authorized to post on Nov 25                      │
-│                                                             │
-│ Next: Wait for creator to post and track performance        │
-│                                                             │
-│ [View Campaign Dashboard]  [Review Next Video]              │
-└─────────────────────────────────────────────────────────────┘
+✓ Registration form collects: Email, password, legal name, phone
+✓ Email verification required before account activation
+✓ Social platform OAuth integration (TikTok, Meta)
+✓ Can link multiple social accounts (TikTok, Instagram, Facebook)
+✓ Identity verification with document upload
+✓ Stripe Connect onboarding flow embedded
+✓ Profile completeness tracked (0-100%)
+✓ Email reminders for incomplete profiles
+✓ Two-factor authentication available (SMS/TOTP)
+✓ Cannot access briefs until profile 80% complete
 ```
 
-#### 3.3.2 Revision Request Flow
-
+**Data Fields:**
 ```
-Founder clicks "📝 Request Revision"
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ 📝 REQUEST REVISION                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What needs to be changed?                                   │
-│ (Be specific to help the creator deliver what you need)     │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Please make the following changes:                   │   │
-│ │                                                      │   │
-│ │ 1. At 0:15, show the actual ProductivityPro UI       │   │
-│ │    instead of generic screenshots                    │   │
-│ │                                                      │   │
-│ │ 2. Add more emphasis on the "2 hours saved" stat    │   │
-│ │                                                      │   │
-│ │ 3. Include a call-to-action to try the free trial   │   │
-│ │                                                      │   │
-│ │ 187/1000 characters                                  │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Revision deadline:                                          │
-│ [48 hours ▼]  from now (Nov 21 at 2:00 PM)                 │
-│                                                             │
-│ Priority:                                                   │
-│ ○ Minor tweaks     ● Significant changes     ○ Major rework│
-│                                                             │
-│ ☑ Allow creator to ask clarifying questions                │
-│                                                             │
-│ [Cancel]  [Send Revision Request]                           │
-│                                                             │
-│ System Actions (Send):                                      │
-│  1. Update video.status = 'revision_requested'              │
-│  2. Create revision record:                                 │
-│     INSERT INTO revisions (                                 │
-│       video_id, requested_by, feedback,                     │
-│       deadline, priority, iteration_number                  │
-│     )                                                       │
-│  3. Send notification to creator (high priority)            │
-│  4. Email with full feedback                                │
-│  5. Create task in creator dashboard                        │
-│  6. Set reminder 12 hours before deadline                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 3.4 Video Posting & URL Submission
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ CREATOR - Post-Approval Phase                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🎉 Video 1 Approved!                                        │
-│                                                             │
-│ ✓ $75 payment sent (check your wallet)                      │
-│ ✓ Ready to post on Nov 25                                   │
-│                                                             │
-│ ⚠️ Important Reminder:                                      │
-│ • Post exactly on Nov 25                                    │
-│ • Use hashtags: #ProductivityPro                            │
-│ • After posting, submit the live URL here immediately       │
-│                                                             │
-│ [I've Posted - Submit URL]  [View Posting Instructions]     │
-└─────────────────────────────────────────────────────────────┘
-                ↓ (After posting on TikTok/Instagram)
-┌─────────────────────────────────────────────────────────────┐
-│ 🔗 SUBMIT POST URL                                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Video 1 - TikTok Post                                       │
-│                                                             │
-│ Paste your live post URL:                                   │
-│ [https://tiktok.com/@marythcreator/video/7298547382...  ]  │
-│                                                             │
-│ Posting Date/Time:                                          │
-│ [Nov 25, 2025]  [09:30 AM]  [EST ▼]                        │
-│                                                             │
-│ Screenshot (Optional but recommended):                      │
-│ [Upload screenshot showing post is live]                    │
-│                                                             │
-│ [Cancel]  [Submit & Start Tracking]                         │
-│                                                             │
-│ System Actions (Submit):                                    │
-│  1. Validate URL format (TikTok/Instagram domain)           │
-│  2. Extract post ID from URL                                │
-│  3. Verify post exists via API (optional check)             │
-│  4. Update video record:                                    │
-│     • status = 'posted'                                     │
-│     • final_post_url = submitted_url                        │
-│     • posted_at = submitted_datetime                        │
-│  5. Calculate 7-day lock time:                              │
-│     lock_at = posted_at + INTERVAL '7 days'                 │
-│  6. Add to view polling queue (T-302)                       │
-│  7. Send confirmation to founder                            │
-│  8. Initialize first view count snapshot (within 1 hour)    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ ✅ POST URL SUBMITTED                                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your post is now being tracked!                             │
-│                                                             │
-│ 📊 Performance tracking started                             │
-│ 🕐 7-day window: Nov 25 - Dec 2                             │
-│                                                             │
-│ What happens next:                                          │
-│ • Views are updated daily at 12:00 AM EST                   │
-│ • Your performance bonus accumulates in real-time           │
-│ • On Dec 2, final views are locked                          │
-│ • Your bonus is paid automatically within 24 hours          │
-│                                                             │
-│ Current performance:                                        │
-│ Views: 1,247  |  Est. Bonus: $4.99                          │
-│                                                             │
-│ [View Live Performance]  [Continue to Next Video]           │
-└─────────────────────────────────────────────────────────────┘
+creator_id (UUID)
+email (string, unique)
+password_hash (bcrypt)
+first_name (string)
+last_name (string)
+legal_name (string)
+phone (string)
+date_of_birth (date)
+government_id_verified (boolean)
+address_verified (boolean)
+kyc_status (enum: PENDING, VERIFIED, REJECTED)
+stripe_account_id (string)
+stripe_verified (boolean)
+profile_completeness (integer: 0-100)
+social_accounts (json: {tiktok, instagram, facebook})
+bio (text)
+expertise_platforms (array: [TIKTOK, INSTAGRAM, FACEBOOK])
+portfolio_urls (array)
+average_rating (decimal: 0-5)
+total_campaigns (integer)
+created_at (timestamp)
+updated_at (timestamp)
+status (enum: ACTIVE, SUSPENDED, BANNED)
 ```
 
 ---
 
-## 4. Payment Processing Flow
+#### Feature C-102: Creator Base Rate Card
+**Priority:** P0 (Critical)
 
-### 4.1 Phase 1: Base Fee Payment (Detailed)
+**Description:** Creators define their fixed base fee per video, which founders see when browsing available creators.
 
-**Trigger:** Founder approves content (see 3.3.1)
-
+**Acceptance Criteria:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ SYSTEM: Phase 1 Payment Processor                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Event: video.approved (video_id: v123, campaign_id: c456)   │
-│                                                             │
-│ STEP 1: Pre-Flight Validation                               │
-│ ─────────────────────────────────────────────────────────── │
-│ ✓ Check campaign has sufficient escrow balance              │
-│   Current escrow: $1,000                                    │
-│   Required: $75                                             │
-│   Remaining after: $925                                     │
-│                                                             │
-│ ✓ Verify creator Stripe account is active                   │
-│   stripe_account_id: acct_mary123                           │
-│   capabilities.transfers: 'active'                          │
-│                                                             │
-│ ✓ Check for duplicate payment (idempotency)                 │
-│   Query: SELECT * FROM payments                             │
-│          WHERE video_id='v123' AND type='base_fee'          │
-│   Result: No existing payment found ✓                       │
-│                                                             │
-│ STEP 2: Create Database Payment Record (Pending)            │
-│ ─────────────────────────────────────────────────────────── │
-│ INSERT INTO payments (                                      │
-│   id: 'pay_abc123',                                         │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   recipient_id: mary.id,                                    │
-│   amount: 75.00,                                            │
-│   type: 'base_fee',                                         │
-│   status: 'pending',                                        │
-│   created_at: NOW()                                         │
-│ )                                                           │
-│                                                             │
-│ STEP 3: Stripe API Call (With Idempotency Key)              │
-│ ─────────────────────────────────────────────────────────── │
-│ POST https://api.stripe.com/v1/transfers                    │
-│ Headers:                                                    │
-│   Authorization: Bearer sk_live_xxx                         │
-│   Idempotency-Key: c456_v123_base_fee_1732012800           │
-│                                                             │
-│ Body:                                                       │
-│ {                                                           │
-│   amount: 7500,                                             │
-│   currency: "usd",                                          │
-│   destination: "acct_mary123",                              │
-│   transfer_group: "c456",                                   │
-│   description: "Base fee - Video 1 approval",               │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     video_id: "v123",                                       │
-│     payment_type: "base_fee",                               │
-│     founder_id: "mike.id",                                  │
-│     creator_id: "mary.id"                                   │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: (Success)                                         │
-│ {                                                           │
-│   id: "tr_stripe789",                                       │
-│   object: "transfer",                                       │
-│   amount: 7500,                                             │
-│   created: 1732012800,                                      │
-│   destination: "acct_mary123",                              │
-│   status: "paid"                                            │
-│ }                                                           │
-│                                                             │
-│ STEP 4: Update Database (Success State)                     │
-│ ─────────────────────────────────────────────────────────── │
-│ UPDATE payments                                             │
-│ SET                                                         │
-│   status = 'completed',                                     │
-│   stripe_transfer_id = 'tr_stripe789',                      │
-│   processed_at = NOW()                                      │
-│ WHERE id = 'pay_abc123';                                    │
-│                                                             │
-│ UPDATE videos                                               │
-│ SET base_fee_paid = true                                    │
-│ WHERE id = 'v123';                                          │
-│                                                             │
-│ UPDATE campaigns                                            │
-│ SET escrow_balance = escrow_balance - 75.00                 │
-│ WHERE id = 'c456';                                          │
-│                                                             │
-│ STEP 5: Notifications & Webhooks                            │
-│ ─────────────────────────────────────────────────────────── │
-│ • Send email to creator: "Payment sent: $75"                │
-│ • Push notification to creator app                          │
-│ • Update creator wallet balance (live)                      │
-│ • Send confirmation to founder                              │
-│ • Log event to analytics                                    │
-│                                                             │
-│ ✅ Phase 1 Payment Complete                                 │
-└─────────────────────────────────────────────────────────────┘
+✓ Dashboard displays current base rate prominently
+✓ Can update base rate (takes effect for new briefs only)
+✓ Historical rate changes tracked with timestamps
+✓ Rate suggestions based on platform, experience, rating
+✓ Rate validation: $20-$500 per video
+✓ Can set different rates per platform
+✓ Rate locked for existing campaigns
+✓ Analytics: Show avg rate in marketplace, percentile ranking
 ```
 
-### 4.2 Phase 2: Performance Bonus & Refund (7-Day Settlement)
-
-**Trigger:** Automated cron job detects video.posted_at >= 168 hours ago
-
+**Data Model:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ SYSTEM: 7-Day Metric Lock & Settlement Processor            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Cron Job: Daily at 12:05 AM EST                             │
-│ Query: SELECT * FROM videos                                 │
-│        WHERE status = 'posted'                              │
-│        AND posted_at <= NOW() - INTERVAL '168 hours'        │
-│        AND status != 'locked'                               │
-│                                                             │
-│ Result: video_id 'v123' eligible for lock                   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2A: METRIC LOCK                                       │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ STEP 1: Final View Count Fetch                              │
-│ ─────────────────────────────────────────────────────────── │
-│ • Platform: TikTok                                          │
-│ • Post URL: https://tiktok.com/@marythcreator/video/729... │
-│                                                             │
-│ API Call: GET /v2/video/query/                              │
-│ {                                                           │
-│   video_id: "7298547382..."                                 │
-│ }                                                           │
-│                                                             │
-│ Response:                                                   │
-│ {                                                           │
-│   data: {                                                   │
-│     view_count: 45232,                                      │
-│     like_count: 3421,                                       │
-│     share_count: 287                                        │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ STEP 2: Lock View Count (Immutable)                         │
-│ ─────────────────────────────────────────────────────────── │
-│ BEGIN TRANSACTION;                                          │
-│                                                             │
-│ UPDATE videos                                               │
-│ SET                                                         │
-│   locked_view_count = 45232,                                │
-│   locked_at = NOW(),                                        │
-│   status = 'locked'                                         │
-│ WHERE id = 'v123';                                          │
-│                                                             │
-│ INSERT INTO view_snapshots (                                │
-│   video_id, view_count, snapshot_at, data_source            │
-│ ) VALUES (                                                  │
-│   'v123', 45232, NOW(), 'tiktok_api_final'                  │
-│ );                                                          │
-│                                                             │
-│ COMMIT;                                                     │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2B: SETTLEMENT CALCULATION                            │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Budget Overview:                                   │
-│ • Total Budget: $1,000.00                                   │
-│ • Base Fee Budget: $250.00 (5 videos × $50, but Mary gets  │
-│   $75/video = $375 total)                                   │
-│ • Performance Budget Available: $625.00                     │
-│                                                             │
-│ Final Views Achieved: 45,232 (across all 5 videos so far)   │
-│ This specific video (v123): 45,232 views                    │
-│                                                             │
-│ Calculation for Video 1:                                    │
-│ ───────────────────────────────────────────────────────────│
-│ Views in thousands: 45232 / 1000 = 45.232                   │
-│                                                             │
-│ Creator Performance Bonus:                                  │
-│   45.232 × $4.00 = $180.93                                  │
-│                                                             │
-│ Nala Revenue (Markup):                                      │
-│   45.232 × $1.00 = $45.23                                   │
-│                                                             │
-│ Total Performance Cost:                                     │
-│   45.232 × $5.00 = $226.16                                  │
-│                                                             │
-│ [Stored in settlement record]                               │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2C: PAYMENT EXECUTION                                 │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ STEP 1: Creator Performance Bonus Transfer                  │
-│ ─────────────────────────────────────────────────────────── │
-│ POST /v1/transfers                                          │
-│ {                                                           │
-│   amount: 18093, // $180.93 in cents                        │
-│   currency: "usd",                                          │
-│   destination: "acct_mary123",                              │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     video_id: "v123",                                       │
-│     payment_type: "performance_bonus",                      │
-│     views_achieved: 45232                                   │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: { id: "tr_perf456", status: "paid" }              │
-│                                                             │
-│ INSERT INTO payments (                                      │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   recipient_id: mary.id,                                    │
-│   amount: 180.93,                                           │
-│   type: 'performance_bonus',                                │
-│   status: 'completed',                                      │
-│   stripe_transfer_id: 'tr_perf456',                         │
-│   metadata: {views: 45232}                                  │
-│ );                                                          │
-│                                                             │
-│ STEP 2: Nala Revenue Recording                              │
-│ ─────────────────────────────────────────────────────────── │
-│ INSERT INTO revenue (                                       │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   amount: 45.23,                                            │
-│   type: 'markup',                                           │
-│   views_count: 45232                                        │
-│ );                                                          │
-│                                                             │
-│ // Funds stay in platform Stripe account                    │
-│                                                             │
-│ STEP 3: Calculate Campaign-Level Refund                     │
-│ ─────────────────────────────────────────────────────────── │
-│ // After ALL 5 videos are locked, calculate total refund    │
-│                                                             │
-│ Total Performance Budget: $625.00                           │
-│ Total Performance Cost (all videos): $450.00                │
-│ Refund Amount: $625.00 - $450.00 = $175.00                  │
-│                                                             │
-│ POST /v1/refunds                                            │
-│ {                                                           │
-│   payment_intent: "pi_founder123",                          │
-│   amount: 17500, // $175 in cents                           │
-│   reason: "requested_by_customer",                          │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     refund_type: "unspent_performance_budget",              │
-│     original_budget: 625.00,                                │
-│     actual_cost: 450.00                                     │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: { id: "re_refund789", status: "succeeded" }       │
-│                                                             │
-│ INSERT INTO payments (                                      │
-│   campaign_id: 'c456',                                      │
-│   recipient_id: mike.id,                                    │
-│   amount: 175.00,                                           │
-│   type: 'refund',                                           │
-│   status: 'completed',                                      │
-│   stripe_refund_id: 're_refund789'                          │
-│ );                                                          │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2D: FINALIZATION                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ UPDATE campaigns                                            │
-│ SET                                                         │
-│   status = 'completed',                                     │
-│   completed_at = NOW(),                                     │
-│   final_views_total = 226160, // Sum of all videos          │
-│   total_paid_to_creator = 555.93, // Base + Performance     │
-│   total_refunded_to_founder = 175.00,                       │
-│   platform_revenue = 226.16 // Nala markup                  │
-│ WHERE id = 'c456';                                          │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2E: NOTIFICATIONS & REPORTING                         │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ To Creator (Mary):                                          │
-│ ───────────────────────────────────────────────────────────│
-│ Subject: Campaign Complete - $180.93 Bonus Paid!            │
-│                                                             │
-│ Your Q4 Product Launch campaign has ended!                  │
-│                                                             │
-│ Final Performance:                                          │
-│ • Video 1: 45,232 views                                     │
-│ • Performance Bonus: $180.93                                │
-│ • Total Earned: $255.93 ($75 base + $180.93 bonus)         │
-│                                                             │
-│ Payment sent to your account.                               │
-│                                                             │
-│ [View Campaign Report] [Leave Review for Client]            │
-│                                                             │
-│ ───────────────────────────────────────────────────────────│
-│                                                             │
-│ To Founder (Mike):                                          │
-│ ───────────────────────────────────────────────────────────│
-│ Subject: Campaign Complete - $175 Refund Processed          │
-│                                                             │
-│ Your Q4 Product Launch campaign has concluded!              │
-│                                                             │
-│ Campaign Performance:                                       │
-│ • Total Views: 226,160                                      │
-│ • Videos Delivered: 5/5                                     │
-│ • Total Spent: $825.00                                      │
-│ • Refund Issued: $175.00                                    │
-│                                                             │
-│ Your refund will appear in 5-7 business days.               │
-│                                                             │
-│ [Download Performance Report] [Leave Review# Nala Platform - Detailed User Flows
-
-## Table of Contents
-1. [Creator Onboarding Flow](#1-creator-onboarding-flow)
-2. [Founder Campaign Creation Flow](#2-founder-campaign-creation-flow)
-3. [Content Creation & Review Flow](#3-content-creation--review-flow)
-4. [Payment Processing Flow](#4-payment-processing-flow)
-5. [Performance Tracking Flow](#5-performance-tracking-flow)
-6. [Dispute Resolution Flow](#6-dispute-resolution-flow)
-
----
-
-## 1. Creator Onboarding Flow
-
-### 1.1 Account Registration
-
-**Entry Point:** Landing page → "Sign Up as Creator" button
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Basic Information                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Creator enters:                                             │
-│  • Full Name                                                │
-│  • Email Address                                            │
-│  • Password (8+ chars, 1 number, 1 special)                │
-│  • Confirm Password                                         │
-│                                                             │
-│ [Checkbox] I agree to Terms of Service & Privacy Policy    │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Validate email format and uniqueness                    │
-│  2. Hash password (bcrypt)                                  │
-│  3. Create user record (role: 'creator')                    │
-│  4. Send verification email                                 │
-│  5. Create empty creator_profile record                     │
-│  6. Generate session token                                  │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Email Verification                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Screen: "Check your email"                                  │
-│  📧 We sent a verification link to mary@email.com          │
-│                                                             │
-│ Creator clicks link in email →                              │
-│                                                             │
-│ System Actions:                                             │
-│  1. Verify token from email link                            │
-│  2. Update user.email_verified = true                       │
-│  3. Redirect to platform onboarding                         │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 1.2 Social Media Account Connection
-
-**Critical Path:** This determines creator eligibility
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Connect Your Platforms                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Connect your social accounts to start earning"             │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 🎵 TikTok         [Connect Account]   Not Connected │   │
-│ │    Minimum: 10,000 followers                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📸 Instagram      [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ │    ⚠️ Requires Business Account                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 👍 Facebook       [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Note: Connect at least one platform to continue            │
-│                                                             │
-│ [Skip for now]  [Continue]  ← Disabled until 1 connected   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-#### 1.2.1 TikTok Connection Sub-Flow
-
-```
-Creator clicks "Connect Account" on TikTok
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ POPUP: TikTok OAuth                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Generate OAuth state token (CSRF protection)            │
-│  2. Redirect to TikTok Login Kit:                           │
-│     https://www.tiktok.com/auth/authorize/                  │
-│     ?client_key={CLIENT_KEY}                                │
-│     &scope=user.info.basic,video.list,video.insights        │
-│     &response_type=code                                     │
-│     &redirect_uri={CALLBACK_URL}                            │
-│     &state={STATE_TOKEN}                                    │
-│                                                             │
-│ Creator sees TikTok login screen →                          │
-│  • Logs into TikTok (if not already)                        │
-│  • Reviews permissions request                              │
-│  • Clicks "Authorize"                                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ CALLBACK: TikTok Returns to Nala                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Receive authorization code                              │
-│  2. Verify state token (prevent CSRF)                       │
-│  3. Exchange code for access token:                         │
-│     POST https://open-api.tiktok.com/oauth/access_token/    │
-│  4. Fetch user profile:                                     │
-│     GET /v2/user/info/                                      │
-│  5. Extract: username, follower_count, user_id              │
-│                                                             │
-│  6. Validate eligibility:                                   │
-│     IF follower_count < 10,000:                             │
-│       ❌ Show error: "Minimum 10K followers required"       │
-│       STOP                                                  │
-│                                                             │
-│  7. Store in database:                                      │
-│     INSERT INTO social_accounts (                           │
-│       creator_id, platform, platform_user_id,               │
-│       username, follower_count,                             │
-│       access_token [ENCRYPTED], refresh_token [ENCRYPTED],  │
-│       token_expires_at, verified_at                         │
-│     )                                                       │
-│                                                             │
-│  8. Update creator_profile.verification_status = 'verified' │
-│  9. Show success message                                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ SUCCESS SCREEN                                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ✅ TikTok Connected Successfully!                           │
-│                                                             │
-│ @marythcreator                                              │
-│ 47,234 followers                                            │
-│                                                             │
-│ [Connect Another Platform]  [Continue →]                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-#### 1.2.2 Instagram Connection Sub-Flow
-
-**Note:** More complex due to Business Account requirement
-
-```
-Creator clicks "Connect Account" on Instagram
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Check Account Type                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Do you have an Instagram Business or Creator Account?"     │
-│                                                             │
-│ [Yes, I have a Business Account] → Continue to OAuth        │
-│ [No, I have a Personal Account] → Show conversion guide     │
-│                                                             │
-│ IF "No" selected:                                           │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ ℹ️  How to Convert to Business Account:            │   │
-│ │                                                     │   │
-│ │ 1. Open Instagram app                              │   │
-│ │ 2. Go to Settings → Account                        │   │
-│ │ 3. Select "Switch to Professional Account"         │   │
-│ │ 4. Choose "Business"                               │   │
-│ │ 5. Connect to Facebook Page                        │   │
-│ │                                                     │   │
-│ │ [Watch Video Tutorial]  [I've Converted]           │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Facebook Login (Required for Instagram)             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Redirect to Facebook OAuth:                             │
-│     https://www.facebook.com/v18.0/dialog/oauth             │
-│     ?client_id={APP_ID}                                     │
-│     &redirect_uri={CALLBACK}                                │
-│     &scope=instagram_basic,instagram_manage_insights,       │
-│             pages_read_engagement                           │
-│                                                             │
-│ Creator:                                                    │
-│  • Logs into Facebook                                       │
-│  • Selects connected Instagram Business Account            │
-│  • Grants permissions                                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Fetch Instagram Data                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Exchange code for access token                          │
-│  2. Get Instagram Business Account ID:                      │
-│     GET /{facebook-page-id}?fields=instagram_business_accou │
-│     nt                                                      │
-│  3. Get Instagram profile data:                             │
-│     GET /{ig-user-id}?fields=username,followers_count       │
-│                                                             │
-│  4. Validate:                                               │
-│     IF followers_count < 5,000:                             │
-│       ❌ Error: "Minimum 5K followers required"             │
-│     IF account_type != 'BUSINESS':                          │
-│       ❌ Error: "Business account required"                 │
-│                                                             │
-│  5. Store data (same as TikTok flow)                        │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 1.3 Profile Setup
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 4: Set Your Rates                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "How much do you charge per video?"                         │
-│                                                             │
-│ TikTok Base Fee:                                            │
-│ [$75] ◄────●────────────────► [$500]                       │
-│  $50                                  Max                   │
-│                                                             │
-│ 💡 Most creators charge: $75-$150                           │
-│ 📊 Your potential earnings for 100K views:                  │
-│     Base Fee: $75 + Performance: $400 = $475 total          │
-│                                                             │
-│ Instagram Base Fee:                                         │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ Facebook Base Fee:                                          │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile with base fees                    │
-│  • Calculate average fee for matching algorithm             │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 5: Build Your Portfolio                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Upload 3-10 sample videos to showcase your style"          │
-│                                                             │
-│ [Drag & Drop Videos Here]                                   │
-│  or [Browse Files]                                          │
-│                                                             │
-│ Uploaded (2/10):                                            │
-│ ┌─────────┐  ┌─────────┐                                   │
-│ │ [Video] │  │ [Video] │  [+ Add More]                     │
-│ │  30s    │  │  45s    │                                   │
-│ └─────────┘  └─────────┘                                   │
-│                                                             │
-│ For each video:                                             │
-│  • Title: [Product Review - SaaS Tool]                      │
-│  • Platform: [TikTok ▼]                                     │
-│                                                             │
-│ [Skip for now]  [Continue →]                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Upload to S3 (max 500MB per video)                      │
-│  2. Generate thumbnail (frame at 2s)                        │
-│  3. Transcode to web format (H.264, 720p)                   │
-│  4. Store metadata in creator_profile.portfolio_videos      │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 6: Category & Bio                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What niches do you specialize in? (Select all that apply)   │
-│                                                             │
-│ ☑ SaaS & Software    ☐ E-commerce     ☐ Health & Fitness   │
-│ ☑ B2B Tech           ☐ Beauty         ☐ Food & Beverage    │
-│ ☐ Finance            ☐ Fashion        ☐ Gaming             │
-│                                                             │
-│ Tell brands about yourself: (500 char max)                  │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Hi! I'm Mary, a tech enthusiast who creates          │   │
-│ │ engaging video reviews for SaaS products. My         │   │
-│ │ audience loves honest, detailed breakdowns...        │   │
-│ │                                                      │   │
-│ │ 347/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ [Back]  [Complete Setup →]                                  │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile.categories                        │
-│  • Update creator_profile.bio                               │
-│  • Set profile_completed = true                             │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 7: Payment Setup (Stripe Connect)                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Last step: Set up payouts"                                 │
-│                                                             │
-│ Nala uses Stripe to send you payments securely.             │
-│                                                             │
-│ [Connect Stripe Account]                                    │
-│                                                             │
-│ System Actions:                                             │
-│  1. Create Stripe Connect Express account link:             │
-│     POST /v1/account_links                                  │
-│     type: 'account_onboarding'                              │
-│  2. Redirect creator to Stripe hosted onboarding            │
-│                                                             │
-│ Creator completes on Stripe:                                │
-│  • Personal information (name, DOB, SSN)                    │
-│  • Business details (if applicable)                         │
-│  • Bank account for deposits                                │
-│  • Identity verification (photo ID)                         │
-│                                                             │
-│ Stripe redirects back to Nala with account_id               │
-│                                                             │
-│ System Actions:                                             │
-│  1. Store stripe_account_id in users table                  │
-│  2. Verify account capabilities:                            │
-│     - transfers: 'active'                                   │
-│     - card_payments: 'active' (if needed)                   │
-│  3. Mark creator as payment_ready = true                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ 🎉 SUCCESS: You're All Set!                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your creator profile is live!                               │
-│                                                             │
-│ ✅ TikTok connected (47K followers)                         │
-│ ✅ Base fee set ($75/video)                                 │
-│ ✅ Portfolio added (2 videos)                               │
-│ ✅ Payments ready                                           │
-│                                                             │
-│ Next steps:                                                 │
-│ • Brands will discover your profile                         │
-│ • You'll receive brief invitations                          │
-│ • Start earning with performance-based pay!                 │
-│                                                             │
-│ [Go to Dashboard →]                                         │
-└─────────────────────────────────────────────────────────────┘
+creator_rate_card_id (UUID)
+creator_id (FK)
+platform (enum: TIKTOK, INSTAGRAM, FACEBOOK)
+base_fee_per_video (decimal)
+effective_date (date)
+previous_rate (decimal)
+active (boolean)
+created_at (timestamp)
+updated_at (timestamp)
 ```
 
 ---
 
-## 2. Founder Campaign Creation Flow
+#### Feature C-103: Task Dashboard & Content Management
+**Priority:** P0 (Critical)
 
-### 2.1 Campaign Initiation
+**Description:** Centralized workspace where creators view assigned briefs, manage deadlines, upload drafts, and submit final posting URLs.
 
-**Entry Point:** Dashboard → "Create Campaign" button
+**Components:**
 
+**C-103A: Brief Assignment View**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Create New Campaign                     [Save Draft] [Exit] │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Progress: ●──○──○──○──○──○  Step 1 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 1: Campaign Basics                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Name: *                                            │
-│ [Q4 Product Launch Campaign                              ] │
-│                                                             │
-│ What are you promoting?                                     │
-│ [ProductivityPro - AI-powered task management SaaS       ] │
-│                                                             │
-│ Target Audience:                                            │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Professionals aged 25-40, interested in              │   │
-│ │ productivity tools, remote workers, small business   │   │
-│ │ owners.                                              │   │
-│ │                                                      │   │
-│ │ 178/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Campaign Goal:                                              │
-│ ○ Brand Awareness    ● Website Traffic    ○ Signups        │
-│ ○ Sales              ○ App Downloads                        │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Auto-save every 30 seconds                               │
-│  • Create draft campaign record                             │
-│  • Status: 'draft'                                          │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──○──○──○──○  Step 2 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 2: Content Requirements                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ How many videos do you need?                                │
-│ [5▼] videos                                                 │
-│  (Min: 1, Max: 10 per campaign)                             │
-│                                                             │
-│ Preferred video length:                                     │
-│ ○ 15 seconds     ● 30 seconds                               │
-│ ○ 60 seconds     ○ Creator's choice                         │
-│                                                             │
-│ Which platforms? (Select all that apply)                    │
-│ ☑ TikTok    ☑ Instagram Reels    ☐ Facebook Reels          │
-│                                                             │
-│ Video style preference:                                     │
-│ ☑ Product Tutorial    ☐ Unboxing    ☐ Testimonial          │
-│ ☐ Behind the Scenes   ☐ Comparison                          │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Update campaign.videos_requested = 5                     │
-│  • Store platform preferences in brief_data JSONB           │
-│  • Calculate estimated budget preview                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──○──○──○  Step 3 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 3: Creative Brief                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Key Talking Points: (What should the creator highlight?)    │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ • AI-powered task prioritization                    │   │
-│ │ • Integrates with 50+ tools (Slack, Gmail, etc)     │   │
-│ │ • Saves 2 hours per day on average                  │   │
-│ │ • Free 14-day trial available                       │   │
-│ │                                                      │   │
-│ │ [+ Add Point]                                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Brand Guidelines: (Upload PDF, images, or describe)         │
-│ [📄 Brand_Guidelines.pdf] [✓ Uploaded]  [Remove]           │
-│ [+ Upload Assets] (Logo, product images, etc.)              │
-│                                                             │
-│ Do's:                          │ Don'ts:                    │
-│ • Be authentic                 │ • Compare to competitors   │
-│ • Show real use cases          │ • Make health claims       │
-│ • Use trending audio           │ • Show competitor logos    │
-│ [+ Add]                        │ [+ Add]                    │
-│                                                             │
-│ Required Hashtags/Mentions:                                 │
-│ [#ProductivityPro #AItools @productivitypro_official     ] │
-│                                                             │
-│ Reference Videos: (Optional - paste URLs)                   │
-│ [https://tiktok.com/@competitor/video/123                ] │
-│ [+ Add Another]                                             │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Store all data in campaign.brief_data (JSONB)            │
-│  • Upload brand assets to S3                                │
-│  • Generate brief preview PDF                               │
-└─────────────────────────────────────────────────────────────┘
+✓ Shows: Brief title, platform(s), base fee, deadline
+✓ Status indicators: Accepted, In Progress, Submitted, Approved
+✓ One-click brief details view
+✓ Accept/Reject/Renegotiate actions
+✓ Deadline countdown timer
+✓ Notification for deadlines < 24 hours
+✓ Overdue briefs highlighted in red
+✓ Filter by status, platform, date
 ```
 
-### 2.2 Posting Schedule & Budget Configuration
+**C-103B: Draft Upload Portal**
+```
+✓ Drag-and-drop video upload (MP4, MOV, WebM)
+✓ Max file size: 1GB
+✓ Progress bar with upload speed
+✓ Auto-save functionality
+✓ Add: Video title, content description, posting notes
+✓ Platform-specific publishing recommendations
+✓ Withdrawal of draft before founder review
+✓ Revision history (all draft versions)
+✓ Estimated upload time display
+```
+
+**C-103C: Founder Feedback Integration**
+```
+✓ View founder revision requests (text + optional markup)
+✓ Revision deadline countdown
+✓ Re-upload revised draft
+✓ Track: Number of revisions, revision history
+✓ Notification when feedback is posted
+✓ Direct message channel with founder (optional)
+```
+
+**C-103D: Final Posting URL Submission**
+```
+✓ After founder approval, collect posting schedule confirmation
+✓ Creator submits live video URL post-upload confirmation
+✓ System validates URL matches platform
+✓ Record: Posted timestamp, URL, video duration, etc.
+✓ Automatically triggers Phase 1 payout
+✓ Late posting detection (> 24 hours after deadline)
+```
+
+**Data Model:**
+```
+campaign_assignment_id (UUID)
+campaign_id (FK)
+creator_id (FK)
+status (enum: OFFERED, ACCEPTED, REJECTED, IN_PROGRESS, SUBMITTED_FOR_REVIEW, REVISION_REQUESTED, APPROVED, POSTED, COMPLETED)
+base_fee_earned (decimal)
+assignment_date (timestamp)
+acceptance_date (timestamp)
+deadline (timestamp)
+draft_submission_date (timestamp)
+approval_date (timestamp)
+posting_date (timestamp)
+posting_url (string)
+posting_platform (enum: TIKTOK, INSTAGRAM, FACEBOOK)
+
+draft_versions (json array with: file_path, size, upload_date, version_number)
+revision_requests (json array with: request_date, feedback, deadline, status)
+feedback_notes (text)
+posted_at_verification (timestamp)
+```
+
+---
+
+#### Feature C-104: Payout Wallet & Real-Time Earnings
+**Priority:** P0 (Critical)
+
+**Description:** Real-time dashboard showing earned base fees, accruing performance bonuses, and payout management.
+
+**Acceptance Criteria:**
+```
+✓ Real-time balance display: Base Fee + Bonus
+✓ Daily breakdown: Which campaigns contributed to earnings
+✓ Performance bonus calculated and updated daily
+✓ Clear explanation: $X base fee + $Y bonus = $Z total
+✓ Minimum payout threshold: $10.00
+✓ Instant payout button (transfers to Stripe account)
+✓ Scheduled payout option (Friday 5 PM)
+✓ Payout history: Last 12 months, sortable
+✓ Tax document generation (1099 equivalent)
+✓ Email notification on payout completion
+✓ Expected payout amount for next 3 days
+```
+
+**C-104A: Earnings Breakdown**
+```
+SAMPLE VIEW:
+┌─────────────────────────────────────┐
+│ WALLET BALANCE                      │
+├─────────────────────────────────────┤
+│ Available Now:           $487.50    │
+│  ├─ Base Fees Pending    $250.00    │
+│  └─ Performance Bonus    $237.50    │
+│                                      │
+│ Pending (5-7 days):      $120.00    │
+│  └─ From: Campaign ABC   │
+│                                      │
+│ Lifetime Earnings:    $12,345.67    │
+└─────────────────────────────────────┘
+
+RECENT TRANSACTIONS:
+═════════════════════════════════════
+Campaign XYZ - Video 3
+├─ Earned: $50.00 (base fee)
+├─ Status: APPROVED
+└─ Base Fee Paid: Nov 15
+
+Campaign XYZ - Video 3
+├─ Performance: $237.50
+├─ Views: 59,375
+├─ Rate: $4.00 per 1k views
+└─ Paid: Nov 20
+```
+
+**Data Model:**
+```
+creator_wallet_id (UUID)
+creator_id (FK)
+available_balance (decimal)
+pending_balance (decimal)
+lifetime_earnings (decimal)
+last_payout_date (date)
+
+payout_transaction_id (UUID)
+creator_id (FK)
+amount (decimal)
+payout_method (enum: STRIPE, BANK_TRANSFER)
+status (enum: REQUESTED, PROCESSING, COMPLETED, FAILED)
+request_date (timestamp)
+completion_date (timestamp)
+stripe_payout_id (string)
+failure_reason (text)
+```
+
+---
+
+### 5.2 FOUNDER MODULE (MIKE)
+
+#### Feature F-201: Guided Brief Builder
+**Priority:** P0 (Critical)
+
+**Description:** Multi-step wizard guiding Founders through campaign creation with clear pricing display.
+
+**Acceptance Criteria:**
+```
+✓ Step 1: Campaign Basics (title, description, product link)
+✓ Step 2: Content Requirements (# videos, platforms, tone/style)
+✓ Step 3: Posting Schedule (daily, weekly, custom calendar)
+✓ Step 4: Budget Configuration (fixed base + variable performance)
+✓ Step 5: Creator Filter (expertise, rating, experience)
+✓ Step 6: Review & Confirm (summary before escrow charge)
+✓ Real-time cost calculator showing total budget
+✓ Estimated maximum views displayed
+✓ Can save draft and resume later
+✓ Can preview how brief appears to creators
+```
+
+**F-201A: Step 1 - Campaign Basics**
+```
+Form Fields:
+- Campaign Title (required, 50-200 chars)
+- Campaign Description (required, 500-2000 chars)
+- Product Category (dropdown: SaaS, E-commerce, etc.)
+- Product Link/Demo URL (optional)
+- Campaign Duration (7-60 days)
+- Primary Goal (awareness, conversion, trial signup)
+
+Validations:
+✓ Title uniqueness per founder (user-friendly error)
+✓ Description length validation
+✓ URL validation if provided
+✓ Auto-save every 30 seconds
+```
+
+**F-201B: Step 2 - Content Requirements**
+```
+Form Fields:
+- Number of Videos (1-10)
+- Platforms (multi-select: TikTok, Instagram, Facebook)
+- Content Tone (dropdown: Professional, Casual, Humorous, Educational)
+- Key Messages (array of 3-5 key points to highlight)
+- Must-Haves (video requirements: length, format, music, etc.)
+- Don't-Wants (explicit exclusions)
+- Demo/Product Info (text or video)
+
+Price Calculation:
+├─ If 5 videos × $50 avg creator rate = $250 (variable)
+└─ Variable budget: 5 × $50 × 3 = $750 (default multiplier)
+
+Display:
+✓ Show estimated creator availability
+✓ Show platform-specific best practices
+```
+
+**F-201C: Step 3 - Posting Schedule**
+```
+Options:
+1. Daily (one video per day, Mon-Sun)
+2. Weekly (specific days)
+3. Custom (calendar picker)
+
+Display:
+✓ Visual calendar showing posting dates
+✓ Spacing recommendations (don't overwhelm audience)
+✓ Platform posting time recommendations
+✓ Verification requirement explained
+✓ Late posting penalty explained (if applicable)
+```
+
+**F-201D: Step 4 - Budget Configuration**
+```
+Display:
+┌─────────────────────────────────────┐
+│ BUDGET BREAKDOWN                    │
+├─────────────────────────────────────┤
+│ # of Videos: 5                      │
+│ Avg Creator Base Fee: $50/video     │
+│ Fixed Budget: $250 (100% locked)    │
+│                                      │
+│ Performance Budget Setup:            │
+│ Variable Budget: $750 (configurable)│
+│ Max Views Purchasable: 150k views   │
+│ Performance Rate: $5/1k views       │
+│                                      │
+│ TOTAL BUDGET: $1,000                │
+│                                      │
+│ Creator earns: $4/1k (capped 150k)  │
+│ Nala earns: $1/1k (capped 150k)     │
+│ Unspent budget: Refunded to you     │
+└─────────────────────────────────────┘
+
+Actions:
+✓ Slider to adjust variable budget (min $250, max $5000)
+✓ Real-time max views calculation
+✓ Show potential ROI scenarios (30k, 100k, 150k views)
+```
+
+**F-201E: Step 5 - Creator Filter**
+```
+Filters:
+- Minimum Rating (1-5 stars)
+- Minimum Experience (# campaigns)
+- Specific Platforms (TikTok, Insta, FB)
+- Geographic Location (optional)
+- Industry Experience (optional)
+- Language Preference
+
+Display:
+✓ Number of creators matching criteria
+✓ Availability status
+✓ Average base rate for matching creators
+```
+
+**F-201F: Step 6 - Review & Confirm**
+```
+Display:
+┌─────────────────────────────────────┐
+│ CAMPAIGN SUMMARY                    │
+├─────────────────────────────────────┤
+│ Title: "Acme Product Launch"         │
+│ Videos: 5 | Platforms: TikTok, IG   │
+│ Schedule: Daily (starting Nov 25)   │
+│ Base Fee: $250 | Variable: $750     │
+│ TOTAL: $1,000                       │
+│                                      │
+│ Estimated Creators: 45+             │
+│ Avg Rating: 4.6/5                  │
+│                                      │
+│ Terms:                              │
+│ ✓ I agree to content rights policy  │
+│ ✓ I agree to payment terms          │
+│                                      │
+│ [CANCEL] [EDIT] [CONFIRM & PAY]     │
+└─────────────────────────────────────┘
+
+Actions:
+✓ Confirm & Proceed to Payment
+✓ Edit any step
+✓ Cancel and save draft
+```
+
+**Data Model:**
+```
+campaign_id (UUID)
+founder_id (FK)
+campaign_title (string)
+campaign_description (text)
+product_category (enum)
+product_link (string)
+content_tone (string)
+key_messages (json array)
+number_of_videos (integer)
+platforms (json array: [TIKTOK, INSTAGRAM, FACEBOOK])
+posting_schedule (json: {type, dates, frequency})
+fixed_budget (decimal)
+variable_budget (decimal)
+total_budget (decimal)
+max_views_purchasable (integer)
+creator_filter_criteria (json)
+status (enum: DRAFT, LIVE, CLOSED, COMPLETED)
+created_at (timestamp)
+updated_at (timestamp)
+launched_at (timestamp)
+```
+
+---
+
+#### Feature F-202: Escrow & Funding Integration
+**Priority:** P0 (Critical)
+
+**Description:** Secure Stripe Connect integration for campaign budget deposit and holding.
+
+**Acceptance Criteria:**
+```
+✓ Display Stripe payment form (credit card, bank, Apple Pay)
+✓ Real-time total budget calculation
+✓ Process payment securely via Stripe
+✓ Show transaction ID on success
+✓ Immediate escrow confirmation email
+✓ Payment method saved for future campaigns (optional)
+✓ Refund policy clearly displayed before charge
+✓ Estimated settlement timeline shown
+```
+
+**F-202A: Payment Form**
+```
+Fields:
+- Payment Method (select: Card, Bank Transfer, Apple Pay)
+- Cardholder Name
+- Card Number (tokenized via Stripe)
+- Expiry & CVC
+- Billing Address
+
+Display:
+✓ Amount to be charged: $1,000.00
+✓ Escrow holding period: Until campaign completion + 7 days
+✓ Fee disclaimer: No platform fee on top (if applicable)
+✓ Refund policy: Any unspent variable budget refunded automatically
+```
+
+**F-202B: Post-Payment Confirmation**
+```
+Email to Founder:
+├─ Subject: "Campaign Funded - Brief Going Live"
+├─ Body:
+│  ├─ Campaign ID
+│  ├─ Total Budget: $1,000.00
+│  ├─ Transaction ID: stripe_ch_xxx
+│  ├─ Brief link (to view how creators see it)
+│  ├─ Expected creators to apply: 20-50+
+│  ├─ Timeline: Creators apply within 24-48 hours
+│  └─ Next step: Review and approve applications
+│
+└─ Link: To brief details + application list
+
+In-App Notification:
+✓ Prominent green success banner
+✓ Next steps wizard: "Creators will apply soon"
+✓ Option to view brief as creators see it
+```
+
+**Data Model:**
+```
+campaign_funding_id (UUID)
+campaign_id (FK)
+founder_id (FK)
+stripe_charge_id (string)
+payment_method (enum: CARD, BANK, APPLE_PAY)
+amount_charged (decimal)
+escrow_amount_held (decimal)
+status (enum: PENDING, COMPLETED, FAILED, REFUNDED)
+charged_at (timestamp)
+created_at (timestamp)
+
+escrow_transaction_id (UUID)
+campaign_funding_id (FK)
+held_amount (decimal)
+released_amount (decimal)
+refunded_amount (decimal)
+hold_start_date (timestamp)
+release_date (timestamp)
+notes (text)
+```
+
+---
+
+#### Feature F-203: Content Review Tool
+**Priority:** P0 (Critical)
+
+**Description:** Portal for Founders to review creator-submitted drafts, provide feedback, and approve for posting.
+
+**Acceptance Criteria:**
+```
+✓ List all creators assigned to campaign + status
+✓ Video player embedded for draft playback
+✓ Play/pause/fullscreen controls
+✓ Frame-by-frame analysis capability
+✓ Approve/Request Revision buttons prominent
+✓ Revision feedback text area (max 1000 chars)
+✓ Option to use markup/drawing tool (optional)
+✓ Revision deadline setting (default 3 days)
+✓ Auto-approve option after deadline passes
+✓ Revision history visible (all drafts + feedback)
+✓ Notification sent to creator on feedback
+✓ Comparison mode (view multiple creators' takes side-by-side)
+```
+
+**F-203A: Review Dashboard Layout**
+```
+┌────────────────────────────────────┐
+│ CONTENT REVIEW - Campaign: "Acme"  │
+├────────────────────────────────────┤
+│                                    │
+│  CREATORS (5/5 drafts submitted):  │
+│  ┌─────────────────────────────┐   │
+│  │ ✓ Mary [4.8★] - PENDING    │   │
+│  │ ✓ John [4.5★] - APPROVED   │   │
+│  │ ⚠ Sarah [4.2★] - REVISION  │   │
+│  │ ✓ Lisa [4.9★] - POSTED     │   │
+│  │ ⏱ Tom [4.0★] - OVERDUE     │   │
+│  └─────────────────────────────┘   │
+│                                    │
+│  SELECTED: Mary (4.8★)             │
+│  Status: SUBMITTED FOR REVIEW      │
+│  Deadline: Nov 20 (3 days left)    │
+│                                    │
+├────────────────────────────────────┤
+│ VIDEO PLAYER                       │
+│ ┌──────────────────────────────┐   │
+│ │                              │   │
+│ │    [VIDEO PLAYS HERE]        │   │
+│ │                              │   │
+│ └──────────────────────────────┘   │
+│ [▶ 0:15 / 0:45] [⬜ Fullscreen]    │
+│                                    │
+│ Video Duration: 45 seconds         │
+│ File Size: 125 MB                  │
+│ Format: MP4 (H.264)               │
+│ Uploaded: Nov 17, 3:45 PM         │
+│                                    │
+├────────────────────────────────────┤
+│ REVISION HISTORY                   │
+│ ┌──────────────────────────────┐   │
+│ │ v1 (Nov 17) - REVISION REQ   │   │
+│ │   Feedback: "Add product     │   │
+│ │   demo at 0:20 mark"         │   │
+│ │   Deadline: Nov 20           │   │
+│ │                              │   │
+│ │ v2 (Nov 18) - RESUBMITTED    │   │
+│ │   Latest version             │   │
+│ └──────────────────────────────┘   │
+│                                    │
+├────────────────────────────────────┤
+│ FEEDBACK & ACTION                  │
+│ ┌──────────────────────────────┐   │
+│ │ Revision Feedback (optional):│   │
+│ │ ┌──────────────────────────┐ │   │
+│ │ │ [Textarea for feedback]  │ │   │
+│ │ │ Max 1000 chars          │ │   │
+│ │ └──────────────────────────┘ │   │
+│ │                              │   │
+│ │ Revision Deadline:           │   │
+│ │ ○ 1 day  ○ 3 days  ○ 5 days │   │
+│ │                              │   │
+│ │ Auto-Approve after deadline? │   │
+│ │ ☑ Yes, if not revised       │   │
+│ │                              │   │
+│ │ [REQUEST REVISION] [APPROVE] │   │
+│ └──────────────────────────────┘   │
+└────────────────────────────────────┘
+```
+
+**F-203B: Approve Action Flow**
+```
+Founder Clicks [APPROVE]:
+1. System validates video quality metadata
+2. Triggers Phase 1 Payout (Base Fee → Creator)
+3. Sends approval notification to creator
+4. Updates status to APPROVED
+5. Displays approval timestamp
+6. Shows "Awaiting posting URL submission"
+
+Notification to Creator:
+Subject: "Your draft for [Campaign] was APPROVED! 🎉"
+Body:
+- Confirmation of approval
+- Base fee ($50) will be paid immediately
+- Instructions: Post video by [deadline]
+- Submit posting URL in task dashboard
+- Performance tracking will begin immediately
+- Link to post video on platform
+```
+
+**F-203C: Revision Request Flow**
+```
+Founder Clicks [REQUEST REVISION]:
+1. Enters feedback in text area (1000 char limit)
+2. Sets revision deadline (1, 3, or 5 days)
+3. Optional: Attaches markup/drawing (future feature)
+4. Sends feedback to creator
+
+Notification to Creator:
+Subject: "Revision Feedback for [Campaign]"
+Body:
+- Feedback text clearly displayed
+- Revision deadline: [Date & Time]
+- Remaining attempts (unlimited, but tracked)
+- Instructions to upload revised draft
+- Link to task dashboard
+
+Tracking:
+✓ Revision count increments
+✓ Timestamp recorded for each revision request
+✓ All feedback versions saved for audit
+```
+
+**F-203D: Comparison Mode (Optional)**
+```
+Feature: View multiple creator videos side-by-side
+Implementation:
+✓ Split screen: Mary's video | John's video
+✓ Both videos play in sync
+✓ Toggle between videos
+✓ See feedback & revision history for each
+✓ Make approval decision per creator
+```
+
+**Data Model:**
+```
+content_review_id (UUID)
+campaign_assignment_id (FK)
+founder_id (FK)
+creator_id (FK)
+status (enum: SUBMITTED_FOR_REVIEW, REVISION_REQUESTED, APPROVED, APPROVED_AUTO)
+video_file_url (string)
+video_duration_seconds (integer)
+video_file_size_mb (decimal)
+submitted_at (timestamp)
+reviewed_at (timestamp)
+approved_at (timestamp)
+
+revision_history (json array):
+[
+  {
+    revision_version: 1,
+    submitted_at: timestamp,
+    feedback: string,
+    deadline: timestamp,
+    auto_approved: boolean,
+    resubmitted_at: timestamp
+  }
+]
+
+review_notes (text)
+revision_count (integer)
+current_revision_deadline (timestamp)
+auto_approve_enabled (boolean)
+```
+
+---
+
+#### Feature F-204: Performance Dashboard
+**Priority:** P0 (Critical)
+
+**Description:** Real-time dashboard showing video performance metrics, cost calculations, and refund projections.
+
+**Acceptance Criteria:**
+```
+✓ Campaign-level view: All videos aggregate stats
+✓ Video-level view: Individual video performance
+✓ Real-time view counts (updated daily via API)
+✓ Cost-per-view calculation
+✓ ROI projection (views × cost)
+✓ 7-day tracking countdown timer
+✓ Clear indication of locked metrics (post-day 7)
+✓ Refund amount projected dynamically
+✓ Export to PDF (performance report)
+✓ Comparison: Views vs. maximum purchasable
+✓ Benchmark: Industry average views for similar campaigns
+✓ Creator performance ranking (within campaign)
+```
+
+**F-204A: Campaign-Level Overview**
+```
+┌──────────────────────────────────────┐
+│ CAMPAIGN PERFORMANCE - "Acme Launch" │
+├──────────────────────────────────────┤
+│                                      │
+│ STATUS: Active (Day 5 of 7)          │
+│                                      │
+│ AGGREGATE METRICS:                   │
+│ ├─ Total Views Achieved: 87,450      │
+│ ├─ Maximum Possible: 150,000         │
+│ ├─ Achievement %: 58.3%              │
+│ ├─ Estimated ROI: $437.25 (via views)
+│ │                                    │
+│ └─ Videos Posted: 5/5               │
+│                                      │
+│ FINANCIAL BREAKDOWN:                 │
+│ ├─ Total Budget: $1,000.00           │
+│ ├─ Fixed (Base Fees): $250.00        │
+│ ├─ Variable (Performance): $750.00   │
+│ │  ├─ Spent: $437.25 (87,450 views) │
+│ │  └─ Remaining: $312.75            │
+│ │                                    │
+│ └─ Your Refund (projected): $312.75 │
+│                                      │
+│ CREATOR RANKINGS:                    │
+│ ┌────────────────────────────────┐   │
+│ │ 1. Mary      26,500 views (30%)│   │
+│ │ 2. John      21,200 views (24%)│   │
+│ │ 3. Lisa      18,900 views (22%)│   │
+│ │ 4. Sarah     12,300 views (14%)│   │
+│ │ 5. Tom        8,550 views (10%)│   │
+│ └────────────────────────────────┘   │
+│                                      │
+│ ⏱ METRIC LOCK: Nov 22 at 00:00 UTC  │
+│   [■■■■■□□] 5 days remaining        │
+│                                      │
+│ After lock, payment auto-settles:   │
+│ • Creators paid performance bonus   │
+│ • You refunded: $312.75             │
+│                                      │
+└──────────────────────────────────────┘
+```
+
+**F-204B: Video-Level Detail View**
+```
+Click on Video: Mary's Video 1
+┌──────────────────────────────────────┐
+│ VIDEO 1 - "Product Feature Demo"     │
+├──────────────────────────────────────┤
+│                                      │
+│ CREATOR: Mary (4.8★)                │
+│ PLATFORM: TikTok                    │
+│ POSTED: Nov 18, 2:00 PM            │
+│ VIDEO URL: [tiktok.com/@user/vid123]│
+│                                      │
+│ PERFORMANCE METRICS:                 │
+│ ├─ Views: 26,500                    │
+│ ├─ Likes: 1,243 (4.7%)              │
+│ ├─ Comments: 89 (0.3%)              │
+│ ├─ Shares: 156 (0.6%)               │
+│ ├─ Completed Views: 18,200 (68.7%) │
+│ └─ Watch Time: 892 hours total      │
+│                                      │
+│ PAYMENT CALCULATION:                 │
+│ ├─ Base Fee (Paid Nov 18): $50.00   │
+│ ├─ Performance Bonus:               │
+│ │  Views: 26,500                   │
+│ │  Rate: $4.00 per 1k views        │
+│ │  Bonus: 26,500 × 4/1000 = $106.00
+│ │                                  │
+│ ├─ Total Creator Earnings: $156.00 │
+│ │                                  │
+│ └─ Nala Revenue: 26,500 × 1/1000   │
+│    = $26.50                         │
+│                                      │
+│ TIMELINE:                            │
+│ ├─ Approved: Nov 17, 3:00 PM       │
+│ ├─ Posted: Nov 18, 2:00 PM         │
+│ ├─ Performance Locked: Nov 25, 00:00
+│ └─ Settlement: Nov 25, 08:00 AM    │
+│                                      │
+│ [← Back to Campaign] [Export Video] │
+└──────────────────────────────────────┘
+```
+
+**F-204C: Real-Time Updates**
+```
+Daily Sync Process (Automated):
+├─ Cron Job: Runs daily at 3:00 AM UTC
+├─ Queries: TikTok Display API
+├─ Queries: Meta Graph API (Instagram/Facebook)
+├─ Updates: Each video's view count in database
+├─ Notifies: Founder if views spike (>50% increase)
+└─ Logs: All API calls for audit trail
+
+Display Behavior:
+├─ Dashboard shows "Last updated: 3 hours ago"
+├─ Manual refresh button available
+├─ Real-time estimates between syncs (optional)
+└─ Notification badge: "Data updated 1 hour ago"
+```
+
+**F-204D: 7-Day Metric Lock**
+```
+Trigger: Exactly 168 hours (7 days) after first video posts
+
+Actions at Lock Time:
+1. System locks final view counts (immutable)
+2. Calculates:
+   ├─ Creator bonuses for each video
+   ├─ Total creator compensation
+   ├─ Nala platform revenue
+   └─ Founder refund amount
+3. Initiates Phase 2 payouts:
+   ├─ Stripe: Transfer creators' bonuses
+   ├─ Stripe: Refund founder's unspent budget
+   └─ Nala: Retains markup
+4. Sends settlement emails to all parties
+5. Updates campaign status to COMPLETED
+
+Display to Founder:
+├─ "Campaign Metrics Locked" notification
+├─ Final refund amount displayed (in green)
+├─ Payout confirmation: "Refund of $312.75 processed"
+├─ Settlement timeline: "Funds arrive 1-3 business days"
+└─ Option to download final performance report
+```
+
+**F-204E: Export & Reporting**
+```
+PDF Export Includes:
+├─ Campaign overview
+├─ Video-by-video performance
+├─ Creator comparison table
+├─ Financial breakdown (budget vs. spend)
+├─ ROI calculation
+├─ Refund confirmation
+├─ All metrics and timestamps
+└─ Platform attribution
+
+Email Delivery:
+├─ Auto-sent at campaign completion
+├─ Also available for manual download
+├─ Formatted for sharing with stakeholders
+└─ Includes summary recommendations
+```
+
+**Data Model:**
+```
+campaign_performance_id (UUID)
+campaign_id (FK)
+total_views_achieved (integer)
+max_views_purchasable (integer)
+achievement_percentage (decimal)
+total_budget_spent (decimal)
+total_budget_remaining (decimal)
+projected_refund (decimal)
+final_refund_amount (decimal)
+metric_lock_timestamp (timestamp)
+settlement_completed_timestamp (timestamp)
+last_sync_timestamp (timestamp)
+status (enum: TRACKING, METRIC_LOCKED, SETTLED)
+
+video_performance_id (UUID)
+campaign_assignment_id (FK)
+platform (enum: TIKTOK, INSTAGRAM, FACEBOOK)
+views_count (integer)
+likes_count (integer)
+comments_count (integer)
+shares_count (integer)
+watch_time_hours (decimal)
+engagement_rate (decimal)
+last_updated (timestamp)
+metric_locked_at (timestamp)
+final_views_locked (integer)
+```
+
+---
+
+## 6. DETAILED USER FLOWS & JOURNEY MAPS
+
+### 6.1 COMPLETE FLOW: Founder Campaign Creation to Settlement
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──○──○  Step 4 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 4: Posting Schedule                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ When should the first video go live?                        │
-│ [Nov 25, 2025 ▼]  📅                                        │
-│  (Minimum 5 days from today for creator prep)               │
-│                                                             │
-│ How often should videos be posted?                          │
-│ ● One per day           ○ Every other day                   │
-│ ○ Every 3 days          ○ Weekly                            │
-│ ○ Custom schedule                                           │
-│                                                             │
-│ 📅 Your Posting Calendar:                                   │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Video 1:  Nov 25 (Mon) 📱 TikTok                    │   │
-│ │ Video 2:  Nov 26 (Tue) 📱 TikTok                    │   │
-│ │ Video 3:  Nov 27 (Wed) 📸 Instagram                 │   │
-│ │ Video 4:  Nov 28 (Thu) 📸 Instagram                 │   │
-│ │ Video 5:  Nov 29 (Fri) 📱 TikTok                    │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Preferred posting time: (Optional)                          │
-│ [09:00 AM ▼]  [EST ▼]                                       │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Calculate posting dates                                  │
-│  • Store in campaign.start_date, posting_frequency          │
-│  • Validate timeline (min 5 days buffer)                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──●──○  Step 5 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 5: Budget Configuration                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ 💰 Set Your Total Budget                                    │
-│                                                             │
-│ Total Campaign Budget:                                      │
-│ $ [1000.00]                                                 │
-│   (Minimum: $500 | Maximum: $50,000)                        │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📊 BUDGET BREAKDOWN                                  │   │
-│ │                                                      │   │
-│ │ Fixed Production Costs:         $250.00 (25%)       │   │
-│ │ └─ 5 videos × $50 base fee                          │   │
-│ │                                                      │   │
-│ │ Variable Performance Budget:    $750.00 (75%)       │   │
-│ │ └─ Pays for actual views achieved                   │   │
-│ │                                                      │   │
-│ │ ─────────────────────────────────────────────────   │   │
-│ │                                                      │   │
-│ │ Maximum Views You Can Purchase:                     │   │
-│ │ 150,000 views @ $5.00 per 1,000                     │   │
-│ │                                                      │   │
-│ │ ═════════════════════════════════════════════════   │   │
-│ │                                                      │   │
-│ │ 💡 How Performance Budget Works:                    │   │
-│ │                                                      │   │
-│ │ If videos achieve 120K views (80% of max):          │   │
-│ │  • You pay: $250 + $600 = $850                      │   │
-│ │  • You save: $150 (refunded automatically)          │   │
-│ │                                                      │   │
-│ │ If videos achieve 150K views (100% of max):         │   │
-│ │  • You pay: $250 + $750 = $1,000 (full budget)      │   │
-│ │  • You save: $0 (great performance!)                │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ☑ I understand that:                                        │
-│    • Base fees are paid when I approve content              │
-│    • Performance budget is charged based on actual views    │
-│    • Unused budget is refunded automatically after 7 days   │
-│                                                             │
-│ [← Back]  [Continue to Creator Selection →]                 │
-│                                                             │
-│ System Actions:                                             │
-│  • Validate budget (min $500)                               │
-│  • Calculate: base_fee_budget, performance_budget           │
-│  • Store in campaigns table                                 │
-│  • Update max_views_purchasable                             │
-└─────────────────────────────────────────────────────────────┘
-│                                                             │
-│ Next up: Video 2 (Due Nov 23)                               │
-│                                                             │
-│ [View All Briefs]  [Upload Next Video]                      │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 0: CAMPAIGN SETUP (Founder)                              │
+└─────────────────────────────────────────────────────────────────┘
 
-### 3.3 Founder Content Review
+DAY 0, 9:00 AM
+├─ Mike (Founder) logs into Nala dashboard
+├─ Clicks: "Create New Campaign"
+├─ System: Shows 6-step guided builder
+│
+├─ STEP 1: Campaign Basics
+│  ├─ Fills: Title ("Acme Product Launch")
+│  ├─ Fills: Description (product details, tone)
+│  ├─ Fills: Category (SaaS)
+│  ├─ Fills: Product Link (demo URL)
+│  ├─ Selects: Duration (7 days)
+│  └─ Auto-saved
+│
+├─ STEP 2: Content Requirements
+│  ├─ Selects: 5 videos
+│  ├─ Selects: Platforms (TikTok + Instagram)
+│  ├─ Selects: Tone ("Professional yet casual")
+│  ├─ Adds: Key messages (3 points)
+│  ├─ Adds: Video requirements (30-60 sec, trending music OK)
+│  ├─ System: Calculates avg creator rate = $50
+│  ├─ System: Shows "Estimated creators available: 45+"
+│  └─ Auto-saved
+│
+├─ STEP 3: Posting Schedule
+│  ├─ Selects: "Daily" posting
+│  ├─ Confirms: Mon-Fri (one per day)
+│  ├─ System: Visual calendar shows posting dates
+│  ├─ System: Shows best posting times per platform
+│  └─ Confirms schedule
+│
+├─ STEP 4: Budget Configuration
+│  ├─ Sees: Base Budget = $250 (5 × $50)
+│  ├─ Default: Variable Budget = $750
+│  ├─ System: Shows max views = 150,000
+│  ├─ System: Shows creator earnings split: $4/1k views
+│  ├─ Mike: Adjusts variable budget to $1,000 (slider)
+│  ├─ System: Recalculates max views = 200,000
+│  ├─ System: Shows new total budget = $1,250
+│  └─ Confirms budget
+│
+├─ STEP 5: Creator Filter
+│  ├─ Selects: Min rating 4.5+
+│  ├─ Selects: Min 5 campaigns completed
+│  ├─ Selects: TikTok & Instagram experts
+│  ├─ System: Filters down to 32 creators
+│  └─ Approves filter
+│
+├─ STEP 6: Review & Confirm
+│  ├─ Sees: Full campaign summary
+│  ├─ Sees: Terms (content rights, payment terms)
+│  ├─ Checks: Acceptance checkbox
+│  ├─ Clicks: "Confirm & Pay"
+│  └─ Proceeds to payment
 
-**Trigger:** Founder receives notification of new draft
-┌─────────────────────────────────────────────────────────────┐
-│ FOUNDER DASHBOARD - Content Review Queue                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🔔 1 video ready for review                                 │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Q4 Product Launch Campaign                           │   │
-│ │                                                      │   │
-│ │ 🎥 Video 1 of 5 - TikTok                            │   │
-│ │ Submitted by @marythcreator  |  2 hours ago         │   │
-│ │                                                      │   │
-│ │ [Review Now →]                                       │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-↓ (Founder clicks "Review Now")
-┌─────────────────────────────────────────────────────────────┐
-│ 📹 CONTENT REVIEW INTERFACE                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ┌─────────────────────────┬───────────────────────────┐   │
-│ │ 🎥 VIDEO PLAYER         │ 📋 BRIEF REQUIREMENTS     │   │
-│ │                         │                           │   │
-│ │  ┌─────────────────┐   │ ✓ 30 seconds              │   │
-│ │  │                 │   │ ✓ Product tutorial style  │   │
-│ │  │  [▶ Play]       │   │ ✓ #ProductivityPro used   │   │
-│ │  │                 │   │                           │   │
-│ │  │  Mary's Draft   │   │ Key Talking Points:       │   │
-│ │  │  Video          │   │ • AI prioritization ✓     │   │
-│ │  │                 │   │ • 50+ integrations ✓      │   │
-│ │  │  0:15 / 0:30    │   │ • Free trial ✓            │   │
-│ │  └─────────────────┘   │                           │   │
-│ │                         │ Do's/Don'ts Check:        │   │
-│ │  [0.5x] [1x] [2x]      │ ✓ Authentic               │   │
-│ │  [Download]            │ ✓ Real use case shown     │   │
-│ │                         │ ✓ No competitor mentions  │   │
-│ └─────────────────────────┴───────────────────────────┘   │
-│                                                             │
-│ Creator's Notes:                                            │
-│ "I focused on the AI prioritization feature as requested.   │
-│  Used trending audio 'That's Crazy'."                       │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ YOUR FEEDBACK                                               │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Add Comments: (Timestamped annotations)                     │
-│ [Click on video timeline to add feedback at specific times] │
-│                                                             │
-│ ┌─ Annotations ───────────────────────────────────────┐   │
-│ │ 0:05 - "Love the opening hook!" - You                │   │
-│ │ 0:15 - "Can you show the UI here?" - You             │   │
-│ │ [+ Add Comment]                                      │   │
-│ └──────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ DECISION                                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ [✅ Approve]   [📝 Request Revision]   [❌ Reject]          │
-│                                                             │
-│ ⚠️ Important: Approving will trigger payment of $75 to      │
-│    creator. This cannot be undone.                          │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 1: PAYMENT & ESCROW                                       │
+└─────────────────────────────────────────────────────────────────┘
 
-#### 3.3.1 Approval Flow
-Founder clicks "✅ Approve"
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ⚠️ CONFIRM APPROVAL                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ You are about to approve Video 1                            │
-│                                                             │
-│ This will:                                                  │
-│ ✓ Authorize creator to post on Nov 25                       │
-│ ✓ Release $75 payment to @marythcreator                     │
-│ ✓ Grant you perpetual content usage rights                  │
-│                                                             │
-│ ⚠️ This action cannot be undone                             │
-│                                                             │
-│ [Cancel]  [Confirm Approval]                                │
-│                                                             │
-│ System Actions (Confirm):                                   │
-│  1. Update video.status = 'approved'                        │
-│  2. Update video.approved_at = NOW()                        │
-│  3. Trigger Phase 1 Payment (T-305):                        │
-│     a. Verify escrow has sufficient funds                   │
-│     b. Create Stripe transfer:                              │
-│        POST /v1/transfers                                   │
-│        {                                                    │
-│          amount: 7500, // $75 in cents                      │
-│          currency: 'usd',                                   │
-│          destination: mary.stripe_account_id,               │
-│          transfer_group: campaign.id,                       │
-│          metadata: {                                        │
-│            campaign_id, video_id,                           │
-│            payment_type: 'base_fee'                         │
-│          }                                                  │
-│        }                                                    │
-│     c. Create payment record in database                    │
-│     d. Update video.base_fee_paid = true                    │
-│  4. Send notifications:                                     │
-│     • Creator: "Payment sent! $75 on the way"               │
-│     • Founder: "Approval confirmed"                         │
-│  5. Update campaign.videos_approved += 1                    │
-│  6. Decrement escrow balance                                │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ✅ VIDEO APPROVED                                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Video 1 has been approved!                                  │
-│                                                             │
-│ ✓ $75 payment sent to @marythcreator                        │
-│ ✓ Creator authorized to post on Nov 25                      │
-│                                                             │
-│ Next: Wait for creator to post and track performance        │
-│                                                             │
-│ [View Campaign Dashboard]  [Review Next Video]              │
-└─────────────────────────────────────────────────────────────┘
+DAY 0, 9:30 AM
+├─ System: Displays Stripe payment form
+├─ Mike: Enters card details (or Apple Pay)
+├─ System: Validates payment info
+├─ Stripe: Charges $1,250
+├─ System: Holds $1,250 in Nala escrow account
+├─ Status: Campaign marked LIVE
+├─ Notification: Email to Mike "Campaign Live - Brief Going Out"
+├─ System: Brief made visible to 32 filtered creators
+└─ Next step: Creators apply
 
-#### 3.3.2 Revision Request Flow
-Founder clicks "📝 Request Revision"
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ 📝 REQUEST REVISION                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What needs to be changed?                                   │
-│ (Be specific to help the creator deliver what you need)     │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Please make the following changes:                   │   │
-│ │                                                      │   │
-│ │ 1. At 0:15, show the actual ProductivityPro UI       │   │
-│ │    instead of generic screenshots                    │   │
-│ │                                                      │   │
-│ │ 2. Add more emphasis on the "2 hours saved" stat    │   │
-│ │                                                      │   │
-│ │ 3. Include a call-to-action to try the free trial   │   │
-│ │                                                      │   │
-│ │ 187/1000 characters                                  │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Revision deadline:                                          │
-│ [48 hours ▼]  from now (Nov 21 at 2:00 PM)                 │
-│                                                             │
-│ Priority:                                                   │
-│ ○ Minor tweaks     ● Significant changes     ○ Major rework│
-│                                                             │
-│ ☑ Allow creator to ask clarifying questions                │
-│                                                             │
-│ [Cancel]  [Send Revision Request]                           │
-│                                                             │
-│ System Actions (Send):                                      │
-│  1. Update video.status = 'revision_requested'              │
-│  2. Create revision record:                                 │
-│     INSERT INTO revisions (                                 │
-│       video_id, requested_by, feedback,                     │
-│       deadline, priority, iteration_number                  │
-│     )                                                       │
-│  3. Send notification to creator (high priority)            │
-│  4. Email with full feedback                                │
-│  5. Create task in creator dashboard                        │
-│  6. Set reminder 12 hours before deadline                   │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 2: CREATOR APPLICATION & ASSIGNMENT (Hours 1-24)         │
+└─────────────────────────────────────────────────────────────────┘
 
-### 3.4 Video Posting & URL Submission
-┌─────────────────────────────────────────────────────────────┐
-│ CREATOR - Post-Approval Phase                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🎉 Video 1 Approved!                                        │
-│                                                             │
-│ ✓ $75 payment sent (check your wallet)                      │
-│ ✓ Ready to post on Nov 25                                   │
-│                                                             │
-│ ⚠️ Important Reminder:                                      │
-│ • Post exactly on Nov 25                                    │
-│ • Use hashtags: #ProductivityPro                            │
-│ • After posting, submit the live URL here immediately       │
-│                                                             │
-│ [I've Posted - Submit URL]  [View Posting Instructions]     │
-└─────────────────────────────────────────────────────────────┘
-↓ (After posting on TikTok/Instagram)
-┌─────────────────────────────────────────────────────────────┐
-│ 🔗 SUBMIT POST URL                                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Video 1 - TikTok Post                                       │
-│                                                             │
-│ Paste your live post URL:                                   │
-│ [https://tiktok.com/@marythcreator/video/7298547382...  ]  │
-│                                                             │
-│ Posting Date/Time:                                          │
-│ [Nov 25, 2025]  [09:30 AM]  [EST ▼]                        │
-│                                                             │
-│ Screenshot (Optional but recommended):                      │
-│ [Upload screenshot showing post is live]                    │
-│                                                             │
-│ [Cancel]  [Submit & Start Tracking]                         │
-│                                                             │
-│ System Actions (Submit):                                    │
-│  1. Validate URL format (TikTok/Instagram domain)           │
-│  2. Extract post ID from URL                                │
-│  3. Verify post exists via API (optional check)             │
-│  4. Update video record:                                    │
-│     • status = 'posted'                                     │
-│     • final_post_url = submitted_url                        │
-│     • posted_at = submitted_datetime                        │
-│  5. Calculate 7-day lock time:                              │
-│     lock_at = posted_at + INTERVAL '7 days'                 │
-│  6. Add to view polling queue (T-302)                       │
-│  7. Send confirmation to founder                            │
-│  8. Initialize first view count snapshot (within 1 hour)    │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ✅ POST URL SUBMITTED                                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your post is now being tracked!                             │
-│                                                             │
-│ 📊 Performance tracking started                             │
-│ 🕐 7-day window: Nov 25 - Dec 2                             │
-│                                                             │
-│ What happens next:                                          │
-│ • Views are updated daily at 12:00 AM EST                   │
-│ • Your performance bonus accumulates in real-time           │
-│ • On Dec 2, final views are locked                          │
-│ • Your bonus is paid automatically within 24 hours          │
-│                                                             │
-│ Current performance:                                        │
-│ Views: 1,247  |  Est. Bonus: $4.99                          │
-│                                                             │
-│ [View Live Performance]  [Continue to Next Video]           │
-└─────────────────────────────────────────────────────────────┘
+DAY 0-1, Throughout
+├─ Creators see brief in their feed (filtered by expertise)
+├─ Mary (Creator): Reviews brief
+│  ├─ Reads: Requirements, tone, product demo
+│  ├─ Sees: Base fee $50 per video
+│  ├─ Sees: Performance bonus structure
+│  ├─ Sees: Posting schedule (daily, starting Nov 25)
+│  ├─ Checks: Her portfolio alignment
+│  ├─ Clicks: "Apply for Brief"
+│  └─ Submitted!
+│
+├─ John, Lisa, Sarah, Tom: Also apply
+│
+├─ Mike: Sees applications dashboard
+│  ├─ Lists: 5 applications (Mary, John, Lisa, Sarah, Tom)
+│  ├─ Per creator: Rating, portfolio links, past campaigns
+│  ├─ Mike: Reviews each creator's portfolio
+│  ├─ Mike: Selects 5 creators (one for each video)
+│  │  ├─ Video 1 → Mary (4.8★)
+│  │  ├─ Video 2 → John (4.5★)
+│  │  ├─ Video 3 → Lisa (4.9★)
+│  │  ├─ Video 4 → Sarah (4.2★)
+│  │  └─ Video 5 → Tom (4.0★)
+│  ├─ Clicks: "Send Assignments"
+│  └─ System: Notifies all 5 creators
+│
+└─ Creators receive notifications:
+   Subject: "You're Assigned! - Acme Product Launch"
+   Content: Brief details, deadline (Nov 24), base fee ($50)
+
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 3: CONTENT PRODUCTION (Days 1-3)                          │
+└─────────────────────────────────────────────────────────────────┘
+
+DAY 1-3 (Nov 18-20)
+├─ Creators produce content
+│
+├─ Mary: In task dashboard
+│  ├─ Reads: Full brief with product demo
+│  ├─ Records: 5 video takes
+│  ├─ Selects: Best take
+│  ├─ Adds: Video title & description
+│  ├─ Clicks: "Upload Draft"
+│  ├─ System: Uploads to S3, generates preview
+│  ├─ Status: Changes to SUBMITTED_FOR_REVIEW
+│  ├─ Notification: Email to Mike "Draft Ready for Review"
+│  └─ Waits for feedback
+│
+├─ John, Lisa, Sarah, Tom: Also upload drafts
+│
+└─ Deadline: Nov 20 (if late, system flags)
+
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 4: CONTENT REVIEW (Days 3-5)                              │
+└─────────────────────────────────────────────────────────────────┘
+
+DAY 3-4 (Nov 20-21)
+├─ Mike: Enters Content Review portal
+│
+├─ Video 1 (Mary):
+│  ├─ Plays: Draft video
+│  ├─ Assessment: "Looks good! Add product demo at 0:20"
+│  ├─ Clicks: "Request Revision"
+│  ├─ Sets: 3-day revision deadline
+│  ├─ Notification to Mary: Revision feedback
+│  └─ Status: REVISION_REQUESTED
+│
+├─ Video 2 (John):
+│  ├─ Plays: Draft video
+│  ├─ Assessment: "Perfect! Love the energy"
+│  ├─ Clicks: "Approve"
+│  ├─ Stripe: Triggers Phase 1 payout ($50 to John)
+│  ├─ Status: APPROVED
+│  ├─ Notification to John: "Approved! Base fee of $50 paid. Post by Nov 25"
+│  └─ Waits for John to post
+│
+├─ Video 3 (Lisa):
+│  ├─ Plays: Draft video
+│  ├─ Assessment: "Excellent work"
+│  ├─ Clicks: "Approve"
+│  ├─ Stripe: Triggers Phase 1 payout ($50 to Lisa)
+│  └─ Status: APPROVED
+│
+├─ Mary: Receives revision feedback
+│  ├─ Re-records with product demo at 0:20
+│  ├─ Uploads: Revised draft
+│  ├─ Notification: To Mike "Revision submitted"
+│
+├─ Mike: Reviews Mary's revision
+│  ├─ Plays: Revised video
+│  ├─ Assessment: "Much better!"
+│  ├─ Clicks: "Approve"
+│  ├─ Stripe: Triggers Phase 1 payout ($50 to Mary)
+│  └─ Status: APPROVED
+│
+├─ Sarah, Tom: Also approved (2 more base fees paid)
+│
+└─ Result: All 5 creators have base fees paid ($250 total)
+   Phase 1 COMPLETE
+
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 5: VIDEO POSTING & TRACKING (Days 5-12)                   │
+└─────────────────────────────────────────────────────────────────┘
+
+DAY 5 (Nov 22) - Posting Schedule Begins
+├─ Mary: Task dashboard shows "Approved - Ready to Post"
+├─ Mary: Posts video on TikTok
+│  ├─ Records: Live video URL
+│  ├─ In Task Dashboard: Submits posting URL
+│  ├─ System: Validates URL format
+│  ├─ Status: POSTED
+│  └─ System: Begins tracking views
+│
+├─ John, Lisa, Sarah, Tom: Post their videos (daily schedule)
+│
+├─ View Tracking (Daily Sync):
+│  Day 5: Mary's video gets 2,450 views → Bonus accrual: $9.80
+│  Day 6: Mary's video gets 5,200 views (cumulative) → Total bonus: $20.80
+│  Day 7: Mary's video gets 12,100 views → Total bonus: $48.40
+│  Day 8: Mary's video gets 18,500 views → Total bonus: $74.00
+│  Day 9: Mary's video gets 23,200 views → Total bonus: $92.80
+│  Day 10: Mary's video gets 26,500 views → Final total: $106.00
+│  Day 11: Mary's video gets 26,500 views (no growth) → METRIC LOCK IMMINENT
+│
+├─ Creator Dashboard (Mary's perspective):
+│  Day 5: Sees $0 bonus (pending first 24 hours)
+│  Day 6: Sees $5.20 performance bonus (updates daily)
+│  Day 8: Sees $48.40 performance bonus
+│  Day 10: Sees $106.00 performance bonus
+│
+├─ Founder Dashboard (Mike's perspective):
+│  Day 5: Campaign active, 1 video posted
+│  Day 8: Sees aggregate 45,200 views across 5 videos
+│  Day 10: Sees aggregate 87,450 views across 5 videos
+│  Day 11: Sees "Metric Lock in 12 hours" banner
+│  Day 11: Calculates refund: $750 - $437.25 = $312.75
+│
+└─ All creators monitor daily view counts in real-time
+
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE 6: METRIC LOCK & SETTLEMENT (Day 12)                      │
+└─────────────────────────────────────────────────────────────────┘
+
+DAY 12 (Nov 29), 00:00 UTC (7 days after first post)
+├─ System: Cron job triggers "Metric Lock"
+├─ Final view counts (immutable):
+│  Mary: 26,500 views
+│  John: 21,200 views
+│  Lisa: 18,900 views
+│  Sarah: 12,300 views
+│  Tom: 8,550 views
+│  Total: 87,450 views
+│
+├─ Calculations:
+│  ├─ Creator bonuses:
+│  │  Mary: 26,500 × $4/1k = $106.00
+│  │  John: 21,200 × $4/1k = $84.80
+│  │  Lisa: 18,900 × $4/1k = $75.60
+│  │  Sarah: 12,300 × $4/1k = $49.20
+│  │  Tom: 8,550 × $4/1k = $34.20
+│  │  Total: $350.00
+│  │
+│  ├─ Nala revenue: 87,450 × $1/1k = $87.45
+│  │
+│  └─ Founder refund: $750 - $437.25 = $312.75
+│
+├─ Stripe Transfers (Initiated):
+│  ├─ Transfer 1: $106.00 → Mary's account
+│  ├─ Transfer 2: $84.80 → John's account
+│  ├─ Transfer 3: $75.60 → Lisa's account
+│  ├─ Transfer 4: $49.20 → Sarah's account
+│  ├─ Transfer 5: $34.20 → Tom's account
+│  └─ Refund: $312.75 → Mike's account
+│
+├─ Database:
+│  ├─ Campaign status: COMPLETED
+│  ├─ All view counts locked: immutable
+│  ├─ All bonuses calculated & stored
+│  └─ Settlement timestamp recorded
+│
+├─ Email to Mike:
+│  Subject: "Campaign Complete - Settlement Summary"
+│  ├─ Campaign name, dates
+│  ├─ Final stats: 87,450 views achieved
+│  ├─ Cost breakdown (base + performance)
+│  ├─ Refund amount: $312.75 ✓
+│  ├─ Payout timeline: "1-3 business days"
+│  └─ Download report button
+│
+├─ Email to all Creators:
+│  Subject: "Payment Processed - Campaign Complete"
+│  ├─ View count (final): 26,500
+│  ├─ Base fee (paid Nov 20): $50.00
+│  ├─ Performance bonus (paid Nov 29): $106.00
+│  ├─ Total earned: $156.00 ✓
+│  ├─ Payout timeline: "1-3 business days"
+│  └─ Thank you message
+│
+├─ Dashboard Updates:
+│  Mike: Sees completed campaign, refund confirmation
+│  Creators: See completed videos, final bonuses, paid status
+│
+└─ Settlements complete. Campaign lifecycle CLOSED.
+```
 
 ---
 
-## 4. Payment Processing Flow
+### 6.2 Creator Application Journey
 
-### 4.1 Phase 1: Base Fee Payment (Detailed)
+```
+STEP 1: Discovery
+├─ Mary: Opens Nala dashboard
+├─ Sees: "New Briefs for You" section
+├─ Filters: Showing TikTok + Instagram briefs
+├─ Sees: 5 brief cards
+│  ├─ Acme Product Launch (5 videos, $50 base)
+│  ├─ Fitness App Demo (3 videos, $75 base)
+│  ├─ SaaS Tool Tutorial (4 videos, $40 base)
+│  └─ ...
+└─ Clicks: "Acme Product Launch"
 
-**Trigger:** Founder approves content (see 3.3.1)
-┌─────────────────────────────────────────────────────────────┐
-│ SYSTEM: Phase 1 Payment Processor                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Event: video.approved (video_id: v123, campaign_id: c456)   │
-│                                                             │
-│ STEP 1: Pre-Flight Validation                               │
-│ ─────────────────────────────────────────────────────────── │
-│ ✓ Check campaign has sufficient escrow balance              │
-│   Current escrow: $1,000                                    │
-│   Required: $75                                             │
-│   Remaining after: $925                                     │
-│                                                             │
-│ ✓ Verify creator Stripe account is active                   │
-│   stripe_account_id: acct_mary123                           │
-│   capabilities.transfers: 'active'                          │
-│                                                             │
-│ ✓ Check for duplicate payment (idempotency)                 │
-│   Query: SELECT * FROM payments                             │
-│          WHERE video_id='v123' AND type='base_fee'          │
-│   Result: No existing payment found ✓                       │
-│                                                             │
-│ STEP 2: Create Database Payment Record (Pending)            │
-│ ─────────────────────────────────────────────────────────── │
-│ INSERT INTO payments (                                      │
-│   id: 'pay_abc123',                                         │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   recipient_id: mary.id,                                    │
-│   amount: 75.00,                                            │
-│   type: 'base_fee',                                         │
-│   status: 'pending',                                        │
-│   created_at: NOW()                                         │
-│ )                                                           │
-│                                                             │
-│ STEP 3: Stripe API Call (With Idempotency Key)              │
-│ ─────────────────────────────────────────────────────────── │
-│ POST https://api.stripe.com/v1/transfers                    │
-│ Headers:                                                    │
-│   Authorization: Bearer sk_live_xxx                         │
-│   Idempotency-Key: c456_v123_base_fee_1732012800           │
-│                                                             │
-│ Body:                                                       │
-│ {                                                           │
-│   amount: 7500,                                             │
-│   currency: "usd",                                          │
-│   destination: "acct_mary123",                              │
-│   transfer_group: "c456",                                   │
-│   description: "Base fee - Video 1 approval",               │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     video_id: "v123",                                       │
-│     payment_type: "base_fee",                               │
-│     founder_id: "mike.id",                                  │
-│     creator_id: "mary.id"                                   │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: (Success)                                         │
-│ {                                                           │
-│   id: "tr_stripe789",                                       │
-│   object: "transfer",                                       │
-│   amount: 7500,                                             │
-│   created: 1732012800,                                      │
-│   destination: "acct_mary123",                              │
-│   status: "paid"                                            │
-│ }                                                           │
-│                                                             │
-│ STEP 4: Update Database (Success State)                     │
-│ ─────────────────────────────────────────────────────────── │
-│ UPDATE payments                                             │
-│ SET                                                         │
-│   status = 'completed',                                     │
-│   stripe_transfer_id = 'tr_stripe789',                      │
-│   processed_at = NOW()                                      │
-│ WHERE id = 'pay_abc123';                                    │
-│                                                             │
-│ UPDATE videos                                               │
-│ SET base_fee_paid = true                                    │
-│ WHERE id = 'v123';                                          │
-│                                                             │
-│ UPDATE campaigns                                            │
-│ SET escrow_balance = escrow_balance - 75.00                 │
-│ WHERE id = 'c456';                                          │
-│                                                             │
-│ STEP 5: Notifications & Webhooks                            │
-│ ─────────────────────────────────────────────────────────── │
-│ • Send email to creator: "Payment sent: $75"                │
-│ • Push notification to creator app                          │
-│ • Update creator wallet balance (live)                      │
-│ • Send confirmation to founder                              │
-│ • Log event to analytics                                    │
-│                                                             │
-│ ✅ Phase 1 Payment Complete                                 │
-└─────────────────────────────────────────────────────────────┘
+STEP 2: Brief Review
+├─ Opens: Full brief details
+├─ Sees:
+│  ├─ Campaign title & description
+│  ├─ Product demo video
+│  ├─ Content tone requirements
+│  ├─ Posting schedule (daily for 5 days)
+│  ├─ Base fee: $50/video
+│  ├─ Performance bonus explanation: $4 per 1k views
+│  ├─ Examples: "If you get 50k views, you earn $200 bonus"
+│  └─ Founder profile + rating
+│
+├─ Assessment:
+│  ├─ Mary: "This matches my TikTok style perfectly"
+│  ├─ Mary: "Base fee covers my time, bonus is nice upside"
+│  └─ Mary: "I can post daily"
+│
+└─ Decision: "I'll apply!"
 
-### 4.2 Phase 2: Performance Bonus & Refund (7-Day Settlement)
+STEP 3: Application Submission
+├─ Clicks: "Apply for This Brief"
+├─ Form appears:
+│  ├─ "Why should we pick you?" (200 chars)
+│  ├─ Portfolio links (auto-filled from profile)
+│  ├─ Availability confirmation (checkbox)
+│  └─ [SUBMIT APPLICATION]
+│
+├─ Mary types:
+│  "I've created 50+ product demo videos with avg 40k views. TikTok is my main platform. I can start immediately."
+│
+├─ Clicks: [SUBMIT APPLICATION]
+├─ Notification: "Application sent! Founder will review within 24 hours."
+└─ Mary: Waits for acceptance
 
-**Trigger:** Automated cron job detects video.posted_at >= 168 hours ago
-┌─────────────────────────────────────────────────────────────┐
-│ SYSTEM: 7-Day Metric Lock & Settlement Processor            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Cron Job: Daily at 12:05 AM EST                             │
-│ Query: SELECT * FROM videos                                 │
-│        WHERE status = 'posted'                              │
-│        AND posted_at <= NOW() - INTERVAL '168 hours'        │
-│        AND status != 'locked'                               │
-│                                                             │
-│ Result: video_id 'v123' eligible for lock                   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2A: METRIC LOCK                                       │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ STEP 1: Final View Count Fetch                              │
-│ ─────────────────────────────────────────────────────────── │
-│ • Platform: TikTok                                          │
-│ • Post URL: https://tiktok.com/@marythcreator/video/729... │
-│                                                             │
-│ API Call: GET /v2/video/query/                              │
-│ {                                                           │
-│   video_id: "7298547382..."                                 │
-│ }                                                           │
-│                                                             │
-│ Response:                                                   │
-│ {                                                           │
-│   data: {                                                   │
-│     view_count: 45232,                                      │
-│     like_count: 3421,                                       │
-│     share_count: 287                                        │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ STEP 2: Lock View Count (Immutable)                         │
-│ ─────────────────────────────────────────────────────────── │
-│ BEGIN TRANSACTION;                                          │
-│                                                             │
-│ UPDATE videos                                               │
-│ SET                                                         │
-│   locked_view_count = 45232,                                │
-│   locked_at = NOW(),                                        │
-│   status = 'locked'                                         │
-│ WHERE id = 'v123';                                          │
-│                                                             │
-│ INSERT INTO view_snapshots (                                │
-│   video_id, view_count, snapshot_at, data_source            │
-│ ) VALUES (                                                  │
-│   'v123', 45232, NOW(), 'tiktok_api_final'                  │
-│ );                                                          │
-│                                                             │
-│ COMMIT;                                                     │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2B: SETTLEMENT CALCULATION                            │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Budget Overview:                                   │
-│ • Total Budget: $1,000.00                                   │
-│ • Base Fee Budget: $250.00 (5 videos × $50, but Mary gets  │
-│   $75/video = $375 total)                                   │
-│ • Performance Budget Available: $625.00                     │
-│                                                             │
-│ Final Views Achieved: 45,232 (across all 5 videos so far)   │
-│ This specific video (v123): 45,232 views                    │
-│                                                             │
-│ Calculation for Video 1:                                    │
-│ ───────────────────────────────────────────────────────────│
-│ Views in thousands: 45232 / 1000 = 45.232                   │
-│                                                             │
-│ Creator Performance Bonus:                                  │
-│   45.232 × $4.00 = $180.93                                  │
-│                                                             │
-│ Nala Revenue (Markup):                                      │
-│   45.232 × $1.00 = $45.23                                   │
-│                                                             │
-│ Total Performance Cost:                                     │
-│   45.232 × $5.00 = $226.16                                  │
-│                                                             │
-│ [Stored in settlement record]                               │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2C: PAYMENT EXECUTION                                 │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ STEP 1: Creator Performance Bonus Transfer                  │
-│ ─────────────────────────────────────────────────────────── │
-│ POST /v1/transfers                                          │
-│ {                                                           │
-│   amount: 18093, // $180.93 in cents                        │
-│   currency: "usd",                                          │
-│   destination: "acct_mary123",                              │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     video_id: "v123",                                       │
-│     payment_type: "performance_bonus",                      │
-│     views_achieved: 45232                                   │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: { id: "tr_perf456", status: "paid" }              │
-│                                                             │
-│ INSERT INTO payments (                                      │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   recipient_id: mary.id,                                    │
-│   amount: 180.93,                                           │
-│   type: 'performance_bonus',                                │
-│   status: 'completed',                                      │
-│   stripe_transfer_id: 'tr_perf456',                         │
-│   metadata: {views: 45232}                                  │
-│ );                                                          │
-│                                                             │
-│ STEP 2: Nala Revenue Recording                              │
-│ ─────────────────────────────────────────────────────────── │
-│ INSERT INTO revenue (                                       │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   amount: 45.23,                                            │
-│   type: 'markup',                                           │
-│   views_count: 45232                                        │
-│ );                                                          │
-│                                                             │
-│ // Funds stay in platform Stripe account                    │
-│                                                             │
-│ STEP 3: Calculate Campaign-Level Refund                     │
-│ ─────────────────────────────────────────────────────────── │
-│ // After ALL 5 videos are locked, calculate total refund    │
-│                                                             │
-│ Total Performance Budget: $625.00                           │
-│ Total Performance Cost (all videos): $450.00                │
-│ Refund Amount: $625.00 - $450.00 = $175.00                  │
-│                                                             │
-│ POST /v1/refunds                                            │
-│ {                                                           │
-│   payment_intent: "pi_founder123",                          │
-│   amount: 17500, // $175 in cents                           │
-│   reason: "requested_by_customer",                          │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     refund_type: "unspent_performance_budget",              │
-│     original_budget: 625.00,                                │
-│     actual_cost: 450.00                                     │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: { id: "re_refund789", status: "succeeded" }       │
-│                                                             │
-│ INSERT INTO payments (                                      │
-│   campaign_id: 'c456',                                      │
-│   recipient_id: mike.id,                                    │
-│   amount: 175.00,                                           │
-│   type: 'refund',                                           │
-│   status: 'completed',                                      │
-│   stripe_refund_id: 're_refund789'                          │
-│ );                                                          │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2D: FINALIZATION                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ UPDATE campaigns                                            │
-│ SET                                                         │
-│   status = 'completed',                                     │
-│   completed_at = NOW(),                                     │
-│   final_views_total = 226160, // Sum of all videos          │
-│   total_paid_to_creator = 555.93, // Base + Performance     │
-│   total_refunded_to_founder = 175.00,                       │
-│   platform_revenue = 226.16 // Nala markup                  │
-│ WHERE id = 'c456';                                          │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2E: NOTIFICATIONS & REPORTING                         │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ To Creator (Mary):                                          │
-│ ───────────────────────────────────────────────────────────│
-│ Subject: Campaign Complete - $180.93 Bonus Paid!            │
-│                                                             │
-│ Your Q4 Product Launch campaign has ended!                  │
-│                                                             │
-│ Final Performance:                                          │
-│ • Video 1: 45,232 views                                     │
-│ • Performance Bonus: $180.93                                │
-│ • Total Earned: $255.93 ($75 base + $180.93 bonus)         │
-│                                                             │
-│ Payment sent to your account.                               │
-│                                                             │
-│ [View Campaign Report] [Leave Review for Client]            │
-│                                                             │
-│ ───────────────────────────────────────────────────────────│
-│                                                             │
-│ To Founder (Mike):                                          │
-│ ───────────────────────────────────────────────────────────│
-│ Subject: Campaign Complete - $175 Refund Processed          │
-│                                                             │
-│ Your Q4 Product Launch campaign has concluded!              │
-│                                                             │
-│ Campaign Performance:                                       │
-│ • Total Views: 226,160                                      │
-│ • Videos Delivered: 5/5                                     │
-│ • Total Spent: $825.00                                      │
-│ • Refund Issued: $175.00                                    │
-│                                                             │
-│ Your refund will appear in 5-7 business days.               │
-│                                                             │
-│ [Download Performance Report] [Leave Review# Nala Platform - Detailed User Flows
-Table of Contents
+STEP 4: Assignment Notification
+├─ (Next day) Email arrives:
+│  Subject: "You're Assigned! - Acme Product Launch"
+│  ├─ Brief title
+│  ├─ Base fee: $50
+│  ├─ Content deadline: Nov 20
+│  ├─ Posting schedule: Daily, starting Nov 25
+│  ├─ Link to task dashboard
+│  └─ "Let's create something amazing!"
+│
+├─ Mary: Clicks link, enters task dashboard
+└─ Status: ACCEPTED
 
-Creator Onboarding Flow
-Founder Campaign Creation Flow
-Content Creation & Review Flow
-Payment Processing Flow
-Performance Tracking Flow
-Dispute Resolution Flow
+STEP 5: Content Production
+├─ Task Dashboard shows:
+│  ├─ Brief details & product demo
+│  ├─ Content requirements checklist
+│  ├─ Deadline: Nov 20 (3 days)
+│  └─ "Record your video and upload here"
+│
+├─ Mary:
+│  ├─ Records 5 takes
+│  ├─ Selects best take
+│  ├─ Adds title: "Why Acme is a Game-Changer"
+│  ├─ Adds notes: "30 sec, trending audio"
+│  ├─ Clicks: [UPLOAD DRAFT]
+│  ├─ Upload progress: ████████░ 85%
+│  ├─ System: "Draft uploaded! Waiting for founder review..."
+│  └─ Status: SUBMITTED_FOR_REVIEW
+│
+└─ Mary notified: "Founder will review within 3 days"
 
+STEP 6: Founder Review (Revision)
+├─ (Day 2) Notification:
+│  Subject: "Revision Feedback for Your Draft"
+│  ├─ Feedback: "Add product demo at 0:20 mark"
+│  ├─ Revision deadline: Nov 22
+│  └─ Link to upload revised draft
+│
+├─ Mary:
+│  ├─ Reviews feedback
+│  ├─ Re-records with demo at 0:20
+│  ├─ Uploads revised draft
+│  └─ System: [REVISION UPLOADED] "Awaiting founder review..."
+│
+└─ Status: REVISION_REQUESTED → SUBMITTED_FOR_REVIEW
 
-1. Creator Onboarding Flow
-1.1 Account Registration
-Entry Point: Landing page → "Sign Up as Creator" button
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Basic Information                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Creator enters:                                             │
-│  • Full Name                                                │
-│  • Email Address                                            │
-│  • Password (8+ chars, 1 number, 1 special)                │
-│  • Confirm Password                                         │
-│                                                             │
-│ [Checkbox] I agree to Terms of Service & Privacy Policy    │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Validate email format and uniqueness                    │
-│  2. Hash password (bcrypt)                                  │
-│  3. Create user record (role: 'creator')                    │
-│  4. Send verification email                                 │
-│  5. Create empty creator_profile record                     │
-│  6. Generate session token                                  │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Email Verification                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Screen: "Check your email"                                  │
-│  📧 We sent a verification link to mary@email.com          │
-│                                                             │
-│ Creator clicks link in email →                              │
-│                                                             │
-│ System Actions:                                             │
-│  1. Verify token from email link                            │
-│  2. Update user.email_verified = true                       │
-│  3. Redirect to platform onboarding                         │
-└─────────────────────────────────────────────────────────────┘
-1.2 Social Media Account Connection
-Critical Path: This determines creator eligibility
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Connect Your Platforms                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Connect your social accounts to start earning"             │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 🎵 TikTok         [Connect Account]   Not Connected │   │
-│ │    Minimum: 10,000 followers                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📸 Instagram      [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ │    ⚠️ Requires Business Account                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 👍 Facebook       [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Note: Connect at least one platform to continue            │
-│                                                             │
-│ [Skip for now]  [Continue]  ← Disabled until 1 connected   │
-└─────────────────────────────────────────────────────────────┘
-1.2.1 TikTok Connection Sub-Flow
-Creator clicks "Connect Account" on TikTok
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ POPUP: TikTok OAuth                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Generate OAuth state token (CSRF protection)            │
-│  2. Redirect to TikTok Login Kit:                           │
-│     https://www.tiktok.com/auth/authorize/                  │
-│     ?client_key={CLIENT_KEY}                                │
-│     &scope=user.info.basic,video.list,video.insights        │
-│     &response_type=code                                     │
-│     &redirect_uri={CALLBACK_URL}                            │
-│     &state={STATE_TOKEN}                                    │
-│                                                             │
-│ Creator sees TikTok login screen →                          │
-│  • Logs into TikTok (if not already)                        │
-│  • Reviews permissions request                              │
-│  • Clicks "Authorize"                                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ CALLBACK: TikTok Returns to Nala                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Receive authorization code                              │
-│  2. Verify state token (prevent CSRF)                       │
-│  3. Exchange code for access token:                         │
-│     POST https://open-api.tiktok.com/oauth/access_token/    │
-│  4. Fetch user profile:                                     │
-│     GET /v2/user/info/                                      │
-│  5. Extract: username, follower_count, user_id              │
-│                                                             │
-│  6. Validate eligibility:                                   │
-│     IF follower_count < 10,000:                             │
-│       ❌ Show error: "Minimum 10K followers required"       │
-│       STOP                                                  │
-│                                                             │
-│  7. Store in database:                                      │
-│     INSERT INTO social_accounts (                           │
-│       creator_id, platform, platform_user_id,               │
-│       username, follower_count,                             │
-│       access_token [ENCRYPTED], refresh_token [ENCRYPTED],  │
-│       token_expires_at, verified_at                         │
-│     )                                                       │
-│                                                             │
-│  8. Update creator_profile.verification_status = 'verified' │
-│  9. Show success message                                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ SUCCESS SCREEN                                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ✅ TikTok Connected Successfully!                           │
-│                                                             │
-│ @marythcreator                                              │
-│ 47,234 followers                                            │
-│                                                             │
-│ [Connect Another Platform]  [Continue →]                    │
-└─────────────────────────────────────────────────────────────┘
-1.2.2 Instagram Connection Sub-Flow
-Note: More complex due to Business Account requirement
-Creator clicks "Connect Account" on Instagram
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Check Account Type                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Do you have an Instagram Business or Creator Account?"     │
-│                                                             │
-│ [Yes, I have a Business Account] → Continue to OAuth        │
-│ [No, I have a Personal Account] → Show conversion guide     │
-│                                                             │
-│ IF "No" selected:                                           │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ ℹ️  How to Convert to Business Account:            │   │
-│ │                                                     │   │
-│ │ 1. Open Instagram app                              │   │
-│ │ 2. Go to Settings → Account                        │   │
-│ │ 3. Select "Switch to Professional Account"         │   │
-│ │ 4. Choose "Business"                               │   │
-│ │ 5. Connect to Facebook Page                        │   │
-│ │                                                     │   │
-│ │ [Watch Video Tutorial]  [I've Converted]           │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Facebook Login (Required for Instagram)             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Redirect to Facebook OAuth:                             │
-│     https://www.facebook.com/v18.0/dialog/oauth             │
-│     ?client_id={APP_ID}                                     │
-│     &redirect_uri={CALLBACK}                                │
-│     &scope=instagram_basic,instagram_manage_insights,       │
-│             pages_read_engagement                           │
-│                                                             │
-│ Creator:                                                    │
-│  • Logs into Facebook                                       │
-│  • Selects connected Instagram Business Account            │
-│  • Grants permissions                                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Fetch Instagram Data                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Exchange code for access token                          │
-│  2. Get Instagram Business Account ID:                      │
-│     GET /{facebook-page-id}?fields=instagram_business_accou │
-│     nt                                                      │
-│  3. Get Instagram profile data:                             │
-│     GET /{ig-user-id}?fields=username,followers_count       │
-│                                                             │
-│  4. Validate:                                               │
-│     IF followers_count < 5,000:                             │
-│       ❌ Error: "Minimum 5K followers required"             │
-│     IF account_type != 'BUSINESS':                          │
-│       ❌ Error: "Business account required"                 │
-│                                                             │
-│  5. Store data (same as TikTok flow)                        │
-└─────────────────────────────────────────────────────────────┘
-1.3 Profile Setup
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 4: Set Your Rates                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "How much do you charge per video?"                         │
-│                                                             │
-│ TikTok Base Fee:                                            │
-│ [$75] ◄────●────────────────► [$500]                       │
-│  $50                                  Max                   │
-│                                                             │
-│ 💡 Most creators charge: $75-$150                           │
-│ 📊 Your potential earnings for 100K views:                  │
-│     Base Fee: $75 + Performance: $400 = $475 total          │
-│                                                             │
-│ Instagram Base Fee:                                         │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ Facebook Base Fee:                                          │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile with base fees                    │
-│  • Calculate average fee for matching algorithm             │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 5: Build Your Portfolio                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Upload 3-10 sample videos to showcase your style"          │
-│                                                             │
-│ [Drag & Drop Videos Here]                                   │
-│  or [Browse Files]                                          │
-│                                                             │
-│ Uploaded (2/10):                                            │
-│ ┌─────────┐  ┌─────────┐                                   │
-│ │ [Video] │  │ [Video] │  [+ Add More]                     │
-│ │  30s    │  │  45s    │                                   │
-│ └─────────┘  └─────────┘                                   │
-│                                                             │
-│ For each video:                                             │
-│  • Title: [Product Review - SaaS Tool]                      │
-│  • Platform: [TikTok ▼]                                     │
-│                                                             │
-│ [Skip for now]  [Continue →]                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Upload to S3 (max 500MB per video)                      │
-│  2. Generate thumbnail (frame at 2s)                        │
-│  3. Transcode to web format (H.264, 720p)                   │
-│  4. Store metadata in creator_profile.portfolio_videos      │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 6: Category & Bio                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What niches do you specialize in? (Select all that apply)   │
-│                                                             │
-│ ☑ SaaS & Software    ☐ E-commerce     ☐ Health & Fitness   │
-│ ☑ B2B Tech           ☐ Beauty         ☐ Food & Beverage    │
-│ ☐ Finance            ☐ Fashion        ☐ Gaming             │
-│                                                             │
-│ Tell brands about yourself: (500 char max)                  │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Hi! I'm Mary, a tech enthusiast who creates          │   │
-│ │ engaging video reviews for SaaS products. My         │   │
-│ │ audience loves honest, detailed breakdowns...        │   │
-│ │                                                      │   │
-│ │ 347/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ [Back]  [Complete Setup →]                                  │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile.categories                        │
-│  • Update creator_profile.bio                               │
-│  • Set profile_completed = true                             │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 7: Payment Setup (Stripe Connect)                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Last step: Set up payouts"                                 │
-│                                                             │
-│ Nala uses Stripe to send you payments securely.             │
-│                                                             │
-│ [Connect Stripe Account]                                    │
-│                                                             │
-│ System Actions:                                             │
-│  1. Create Stripe Connect Express account link:             │
-│     POST /v1/account_links                                  │
-│     type: 'account_onboarding'                              │
-│  2. Redirect creator to Stripe hosted onboarding            │
-│                                                             │
-│ Creator completes on Stripe:                                │
-│  • Personal information (name, DOB, SSN)                    │
-│  • Business details (if applicable)                         │
-│  • Bank account for deposits                                │
-│  • Identity verification (photo ID)                         │
-│                                                             │
-│ Stripe redirects back to Nala with account_id               │
-│                                                             │
-│ System Actions:                                             │
-│  1. Store stripe_account_id in users table                  │
-│  2. Verify account capabilities:                            │
-│     - transfers: 'active'                                   │
-│     - card_payments: 'active' (if needed)                   │
-│  3. Mark creator as payment_ready = true                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ 🎉 SUCCESS: You're All Set!                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your creator profile is live!                               │
-│                                                             │
-│ ✅ TikTok connected (47K followers)                         │
-│ ✅ Base fee set ($75/video)                                 │
-│ ✅ Portfolio added (2 videos)                               │
-│ ✅ Payments ready                                           │
-│                                                             │
-│ Next steps:                                                 │
-│ • Brands will discover your profile                         │
-│ • You'll receive brief invitations                          │
-│ • Start earning with performance-based pay!                 │
-│                                                             │
-│ [Go to Dashboard →]                                         │
-└─────────────────────────────────────────────────────────────┘
+STEP 7: Final Approval & Payment
+├─ (Day 3) Notification:
+│  Subject: "Your Draft is APPROVED! 🎉"
+│  ├─ "We love it! Ready to post?"
+│  ├─ Base fee: $50.00 ✓ PAID
+│  ├─ Instructions: Post by Nov 25
+│  ├─ Submit posting URL in task dashboard
+│  └─ View tracking starts when you post
+│
+├─ Mary:
+│  ├─ Checks wallet: $50 base fee now showing
+│  ├─ Wallet: "$50 earned (base fee)"
+│  └─ Ready to post
+│
+└─ Status: APPROVED
 
-2. Founder Campaign Creation Flow
-2.1 Campaign Initiation
-Entry Point: Dashboard → "Create Campaign" button
-┌─────────────────────────────────────────────────────────────┐
-│ Create New Campaign                     [Save Draft] [Exit] │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Progress: ●──○──○──○──○──○  Step 1 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 1: Campaign Basics                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Name: *                                            │
-│ [Q4 Product Launch Campaign                              ] │
-│                                                             │
-│ What are you promoting?                                     │
-│ [ProductivityPro - AI-powered task management SaaS       ] │
-│                                                             │
-│ Target Audience:                                            │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Professionals aged 25-40, interested in              │   │
-│ │ productivity tools, remote workers, small business   │   │
-│ │ owners.                                              │   │
-│ │                                                      │   │
-│ │ 178/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Campaign Goal:                                              │
-│ ○ Brand Awareness    ● Website Traffic    ○ Signups        │
-│ ○ Sales              ○ App Downloads                        │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Auto-save every 30 seconds                               │
-│  • Create draft campaign record                             │
-│  • Status: 'draft'                                          │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──○──○──○──○  Step 2 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 2: Content Requirements                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ How many videos do you need?                                │
-│ [5▼] videos                                                 │
-│  (Min: 1, Max: 10 per campaign)                             │
-│                                                             │
-│ Preferred video length:                                     │
-│ ○ 15 seconds     ● 30 seconds                               │
-│ ○ 60 seconds     ○ Creator's choice                         │
-│                                                             │
-│ Which platforms? (Select all that apply)                    │
-│ ☑ TikTok    ☑ Instagram Reels    ☐ Facebook Reels          │
-│                                                             │
-│ Video style preference:                                     │
-│ ☑ Product Tutorial    ☐ Unboxing    ☐ Testimonial          │
-│ ☐ Behind the Scenes   ☐ Comparison                          │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Update campaign.videos_requested = 5                     │
-│  • Store platform preferences in brief_data JSONB           │
-│  • Calculate estimated budget preview                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──○──○──○  Step 3 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 3: Creative Brief                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Key Talking Points: (What should the creator highlight?)    │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ • AI-powered task prioritization                    │   │
-│ │ • Integrates with 50+ tools (Slack, Gmail, etc)     │   │
-│ │ • Saves 2 hours per day on average                  │   │
-│ │ • Free 14-day trial available                       │   │
-│ │                                                      │   │
-│ │ [+ Add Point]                                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Brand Guidelines: (Upload PDF, images, or describe)         │
-│ [📄 Brand_Guidelines.pdf] [✓ Uploaded]  [Remove]           │
-│ [+ Upload Assets] (Logo, product images, etc.)              │
-│                                                             │
-│ Do's:                          │ Don'ts:                    │
-│ • Be authentic                 │ • Compare to competitors   │
-│ • Show real use cases          │ • Make health claims       │
-│ • Use trending audio           │ • Show competitor logos    │
-│ [+ Add]                        │ [+ Add]                    │
-│                                                             │
-│ Required Hashtags/Mentions:                                 │
-│ [#ProductivityPro #AItools @productivitypro_official     ] │
-│                                                             │
-│ Reference Videos: (Optional - paste URLs)                   │
-│ [https://tiktok.com/@competitor/video/123                ] │
-│ [+ Add Another]                                             │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Store all data in campaign.brief_data (JSONB)            │
-│  • Upload brand assets to S3                                │
-│  • Generate brief preview PDF                               │
-└─────────────────────────────────────────────────────────────┘
-2.2 Posting Schedule & Budget Configuration
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──○──○  Step 4 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 4: Posting Schedule                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ When should the first video go live?                        │
-│ [Nov 25, 2025 ▼]  📅                                        │
-│  (Minimum 5 days from today for creator prep)               │
-│                                                             │
-│ How often should videos be posted?                          │
-│ ● One per day           ○ Every other day                   │
-│ ○ Every 3 days          ○ Weekly                            │
-│ ○ Custom schedule                                           │
-│                                                             │
-│ 📅 Your Posting Calendar:                                   │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Video 1:  Nov 25 (Mon) 📱 TikTok                    │   │
-│ │ Video 2:  Nov 26 (Tue) 📱 TikTok                    │   │
-│ │ Video 3:  Nov 27 (Wed) 📸 Instagram                 │   │
-│ │ Video 4:  Nov 28 (Thu) 📸 Instagram                 │   │
-│ │ Video 5:  Nov 29 (Fri) 📱 TikTok                    │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Preferred posting time: (Optional)                          │
-│ [09:00 AM ▼]  [EST ▼]                                       │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Calculate posting dates                                  │
-│  • Store in campaign.start_date, posting_frequency          │
-│  • Validate timeline (min 5 days buffer)                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──●──○  Step 5 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 5: Budget Configuration                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ 💰 Set Your Total Budget                                    │
-│                                                             │
-│ Total Campaign Budget:                                      │
-│ $ [1000.00]                                                 │
-│   (Minimum: $500 | Maximum: $50,000)                        │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📊 BUDGET BREAKDOWN                                  │   │
-│ │                                                      │   │
-│ │ Fixed Production Costs:         $250.00 (25%)       │   │
-│ │ └─ 5 videos × $50 base fee                          │   │
-│ │                                                      │   │
-│ │ Variable Performance Budget:    $750.00 (75%)       │   │
-│ │ └─ Pays for actual views achieved                   │   │
-│ │                                                      │   │
-│ │ ─────────────────────────────────────────────────   │   │
-│ │                                                      │   │
-│ │ Maximum Views You Can Purchase:                     │   │
-│ │ 150,000 views @ $5.00 per 1,000                     │   │
-│ │                                                      │   │
-│ │ ═════════════════════════════════════════════════   │   │
-│ │                                                      │   │
-│ │ 💡 How Performance Budget Works:                    │   │
-│ │                                                      │   │
-│ │ If videos achieve 120K views (80% of max):          │   │
-│ │  • You pay: $250 + $600 = $850                      │   │
-│ │  • You save: $150 (refunded automatically)          │   │
-│ │                                                      │   │
-│ │ If videos achieve 150K views (100% of max):         │   │
-│ │  • You pay: $250 + $750 = $1,000 (full budget)      │   │
-│ │  • You save: $0 (great performance!)                │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ☑ I understand that:                                        │
-│    • Base fees are paid when I approve content              │
-│    • Performance budget is charged based on actual views    │
-│    • Unused budget is refunded automatically after 7 days   │
-│                                                             │
-│ [← Back]  [Continue to Creator Selection →]                 │
-│                                                             │
-│ System Actions:                                             │
-│  • Validate budget (min $500)                               │
-│  • Calculate: base_fee_budget, performance_budget           │
-│  • Store in campaigns table                                 │
-│  • Update max_views_purchasable                             │
-└─────────────────────────────────────────────────────────────┘
-│                                                             │
-│ Next up: Video 2 (Due Nov 23)                               │
-│                                                             │
-│ [View All Briefs]  [Upload Next Video]                      │
-└─────────────────────────────────────────────────────────────┘
+STEP 8: Video Posting
+├─ (Nov 25) Mary posts video on TikTok
+│  ├─ Selects posting time: 7:00 PM (peak engagement)
+│  ├─ Posts: "Check out why Acme [product] is..."
+│  ├─ Video live!
+│
+├─ (In Task Dashboard):
+│  ├─ Mary: Sees "[POSTED] - Awaiting URL submission"
+│  ├─ Copies: Video URL from TikTok
+│  ├─ Pastes: URL in task dashboard
+│  ├─ Clicks: [SUBMIT POSTING URL]
+│  ├─ System: Validates URL & video metadata
+│  └─ Status: POSTED
+│
+└─ Notification to Mary: "Video tracking started! Check your wallet tomorrow for bonus updates."
 
-### 3.3 Founder Content Review
+STEP 9: Performance Tracking (7 Days)
+├─ Day 1 (Nov 25):
+│  ├─ Wallet shows: $50.00 (base fee)
+│  ├─ No bonus yet (data syncing)
+│  └─ "Performance bonus appears after 24 hours"
+│
+├─ Day 2 (Nov 26):
+│  ├─ Daily sync runs: 3,200 views detected
+│  ├─ Wallet shows: $50.00 + $12.80 (bonus) = $62.80
+│  ├─ Notification: "Your video got 3,200 views! Bonus: +$12.80"
+│  └─ Mary checks hourly
+│
+├─ Days 3-5:
+│  ├─ Day 3: 8,500 cumulative views → Bonus: $34.00 total
+│  ├─ Day 4: 15,200 cumulative views → Bonus: $60.80 total
+│  ├─ Day 5: 23,200 cumulative views → Bonus: $92.80 total
+│  ├─ Wallet displays all updates
+│  └─ Mary: Watching growth, very happy
+│
+├─ Days 6-7:
+│  ├─ Day 6: 25,100 cumulative views → Bonus: $100.40 total
+│  ├─ Day 7: 26,500 cumulative views → Bonus: $106.00 total
+│  └─ View growth slows (plateau typical at day 7)
+│
+└─ Wallet Final: $50.00 (base) + $106.00 (bonus) = $156.00
 
-**Trigger:** Founder receives notification of new draft
-┌─────────────────────────────────────────────────────────────┐
-│ FOUNDER DASHBOARD - Content Review Queue                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🔔 1 video ready for review                                 │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Q4 Product Launch Campaign                           │   │
-│ │                                                      │   │
-│ │ 🎥 Video 1 of 5 - TikTok                            │   │
-│ │ Submitted by @marythcreator  |  2 hours ago         │   │
-│ │                                                      │   │
-│ │ [Review Now →]                                       │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-↓ (Founder clicks "Review Now")
-┌─────────────────────────────────────────────────────────────┐
-│ 📹 CONTENT REVIEW INTERFACE                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ┌─────────────────────────┬───────────────────────────┐   │
-│ │ 🎥 VIDEO PLAYER         │ 📋 BRIEF REQUIREMENTS     │   │
-│ │                         │                           │   │
-│ │  ┌─────────────────┐   │ ✓ 30 seconds              │   │
-│ │  │                 │   │ ✓ Product tutorial style  │   │
-│ │  │  [▶ Play]       │   │ ✓ #ProductivityPro used   │   │
-│ │  │                 │   │                           │   │
-│ │  │  Mary's Draft   │   │ Key Talking Points:       │   │
-│ │  │  Video          │   │ • AI prioritization ✓     │   │
-│ │  │                 │   │ • 50+ integrations ✓      │   │
-│ │  │  0:15 / 0:30    │   │ • Free trial ✓            │   │
-│ │  └─────────────────┘   │                           │   │
-│ │                         │ Do's/Don'ts Check:        │   │
-│ │  [0.5x] [1x] [2x]      │ ✓ Authentic               │   │
-│ │  [Download]            │ ✓ Real use case shown     │   │
-│ │                         │ ✓ No competitor mentions  │   │
-│ └─────────────────────────┴───────────────────────────┘   │
-│                                                             │
-│ Creator's Notes:                                            │
-│ "I focused on the AI prioritization feature as requested.   │
-│  Used trending audio 'That's Crazy'."                       │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ YOUR FEEDBACK                                               │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Add Comments: (Timestamped annotations)                     │
-│ [Click on video timeline to add feedback at specific times] │
-│                                                             │
-│ ┌─ Annotations ───────────────────────────────────────┐   │
-│ │ 0:05 - "Love the opening hook!" - You                │   │
-│ │ 0:15 - "Can you show the UI here?" - You             │   │
-│ │ [+ Add Comment]                                      │   │
-│ └──────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ DECISION                                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ [✅ Approve]   [📝 Request Revision]   [❌ Reject]          │
-│                                                             │
-│ ⚠️ Important: Approving will trigger payment of $75 to      │
-│    creator. This cannot be undone.                          │
-└─────────────────────────────────────────────────────────────┘
-
-#### 3.3.1 Approval Flow
-Founder clicks "✅ Approve"
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ⚠️ CONFIRM APPROVAL                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ You are about to approve Video 1                            │
-│                                                             │
-│ This will:                                                  │
-│ ✓ Authorize creator to post on Nov 25                       │
-│ ✓ Release $75 payment to @marythcreator                     │
-│ ✓ Grant you perpetual content usage rights                  │
-│                                                             │
-│ ⚠️ This action cannot be undone                             │
-│                                                             │
-│ [Cancel]  [Confirm Approval]                                │
-│                                                             │
-│ System Actions (Confirm):                                   │
-│  1. Update video.status = 'approved'                        │
-│  2. Update video.approved_at = NOW()                        │
-│  3. Trigger Phase 1 Payment (T-305):                        │
-│     a. Verify escrow has sufficient funds                   │
-│     b. Create Stripe transfer:                              │
-│        POST /v1/transfers                                   │
-│        {                                                    │
-│          amount: 7500, // $75 in cents                      │
-│          currency: 'usd',                                   │
-│          destination: mary.stripe_account_id,               │
-│          transfer_group: campaign.id,                       │
-│          metadata: {                                        │
-│            campaign_id, video_id,                           │
-│            payment_type: 'base_fee'                         │
-│          }                                                  │
-│        }                                                    │
-│     c. Create payment record in database                    │
-│     d. Update video.base_fee_paid = true                    │
-│  4. Send notifications:                                     │
-│     • Creator: "Payment sent! $75 on the way"               │
-│     • Founder: "Approval confirmed"                         │
-│  5. Update campaign.videos_approved += 1                    │
-│  6. Decrement escrow balance                                │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ✅ VIDEO APPROVED                                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Video 1 has been approved!                                  │
-│                                                             │
-│ ✓ $75 payment sent to @marythcreator                        │
-│ ✓ Creator authorized to post on Nov 25                      │
-│                                                             │
-│ Next: Wait for creator to post and track performance        │
-│                                                             │
-│ [View Campaign Dashboard]  [Review Next Video]              │
-└─────────────────────────────────────────────────────────────┘
-
-#### 3.3.2 Revision Request Flow
-Founder clicks "📝 Request Revision"
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ 📝 REQUEST REVISION                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What needs to be changed?                                   │
-│ (Be specific to help the creator deliver what you need)     │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Please make the following changes:                   │   │
-│ │                                                      │   │
-│ │ 1. At 0:15, show the actual ProductivityPro UI       │   │
-│ │    instead of generic screenshots                    │   │
-│ │                                                      │   │
-│ │ 2. Add more emphasis on the "2 hours saved" stat    │   │
-│ │                                                      │   │
-│ │ 3. Include a call-to-action to try the free trial   │   │
-│ │                                                      │   │
-│ │ 187/1000 characters                                  │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Revision deadline:                                          │
-│ [48 hours ▼]  from now (Nov 21 at 2:00 PM)                 │
-│                                                             │
-│ Priority:                                                   │
-│ ○ Minor tweaks     ● Significant changes     ○ Major rework│
-│                                                             │
-│ ☑ Allow creator to ask clarifying questions                │
-│                                                             │
-│ [Cancel]  [Send Revision Request]                           │
-│                                                             │
-│ System Actions (Send):                                      │
-│  1. Update video.status = 'revision_requested'              │
-│  2. Create revision record:                                 │
-│     INSERT INTO revisions (                                 │
-│       video_id, requested_by, feedback,                     │
-│       deadline, priority, iteration_number                  │
-│     )                                                       │
-│  3. Send notification to creator (high priority)            │
-│  4. Email with full feedback                                │
-│  5. Create task in creator dashboard                        │
-│  6. Set reminder 12 hours before deadline                   │
-└─────────────────────────────────────────────────────────────┘
-
-### 3.4 Video Posting & URL Submission
-┌─────────────────────────────────────────────────────────────┐
-│ CREATOR - Post-Approval Phase                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🎉 Video 1 Approved!                                        │
-│                                                             │
-│ ✓ $75 payment sent (check your wallet)                      │
-│ ✓ Ready to post on Nov 25                                   │
-│                                                             │
-│ ⚠️ Important Reminder:                                      │
-│ • Post exactly on Nov 25                                    │
-│ • Use hashtags: #ProductivityPro                            │
-│ • After posting, submit the live URL here immediately       │
-│                                                             │
-│ [I've Posted - Submit URL]  [View Posting Instructions]     │
-└─────────────────────────────────────────────────────────────┘
-↓ (After posting on TikTok/Instagram)
-┌─────────────────────────────────────────────────────────────┐
-│ 🔗 SUBMIT POST URL                                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Video 1 - TikTok Post                                       │
-│                                                             │
-│ Paste your live post URL:                                   │
-│ [https://tiktok.com/@marythcreator/video/7298547382...  ]  │
-│                                                             │
-│ Posting Date/Time:                                          │
-│ [Nov 25, 2025]  [09:30 AM]  [EST ▼]                        │
-│                                                             │
-│ Screenshot (Optional but recommended):                      │
-│ [Upload screenshot showing post is live]                    │
-│                                                             │
-│ [Cancel]  [Submit & Start Tracking]                         │
-│                                                             │
-│ System Actions (Submit):                                    │
-│  1. Validate URL format (TikTok/Instagram domain)           │
-│  2. Extract post ID from URL                                │
-│  3. Verify post exists via API (optional check)             │
-│  4. Update video record:                                    │
-│     • status = 'posted'                                     │
-│     • final_post_url = submitted_url                        │
-│     • posted_at = submitted_datetime                        │
-│  5. Calculate 7-day lock time:                              │
-│     lock_at = posted_at + INTERVAL '7 days'                 │
-│  6. Add to view polling queue (T-302)                       │
-│  7. Send confirmation to founder                            │
-│  8. Initialize first view count snapshot (within 1 hour)    │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ✅ POST URL SUBMITTED                                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your post is now being tracked!                             │
-│                                                             │
-│ 📊 Performance tracking started                             │
-│ 🕐 7-day window: Nov 25 - Dec 2                             │
-│                                                             │
-│ What happens next:                                          │
-│ • Views are updated daily at 12:00 AM EST                   │
-│ • Your performance bonus accumulates in real-time           │
-│ • On Dec 2, final views are locked                          │
-│ • Your bonus is paid automatically within 24 hours          │
-│                                                             │
-│ Current performance:                                        │
-│ Views: 1,247  |  Est. Bonus: $4.99                          │
-│                                                             │
-│ [View Live Performance]  [Continue to Next Video]           │
-└─────────────────────────────────────────────────────────────┘
+STEP 10: Metric Lock & Settlement
+├─ (Day 8, 00:00 UTC) System locks metrics
+│  ├─ Final view count: 26,500 (immutable)
+│  ├─ Final bonus: $106.00 (calculated & confirmed)
+│  └─ Email: "Your campaign is complete! Payment processing..."
+│
+├─ (Day 8, 08:00 AM UTC):
+│  ├─ Stripe transfer initiated: $106.00
+│  ├─ Email: "Payment sent! Arrives in 1-3 business days"
+│  ├─ Wallet: Shows $156.00 "PAID" status
+│  └─ Bonus breakdown: "26,500 views × $4.00/1k views = $106.00"
+│
+├─ (Day 8-10):
+│  ├─ Bank deposit received: $156.00
+│  ├─ Mary: Ecstatic with earnings
+│  ├─ Portfolio: Adds this campaign with 26.5k views
+│  └─ Average rate increases (affects future briefs)
+│
+└─ Campaign lifecycle: COMPLETED
+```
 
 ---
 
-## 4. Payment Processing Flow
+## 7. TECHNICAL ARCHITECTURE & REQUIREMENTS
 
-### 4.1 Phase 1: Base Fee Payment (Detailed)
+### 7.1 System Architecture Overview
 
-**Trigger:** Founder approves content (see 3.3.1)
-┌─────────────────────────────────────────────────────────────┐
-│ SYSTEM: Phase 1 Payment Processor                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Event: video.approved (video_id: v123, campaign_id: c456)   │
-│                                                             │
-│ STEP 1: Pre-Flight Validation                               │
-│ ─────────────────────────────────────────────────────────── │
-│ ✓ Check campaign has sufficient escrow balance              │
-│   Current escrow: $1,000                                    │
-│   Required: $75                                             │
-│   Remaining after: $925                                     │
-│                                                             │
-│ ✓ Verify creator Stripe account is active                   │
-│   stripe_account_id: acct_mary123                           │
-│   capabilities.transfers: 'active'                          │
-│                                                             │
-│ ✓ Check for duplicate payment (idempotency)                 │
-│   Query: SELECT * FROM payments                             │
-│          WHERE video_id='v123' AND type='base_fee'          │
-│   Result: No existing payment found ✓                       │
-│                                                             │
-│ STEP 2: Create Database Payment Record (Pending)            │
-│ ─────────────────────────────────────────────────────────── │
-│ INSERT INTO payments (                                      │
-│   id: 'pay_abc123',                                         │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   recipient_id: mary.id,                                    │
-│   amount: 75.00,                                            │
-│   type: 'base_fee',                                         │
-│   status: 'pending',                                        │
-│   created_at: NOW()                                         │
-│ )                                                           │
-│                                                             │
-│ STEP 3: Stripe API Call (With Idempotency Key)              │
-│ ─────────────────────────────────────────────────────────── │
-│ POST https://api.stripe.com/v1/transfers                    │
-│ Headers:                                                    │
-│   Authorization: Bearer sk_live_xxx                         │
-│   Idempotency-Key: c456_v123_base_fee_1732012800           │
-│                                                             │
-│ Body:                                                       │
-│ {                                                           │
-│   amount: 7500,                                             │
-│   currency: "usd",                                          │
-│   destination: "acct_mary123",                              │
-│   transfer_group: "c456",                                   │
-│   description: "Base fee - Video 1 approval",               │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     video_id: "v123",                                       │
-│     payment_type: "base_fee",                               │
-│     founder_id: "mike.id",                                  │
-│     creator_id: "mary.id"                                   │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: (Success)                                         │
-│ {                                                           │
-│   id: "tr_stripe789",                                       │
-│   object: "transfer",                                       │
-│   amount: 7500,                                             │
-│   created: 1732012800,                                      │
-│   destination: "acct_mary123",                              │
-│   status: "paid"                                            │
-│ }                                                           │
-│                                                             │
-│ STEP 4: Update Database (Success State)                     │
-│ ─────────────────────────────────────────────────────────── │
-│ UPDATE payments                                             │
-│ SET                                                         │
-│   status = 'completed',                                     │
-│   stripe_transfer_id = 'tr_stripe789',                      │
-│   processed_at = NOW()                                      │
-│ WHERE id = 'pay_abc123';                                    │
-│                                                             │
-│ UPDATE videos                                               │
-│ SET base_fee_paid = true                                    │
-│ WHERE id = 'v123';                                          │
-│                                                             │
-│ UPDATE campaigns                                            │
-│ SET escrow_balance = escrow_balance - 75.00                 │
-│ WHERE id = 'c456';                                          │
-│                                                             │
-│ STEP 5: Notifications & Webhooks                            │
-│ ─────────────────────────────────────────────────────────── │
-│ • Send email to creator: "Payment sent: $75"                │
-│ • Push notification to creator app                          │
-│ • Update creator wallet balance (live)                      │
-│ • Send confirmation to founder                              │
-│ • Log event to analytics                                    │
-│                                                             │
-│ ✅ Phase 1 Payment Complete                                 │
-└─────────────────────────────────────────────────────────────┘
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      CLIENT LAYER                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Web App (React/Next.js)    |    Mobile App (React Native)     │
+│  - Founder Portal           |    - Creator App                  │
+│  - Creator Dashboard        |    - Task Management              │
+│  - Admin Panel              |    - Earnings Tracking            │
+└──────────────┬──────────────────────────────┬───────────────────┘
+               │                              │
+┌──────────────┴──────────────────────────────┴───────────────────┐
+│                    API GATEWAY LAYER                             │
+│            (REST API / GraphQL, Authentication)                 │
+├─────────────────────────────────────────────────────────────────┤
+│ ├─ Authentication Service (JWT + OAuth)                         │
+│ ├─ Request Routing & Rate Limiting                              │
+│ ├─ API Versioning (v1, v2)                                      │
+│ └─ CORS & Security Headers                                      │
+└──────────────┬──────────────────────────────────────────────────┘
+               │
+┌──────────────┴──────────────────────────────────────────────────┐
+│                    BUSINESS LOGIC LAYER                          │
+├─────────────────────────────────────────────────────────────────┤
+│ ┌──────────────────────┐  ┌──────────────────────┐              │
+│ │ Campaign Service     │  │ Payment Service      │              │
+│ │ ├─ Create brief      │  │ ├─ Escrow mgmt       │              │
+│ │ ├─ Manage workflow   │  │ ├─ Stripe API calls  │              │
+│ │ └─ Track lifecycle   │  │ ├─ Payout processing │              │
+│ │                      │  │ └─ Settlement logic  │              │
+│ └──────────────────────┘  └──────────────────────┘              │
+│                                                                  │
+│ ┌──────────────────────┐  ┌──────────────────────┐              │
+│ │ Creator Service      │  │ Performance Service  │              │
+│ │ ├─ Onboarding        │  │ ├─ View tracking     │              │
+│ │ ├─ Profile mgmt      │  │ ├─ API polling       │              │
+│ │ ├─ Content review    │  │ ├─ Metric calc       │              │
+│ │ └─ Eligibility check │  │ └─ Settlement calc   │              │
+│ └──────────────────────┘  └──────────────────────┘              │
+└──────────────┬──────────────────────────────────────────────────┘
+               │
+┌──────────────┴──────────────────────────────────────────────────┐
+│                    DATA LAYER                                    │
+├─────────────────────────────────────────────────────────────────┤
+│ ┌──────────────────────────────┐  ┌───────────────────────────┐ │
+│ │   PostgreSQL (Primary)       │  │   Redis (Cache/Queue)     │ │
+│ │ ├─ Users & Profiles          │  │ ├─ Session storage        │ │
+│ │ ├─ Campaigns                 │  │ ├─ Rate limiting          │ │
+│ │ ├─ Assignments               │  │ ├─ Job queue (Bull/RQ)    │ │
+│ │ ├─ Transactions              │  │ └─ Real-time features     │ │
+│ │ ├─ Performance Data          │  │                           │ │
+│ │ └─ Audit Logs                │  └───────────────────────────┘ │
+│ │                              │                                │
+│ │ ┌──────────────────────────────┐  ┌───────────────────────┐  │
+│ │ │   S3 (File Storage)          │  │  Elasticsearch (Logs) │  │
+│ │ │ ├─ Video drafts              │  │  ├─ API logs          │  │
+│ │ │ ├─ Uploaded content          │  │  ├─ Error tracking    │  │
+│ │ │ ├─ PDFs/Reports              │  │  └─ Analytics         │  │
+│ │ │ └─ Identity docs (encrypted) │  │                       │  │
+│ │ └──────────────────────────────┘  └───────────────────────┘  │
+│ └──────────────────────────────────────────────────────────────┘
+└──────────────┬──────────────────────────────────────────────────┘
+               │
+┌──────────────┴──────────────────────────────────────────────────┐
+│                    EXTERNAL INTEGRATIONS                         │
+├─────────────────────────────────────────────────────────────────┤
+│ ┌───────────────────┐  ┌───────────────────┐  ┌──────────────┐ │
+│ │ Stripe Connect    │  │ TikTok API        │  │ Meta API     │ │
+│ │ ├─ Charges        │  │ (Display API)     │  │ (Graph API)  │ │
+│ │ ├─ Transfers      │  │ ├─ Get views      │  │ ├─ Get views │ │
+│ │ ├─ Refunds        │  │ ├─ Validate URL   │  │ ├─ Validate  │ │
+│ │ └─ Webhooks       │  │ └─ Rate limits    │  │ └─ Rate lim  │ │
+│ └───────────────────┘  └───────────────────┘  └──────────────┘ │
+│                                                                  │
+│ ┌───────────────────┐  ┌───────────────────┐  ┌──────────────┐ │
+│ │ SendGrid/Twilio   │  │ Sentry            │  │ Datadog      │ │
+│ │ (Email & SMS)     │  │ (Error tracking)  │  │ (Monitoring) │ │
+│ └───────────────────┘  └───────────────────┘  └──────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### 4.2 Phase 2: Performance Bonus & Refund (7-Day Settlement)
+### 7.2 API Endpoints Specification
 
-**Trigger:** Automated cron job detects video.posted_at >= 168 hours ago
-┌─────────────────────────────────────────────────────────────┐
-│ SYSTEM: 7-Day Metric Lock & Settlement Processor            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Cron Job: Daily at 12:05 AM EST                             │
-│ Query: SELECT * FROM videos                                 │
-│        WHERE status = 'posted'                              │
-│        AND posted_at <= NOW() - INTERVAL '168 hours'        │
-│        AND status != 'locked'                               │
-│                                                             │
-│ Result: video_id 'v123' eligible for lock                   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2A: METRIC LOCK                                       │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ STEP 1: Final View Count Fetch                              │
-│ ─────────────────────────────────────────────────────────── │
-│ • Platform: TikTok                                          │
-│ • Post URL: https://tiktok.com/@marythcreator/video/729... │
-│                                                             │
-│ API Call: GET /v2/video/query/                              │
-│ {                                                           │
-│   video_id: "7298547382..."                                 │
-│ }                                                           │
-│                                                             │
-│ Response:                                                   │
-│ {                                                           │
-│   data: {                                                   │
-│     view_count: 45232,                                      │
-│     like_count: 3421,                                       │
-│     share_count: 287                                        │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ STEP 2: Lock View Count (Immutable)                         │
-│ ─────────────────────────────────────────────────────────── │
-│ BEGIN TRANSACTION;                                          │
-│                                                             │
-│ UPDATE videos                                               │
-│ SET                                                         │
-│   locked_view_count = 45232,                                │
-│   locked_at = NOW(),                                        │
-│   status = 'locked'                                         │
-│ WHERE id = 'v123';                                          │
-│                                                             │
-│ INSERT INTO view_snapshots (                                │
-│   video_id, view_count, snapshot_at, data_source            │
-│ ) VALUES (                                                  │
-│   'v123', 45232, NOW(), 'tiktok_api_final'                  │
-│ );                                                          │
-│                                                             │
-│ COMMIT;                                                     │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2B: SETTLEMENT CALCULATION                            │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Budget Overview:                                   │
-│ • Total Budget: $1,000.00                                   │
-│ • Base Fee Budget: $250.00 (5 videos × $50, but Mary gets  │
-│   $75/video = $375 total)                                   │
-│ • Performance Budget Available: $625.00                     │
-│                                                             │
-│ Final Views Achieved: 45,232 (across all 5 videos so far)   │
-│ This specific video (v123): 45,232 views                    │
-│                                                             │
-│ Calculation for Video 1:                                    │
-│ ───────────────────────────────────────────────────────────│
-│ Views in thousands: 45232 / 1000 = 45.232                   │
-│                                                             │
-│ Creator Performance Bonus:                                  │
-│   45.232 × $4.00 = $180.93                                  │
-│                                                             │
-│ Nala Revenue (Markup):                                      │
-│   45.232 × $1.00 = $45.23                                   │
-│                                                             │
-│ Total Performance Cost:                                     │
-│   45.232 × $5.00 = $226.16                                  │
-│                                                             │
-│ [Stored in settlement record]                               │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2C: PAYMENT EXECUTION                                 │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ STEP 1: Creator Performance Bonus Transfer                  │
-│ ─────────────────────────────────────────────────────────── │
-│ POST /v1/transfers                                          │
-│ {                                                           │
-│   amount: 18093, // $180.93 in cents                        │
-│   currency: "usd",                                          │
-│   destination: "acct_mary123",                              │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     video_id: "v123",                                       │
-│     payment_type: "performance_bonus",                      │
-│     views_achieved: 45232                                   │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: { id: "tr_perf456", status: "paid" }              │
-│                                                             │
-│ INSERT INTO payments (                                      │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   recipient_id: mary.id,                                    │
-│   amount: 180.93,                                           │
-│   type: 'performance_bonus',                                │
-│   status: 'completed',                                      │
-│   stripe_transfer_id: 'tr_perf456',                         │
-│   metadata: {views: 45232}                                  │
-│ );                                                          │
-│                                                             │
-│ STEP 2: Nala Revenue Recording                              │
-│ ─────────────────────────────────────────────────────────── │
-│ INSERT INTO revenue (                                       │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   amount: 45.23,                                            │
-│   type: 'markup',                                           │
-│   views_count: 45232                                        │
-│ );                                                          │
-│                                                             │
-│ // Funds stay in platform Stripe account                    │
-│                                                             │
-│ STEP 3: Calculate Campaign-Level Refund                     │
-│ ─────────────────────────────────────────────────────────── │
-│ // After ALL 5 videos are locked, calculate total refund    │
-│                                                             │
-│ Total Performance Budget: $625.00                           │
-│ Total Performance Cost (all videos): $450.00                │
-│ Refund Amount: $625.00 - $450.00 = $175.00                  │
-│                                                             │
-│ POST /v1/refunds                                            │
-│ {                                                           │
-│   payment_intent: "pi_founder123",                          │
-│   amount: 17500, // $175 in cents                           │
-│   reason: "requested_by_customer",                          │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     refund_type: "unspent_performance_budget",              │
-│     original_budget: 625.00,                                │
-│     actual_cost: 450.00                                     │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: { id: "re_refund789", status: "succeeded" }       │
-│                                                             │
-│ INSERT INTO payments (                                      │
-│   campaign_id: 'c456',                                      │
-│   recipient_id: mike.id,                                    │
-│   amount: 175.00,                                           │
-│   type: 'refund',                                           │
-│   status: 'completed',                                      │
-│   stripe_refund_id: 're_refund789'                          │
-│ );                                                          │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2D: FINALIZATION                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ UPDATE campaigns                                            │
-│ SET                                                         │
-│   status = 'completed',                                     │
-│   completed_at = NOW(),                                     │
-│   final_views_total = 226160, // Sum of all videos          │
-│   total_paid_to_creator = 555.93, // Base + Performance     │
-│   total_refunded_to_founder = 175.00,                       │
-│   platform_revenue = 226.16 // Nala markup                  │
-│ WHERE id = 'c456';                                          │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2E: NOTIFICATIONS & REPORTING                         │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ To Creator (Mary):                                          │
-│ ───────────────────────────────────────────────────────────│
-│ Subject: Campaign Complete - $180.93 Bonus Paid!            │
-│                                                             │
-│ Your Q4 Product Launch campaign has ended!                  │
-│                                                             │
-│ Final Performance:                                          │
-│ • Video 1: 45,232 views                                     │
-│ • Performance Bonus: $180.93                                │
-│ • Total Earned: $255.93 ($75 base + $180.93 bonus)         │
-│                                                             │
-│ Payment sent to your account.                               │
-│                                                             │
-│ [View Campaign Report] [Leave Review for Client]            │
-│                                                             │
-│ ───────────────────────────────────────────────────────────│
-│                                                             │
-│ To Founder (Mike):                                          │
-│ ───────────────────────────────────────────────────────────│
-│ Subject: Campaign Complete - $175 Refund Processed          │
-│                                                             │
-│ Your Q4 Product Launch campaign has concluded!              │
-│                                                             │
-│ Campaign Performance:                                       │
-│ • Total Views: 226,160                                      │
-│ • Videos Delivered: 5/5                                     │
-│ • Total Spent: $825.00                                      │
-│ • Refund Issued: $175.00                                    │
-│                                                             │
-│ Your refund will appear in 5-7 business days.               │
-│                                                             │
-│ [Download Performance Report] [Leave Review for Creator]     │
-│                                                             │
-│ ✅ Phase 2 Settlement Complete                              │
-└─────────────────────────────────────────────────────────────┘
-
-### 4.3 Error Handling & Recovery Flows
-┌─────────────────────────────────────────────────────────────┐
-│ ERROR SCENARIO 1: Stripe Transfer Fails                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Stripe API Response (Error):                                │
-│ {                                                           │
-│   error: {                                                  │
-│     type: "invalid_request_error",                          │
-│     code: "account_invalid",                                │
-│     message: "The destination account is not active"        │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ System Recovery Actions:                                    │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Update payment status to 'failed'                        │
-│ 2. Add to retry queue with exponential backoff:             │
-│    • Retry 1: 1 minute later                                │
-│    • Retry 2: 5 minutes later                               │
-│    • Retry 3: 15 minutes later                              │
-│ 3. If all retries fail:                                     │
-│    • Flag for manual review                                 │
-│    • Alert admin dashboard                                  │
-│    • Notify creator: "Payment delayed - we're fixing it"    │
-│ 4. Admin manually resolves:                                 │
-│    • Contact creator to update Stripe account               │
-│    • Process payment manually once fixed                    │
-│    • Log resolution in audit trail                          │
-└─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│ ERROR SCENARIO 2: API View Count Unavailable                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ TikTok API Response (Error):                                │
-│ {                                                           │
-│   error: {                                                  │
-│     code: 10000,                                            │
-│     message: "Server internal error"                        │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ System Recovery Actions:                                    │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Use last known view count from database:                 │
-│    SELECT view_count FROM view_snapshots                    │
-│    WHERE video_id = 'v123'                                  │
-│    ORDER BY snapshot_at DESC LIMIT 1                        │
-│                                                             │
-│ 2. Lock with last known count + flag:                       │
-│    locked_view_count = 43180 (last snapshot)                │
-│    locked_with_api_error = true                             │
-│                                                             │
-│ 3. Send notification to admin:                              │
-│    "Video v123 locked with API error - manual review needed"│
-│                                                             │
-│ 4. Admin Dashboard shows flagged video:                     │
-│    [Review] button allows manual view count adjustment      │
-│                                                             │
-│ 5. Process settlement with adjusted count if needed         │
-└─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│ ERROR SCENARIO 3: Insufficient Escrow Balance               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Scenario: Founder's payment method declined after deposit   │
-│                                                             │
-│ Pre-Flight Check Result:                                    │
-│ Campaign escrow: $50 (should be $1,000)                     │
-│ Required for approval: $75                                  │
-│ ❌ Insufficient funds                                       │
-│                                                             │
-│ System Actions:                                             │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Block approval action:                                   │
-│    Show founder: "⚠️ Insufficient campaign funds"           │
-│                                                             │
-│ 2. Request additional funding:                              │
-│    ┌─────────────────────────────────────────────────┐     │
-│    │ Your campaign requires additional funding       │     │
-│    │                                                 │     │
-│    │ Current Balance: $50.00                         │     │
-│    │ Required: $75.00                                │     │
-│    │ Amount Needed: $25.00                           │     │
-│    │                                                 │     │
-│    │ [Add Funds] [Pause Campaign]                    │     │
-│    └─────────────────────────────────────────────────┘     │
-│                                                             │
-│ 3. Notify creator of delay (transparent communication)      │
-│                                                             │
-│ 4. Pause campaign until refunded                            │
-└─────────────────────────────────────────────────────────────┘
-
----
-
-## 5. Performance Tracking Flow
-
-### 5.1 Daily View Count Updates
-┌─────────────────────────────────────────────────────────────┐
-│ AUTOMATED: Daily View Polling Job (T-302)                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Cron Schedule: Every day at 12:00 AM EST                    │
-│                                                             │
-│ STEP 1: Query Active Posts                                  │
-│ ─────────────────────────────────────────────────────────── │
-│ SELECT * FROM videos                                        │
-│ WHERE status = 'posted'                                     │
-│   AND posted_at > NOW() - INTERVAL '7 days'                 │
-│   AND status != 'locked'                                    │
-│ ORDER BY posted_at ASC;                                     │
-│                                                             │
-│ Results: 347 active videos across 89 campaigns              │
-│                                                             │
-│ STEP 2: Group by Platform & Batch Process                   │
-│ ─────────────────────────────────────────────────────────── │
-│ TikTok Batch (198 videos):                                  │
-│ • Extract video IDs                                         │
-│ • Batch into groups of 50 (API limit)                       │
-│ • Process batches sequentially                              │
-│                                                             │
-│ Instagram Batch (114 videos):                               │
-│ • Extract media IDs                                         │
-│ • Fetch insights for each                                   │
-│                                                             │
-│ Facebook Batch (35 videos):                                 │
-│ • Similar to Instagram process                              │
-│                                                             │
-│ STEP 3: API Calls with Rate Limit Management                │
-│ ─────────────────────────────────────────────────────────── │
-│ For each batch:                                             │
-│                                                             │
-│ TRY:                                                        │
-│   response = await tiktokAPI.getVideoData({                 │
-│     video_ids: batch_of_50,                                 │
-│     fields: ['view_count', 'like_count']                    │
-│   })                                                        │
-│                                                             │
-│   FOR each video in response:                               │
-│     • Parse view_count                                      │
-│     • Compare to last snapshot                              │
-│     • Calculate delta (new_views - old_views)               │
-│                                                             │
-│     UPDATE videos                                           │
-│     SET                                                     │
-│       current_view_count = new_views,                       │
-│       last_view_update = NOW()                              │
-│     WHERE id = video_id;                                    │
-│                                                             │
-│     INSERT INTO view_snapshots (                            │
-│       video_id, view_count, snapshot_at                     │
-│     ) VALUES (video_id, new_views, NOW());                  │
-│                                                             │
-│ CATCH RateLimitError:                                       │
-│   • Wait exponentially (60s, 120s, 240s)                    │
-│   • Retry batch                                             │
-│   • Log to monitoring                                       │
-│                                                             │
-│ CATCH APIError:                                             │
-│   • Log error details                                       │
-│   • Continue to next batch                                  │
-│   • Flag for manual review if persistent                    │
-│                                                             │
-│ STEP 4: Update Creator Wallets (Real-Time Calculations)     │
-│ ─────────────────────────────────────────────────────────── │
-│ FOR each updated video:                                     │
-│   new_performance_bonus = (current_view_count / 1000) * 4.00│
-│                                                             │
-│   UPDATE creator_wallets                                    │
-│   SET pending_performance_bonus = new_performance_bonus     │
-│   WHERE video_id = video_id;                                │
-│                                                             │
-│   // Trigger WebSocket update to live dashboards            │
-│   websocket.emit('wallet_update', {                         │
-│     creator_id: creator_id,                                 │
-│     video_id: video_id,                                     │
-│     new_bonus: new_performance_bonus                        │
-│   });                                                       │
-│                                                             │
-│ STEP 5: Check for 7-Day Lock Eligibility                    │
-│ ─────────────────────────────────────────────────────────── │
-│ SELECT * FROM videos                                        │
-│ WHERE status = 'posted'                                     │
-│   AND posted_at <= NOW() - INTERVAL '168 hours'             │
-│   AND status != 'locked';                                   │
-│                                                             │
-│ FOR each eligible video:                                    │
-│   • Trigger Phase 2 settlement (See 4.2)                    │
-│                                                             │
-│ STEP 6: Monitoring & Alerting                               │
-│ ─────────────────────────────────────────────────────────── │
-│ Log metrics:                                                │
-│ • Total videos processed: 347                               │
-│ • Successful updates: 342 (98.6%)                           │
-│ • API errors: 5 (1.4%)                                      │
-│ • Processing time: 8.3 minutes                              │
-│ • Rate limit hits: 0                                        │
-│                                                             │
-│ IF error_rate > 10%:                                        │
-│   ALERT ops_team via PagerDuty                              │
-│                                                             │
-│ ✅ Daily Polling Complete                                   │
-└─────────────────────────────────────────────────────────────┘
-
-### 5.2 Creator Live Performance Dashboard
-┌─────────────────────────────────────────────────────────────┐
-│ CREATOR DASHBOARD - Live Performance View                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 💰 Wallet                                                   │
-│ ───────────────────────────────────────────────────────────│
-│ Available Balance:        $342.50                           │
-│ Pending Performance:      $127.80  ⏱️ Updates daily         │
-│ Lifetime Earnings:        $8,945.00                         │
-│                                                             │
-│ [Instant Payout] [View History]                             │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 📊 ACTIVE CAMPAIGNS (2)                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📹 Q4 Product Launch                                 │   │
-│ │ ────────────────────────────────────────────────────│   │
-│ │                                                      │   │
-│ │ Video 1/5 - TikTok  🟢 LIVE                         │   │
-│ │ Posted: Nov 25, 9:30 AM                             │   │
-│ │                                                      │   │
-│ │ ┌──────────────────────────────────────────────┐   │   │
-│ │ │ 👁️ 45,232 views                                │   │   │
-│ │ │ ████████████████░░░░  Day 3/7                  │   │   │
-│ │ │                                                │   │   │
-│ │ │ Performance Bonus (Live):                      │   │   │
-│ │ │ $180.93  (+$24.50 since yesterday)            │   │   │
-│ │ │                                                │   │   │
-│ │ │ Projected Final (if current pace continues):   │   │   │
-│ │ │ ~65K views → ~$260 bonus                       │   │   │
-│ │ │                                                │   │   │
-│ │ │ Locks in: 4 days, 14 hours                     │   │   │
-│ │ └──────────────────────────────────────────────┘   │   │
-│ │                                                      │   │
-│ │ [View Post] [View Analytics]                         │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📹 Video 2/5 - TikTok  🟡 Pending Approval          │   │
-│ │ Submitted: 2 hours ago                               │   │
-│ │ Base Fee: $75 (paid on approval)                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 📈 PERFORMANCE INSIGHTS                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ This Week:                                                  │
-│ • Average views per video: 42,340                           │
-│ • Best performing platform: TikTok (avg 48K views)          │
-│ • Total performance bonus: $507.60                          │
-│                                                             │
-│ Tips to Boost Performance:                                  │
-│ • Post between 7-9 AM EST for maximum reach                 │
-│ • Use trending sounds (currently: "That's Crazy")           │
-│ • Add captions for accessibility (+15% engagement avg)      │
-│                                                             │
-│ Last updated: 2 minutes ago  [Refresh]                      │
-└─────────────────────────────────────────────────────────────┘
-
-### 5.3 Founder Performance Dashboard
-┌─────────────────────────────────────────────────────────────┐
-│ FOUNDER DASHBOARD - Campaign Performance                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 📊 Q4 Product Launch Campaign                               │
-│                                                             │
-│ Status: Active  |  Creator: @marythcreator                  │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 💰 BUDGET OVERVIEW                                          │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Total Budget:           $1,000.00                           │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Spent:     $255.93  █████░░░░░░░░░  25.6%          │   │
-│ │ Reserved:  $445.00  █████████░░░░░  44.5%          │   │
-│ │ Available: $299.07  ██████░░░░░░░░  29.9%          │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Breakdown:                                                  │
-│ • Base Fees Paid:        $75.00  (1/5 videos)              │
-│ • Performance Cost:      $180.93 (45.2K views)              │
-│ • Projected Refund:      $299.07 (if pace continues)        │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 📹 VIDEO PERFORMANCE                                        │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ ┌────────────────────────────────────────────────────┐    │
-│ │ Video 1 - TikTok                🟢 LIVE            │    │
-│ │ Posted: Nov 25, 9:30 AM                            │    │
-│ │                                                     │    │
-│ │ 👁️ 45,232 views  ████████░░  Day 3/7              │    │
-│ │                                                     │    │
-│ │ Performance vs. Target:                             │    │
-│ │ Target: 25,000 views (avg for similar campaigns)    │    │
-│ │ Actual: 45,232 views (+80.9% above target!) 🎉     │    │
-│ │                                                     │    │
-│ │ Cost for this video so far: $75 + $226 = $301      │    │
-│ │                                                     │    │
-│ │ Engagement:                                         │    │
-│ │ • Likes: 3,421  (7.6% rate)                        │    │
-│ │ • Shares: 287   (0.6% rate)                        │    │
-│ │ • Comments: 156                                     │    │
-│ │                                                     │    │
-│ │ 🔗 Watch Post: [Open TikTok →]                     │    │
-│ │                                                     │    │
-│ │ Locks in: 4 days, 14 hours                          │    │
-│ └────────────────────────────────────────────────────┘    │
-│                                                             │
-│ ┌────────────────────────────────────────────────────┐    │
-│ │ Video 2 - TikTok                🟡 In Review        │    │
-│ │ Submitted: 2 hours ago                              │    │
-│ │ [Review Content →]                                  │    │
-│ └────────────────────────────────────────────────────┘    │
-│                                                             │
-│ ┌────────────────────────────────────────────────────┐    │
-│ │ Video 3-5                       ⏳ In Progress      │    │
-│ │ Expected delivery: Nov 23-26                        │    │
-│ └────────────────────────────────────────────────────┘    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 📈 CAMPAIGN INSIGHTS                                        │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ ROI Projection:                                             │
-│ If current pace continues across all 5 videos:              │
-│ • Total Views: ~226K                                        │
-│ • Total Cost: ~$825                                         │
-│ • Cost per 1,000 views: $3.65 ✅ (Industry avg: $5-8)      │
-│                                                             │
-│ Benchmarks vs. Similar Campaigns:                           │
-│ • Views: Top 15% 🏆                                         │
-│ • Engagement: Top 20% 📈                                    │
-│ • Cost efficiency: Top 10% 💰                               │
-│                                                             │
-│ [Download Report (PDF)] [Export Data (CSV)]                 │
-│                                                             │
-│ Last updated: 1 minute ago  [Refresh]                       │
-└─────────────────────────────────────────────────────────────┘
-
----
-
-## 6. Dispute Resolution Flow
-
-### 6.1 View Count Dispute (Founder-Initiated)
-┌─────────────────────────────────────────────────────────────┐
-│ SCENARIO: Founder Disputes View Count                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Founder believes reported views are inaccurate              │
-│                                                             │
-│ Entry Point: Campaign Dashboard → "Report Issue"            │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 🚨 Report an Issue                                   │   │
-│ │                                                      │   │
-│ │ Video: Video 1 - TikTok                              │   │
-│ │ Current Views: 45,232                                │   │
-│ │                                                      │   │
-│ │ Issue Type:                                          │   │
-│ │ ● View count inaccurate                              │   │
-│ │ ○ Content doesn't match brief                        │   │
-│ │ ○ Posting schedule violation                         │   │
-│ │ ○ Other                                              │   │
-│ │                                                      │   │
-│ │ Description:                                         │   │
-│ │ ┌──────────────────────────────────────────────┐   │   │
-│ │ │ When I check the video directly on TikTok,   │   │   │
-│ │ │ it shows 48,500 views, not 45,232. Please    │   │   │
-│ │ │ verify the correct count.                    │   │   │
-│ │ │                                              │   │   │
-│ │ │ 124/1000 characters                          │   │   │
-│ │ └──────────────────────────────────────────────┘   │   │
-│ │                                                      │   │
-│ │ Screenshot (Optional):                               │   │
-│ │ [Upload screenshot of TikTok analytics]              │   │
-│ │                                                      │   │
-│ │ [Cancel] [Submit Dispute]                            │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ System Actions:                                             │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Create dispute record:                                   │
-│    INSERT INTO disputes (                                   │
-│      campaign_id, video_id, reported_by: 'founder',         │
-│      type: 'view_count', status: 'pending',                 │
-│      description, evidence_url                              │
-│    )                                                        │
-│                                                             │
-│ 2. Pause 7-day lock for this video (if not locked yet)      │
-│    UPDATE videos                                            │
-│    SET lock_paused = true                                   │
-│    WHERE id = video_id;                                     │
-│                                                             │
-│ 3. Alert admin team (high priority)                         │
-│                                                             │
-│ 4. Notify creator of dispute                                │
-│                                                             │
-│ 5. Route to Admin Dispute Queue                             │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ADMIN DISPUTE RESOLUTION DASHBOARD                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🚨 Active Disputes (3)                                      │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Dispute #D-1847                     🟡 PENDING       │   │
-│ │                                                      │   │
-│ │ Type: View Count Discrepancy                         │   │
-│ │ Campaign: Q4 Product Launch (#c456)                  │   │
-│ │ Video: Video 1 - TikTok (#v123)                      │   │
-│ │                                                      │   │
-│ │ Reported by: @mikethfounder                          │   │
-│ │ Reported: 1 hour ago                                 │   │
-│ │                                                      │   │
-│ │ Details:                                             │   │
-│ │ "When I check the video directly on TikTok, it      │   │
-│ │  shows 48,500 views, not 45,232."                    │   │
-│ │                                                      │   │
-│ │ Evidence: [screenshot_tiktok.png]                    │   │
-│ │                                                      │   │
-│ │ Current Data:                                        │   │
-│ │ • Platform Reported: 45,232 views                    │   │
-│ │ • Founder Claims: 48,500 views                       │   │
-│ │ • Difference: +3,268 views (+7.2%)                   │   │
-│ │ • Last API sync: 6 hours ago                         │   │
-│ │                                                      │   │
-│ │ [Investigate] [View Full Thread]                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-↓ (Admin clicks "Investigate")
-┌─────────────────────────────────────────────────────────────┐
-│ ADMIN INVESTIGATION TOOLS                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ STEP 1: Re-fetch Live Data from TikTok API                  │
-│ ───────────────────────────────────────────────────────────│
-│ [Fetch Latest View Count]  ← Manual API call               │
-│                                                             │
-│ Result:                                                     │
-│ ✅ API Response: 48,412 views (as of now)                   │
-│                                                             │
-│ Analysis:                                                   │
-│ • Our last sync: 45,232 (6 hours ago)                       │
-│ • Current actual: 48,412                                    │
-│ • Founder's claim: 48,500 (close match ✓)                   │
-│                                                             │
-│ Conclusion: Sync delay caused discrepancy. Founder correct. │
-│                                                             │
-│ STEP 2: View History Audit                                  │
-│ ───────────────────────────────────────────────────────────│
-│ View Snapshot History:                                      │
-│ │ Nov 25, 12:00 AM: 1,247 views                            │
-│ │ Nov 26, 12:00 AM: 12,450 views (+11,203)                 │
-│ │ Nov 27, 12:00 AM: 28,910 views (+16,460)                 │
-│ │ Nov 28, 12:00 AM: 45,232 views (+16,322) ← Last sync     │
-│ │ Nov 28, 10:45 AM: 48,412 views (+3,180)  ← Manual check  │
-│                                                             │
-│ Growth rate: Normal. No anomalies detected.                 │
-│                                                             │
-│ STEP 3: Resolution Options                                  │
-│ ───────────────────────────────────────────────────────────│
-│ ● Update to correct count (48,412)                          │
-│ ○ Maintain original count (dispute invalid)                 │
-│ ○ Average the two values (compromise)                       │
-│ ○ Escalate for further investigation                        │
-│                                                             │
-│ Adjustment Impact:                                          │
-│ • Old view count: 45,232                                    │
-│ • New view count: 48,412                                    │
-│ • Difference: +3,180 views                                  │
-│                                                             │
-│ Payment Impact:                                             │
-│ • Additional creator bonus: +$12.72                         │
-│ • Additional Nala revenue: +$3.18                           │
-│ • Reduced founder refund: -$15.90                           │
-│                                                             │
-│ Notes for Parties:                                          │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Investigation confirmed the view count was outdated  │   │
-│ │ due to sync timing. Updated to current accurate      │   │
-│ │ count of 48,412. Thank you for reporting this!       │   │
-│ │                                                      │   │
-│ │ 168/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ [Cancel] [Resolve Dispute & Apply Changes]                  │
-│                                                             │
-│ System Actions (Resolve):                                   │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Update video.current_view_count = 48412                  │
-│ 2. Create correction snapshot                               │
-│ 3. Recalculate performance bonus                            │
-│ 4. Update dispute status = 'resolved'                       │
-│ 5. Notify both parties with resolution details              │
-│ 6. Resume 7-day lock countdown                              │
-│ 7. Log audit trail                                          │
-└─────────────────────────────────────────────────────────────┘
-
-### 6.2 Content Quality Dispute (Post-Approval)
-┌─────────────────────────────────────────────────────────────┐
-│ RARE SCENARIO: Founder Disputes After Approval              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Note: This is discouraged as approval triggers payment.     │
-│ Only valid for severe violations (fraud, brand damage).     │
-│                                                             │
-│ Founder submits dispute:                                    │
-│ "Creator posted content that violates brand guidelines      │
-│  despite my approval. The video includes competitor logo."  │
-│                                                             │
-│# Nala Platform - Detailed User Flows
-Table of Contents
-
-Creator Onboarding Flow
-Founder Campaign Creation Flow
-Content Creation & Review Flow
-Payment Processing Flow
-Performance Tracking Flow
-Dispute Resolution Flow
-
-
-1. Creator Onboarding Flow
-1.1 Account Registration
-Entry Point: Landing page → "Sign Up as Creator" button
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Basic Information                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Creator enters:                                             │
-│  • Full Name                                                │
-│  • Email Address                                            │
-│  • Password (8+ chars, 1 number, 1 special)                │
-│  • Confirm Password                                         │
-│                                                             │
-│ [Checkbox] I agree to Terms of Service & Privacy Policy    │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Validate email format and uniqueness                    │
-│  2. Hash password (bcrypt)                                  │
-│  3. Create user record (role: 'creator')                    │
-│  4. Send verification email                                 │
-│  5. Create empty creator_profile record                     │
-│  6. Generate session token                                  │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Email Verification                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Screen: "Check your email"                                  │
-│  📧 We sent a verification link to mary@email.com          │
-│                                                             │
-│ Creator clicks link in email →                              │
-│                                                             │
-│ System Actions:                                             │
-│  1. Verify token from email link                            │
-│  2. Update user.email_verified = true                       │
-│  3. Redirect to platform onboarding                         │
-└─────────────────────────────────────────────────────────────┘
-1.2 Social Media Account Connection
-Critical Path: This determines creator eligibility
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Connect Your Platforms                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Connect your social accounts to start earning"             │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 🎵 TikTok         [Connect Account]   Not Connected │   │
-│ │    Minimum: 10,000 followers                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📸 Instagram      [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ │    ⚠️ Requires Business Account                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 👍 Facebook       [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Note: Connect at least one platform to continue            │
-│                                                             │
-│ [Skip for now]  [Continue]  ← Disabled until 1 connected   │
-└─────────────────────────────────────────────────────────────┘
-1.2.1 TikTok Connection Sub-Flow
-Creator clicks "Connect Account" on TikTok
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ POPUP: TikTok OAuth                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Generate OAuth state token (CSRF protection)            │
-│  2. Redirect to TikTok Login Kit:                           │
-│     https://www.tiktok.com/auth/authorize/                  │
-│     ?client_key={CLIENT_KEY}                                │
-│     &scope=user.info.basic,video.list,video.insights        │
-│     &response_type=code                                     │
-│     &redirect_uri={CALLBACK_URL}                            │
-│     &state={STATE_TOKEN}                                    │
-│                                                             │
-│ Creator sees TikTok login screen →                          │
-│  • Logs into TikTok (if not already)                        │
-│  • Reviews permissions request                              │
-│  • Clicks "Authorize"                                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ CALLBACK: TikTok Returns to Nala                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Receive authorization code                              │
-│  2. Verify state token (prevent CSRF)                       │
-│  3. Exchange code for access token:                         │
-│     POST https://open-api.tiktok.com/oauth/access_token/    │
-│  4. Fetch user profile:                                     │
-│     GET /v2/user/info/                                      │
-│  5. Extract: username, follower_count, user_id              │
-│                                                             │
-│  6. Validate eligibility:                                   │
-│     IF follower_count < 10,000:                             │
-│       ❌ Show error: "Minimum 10K followers required"       │
-│       STOP                                                  │
-│                                                             │
-│  7. Store in database:                                      │
-│     INSERT INTO social_accounts (                           │
-│       creator_id, platform, platform_user_id,               │
-│       username, follower_count,                             │
-│       access_token [ENCRYPTED], refresh_token [ENCRYPTED],  │
-│       token_expires_at, verified_at                         │
-│     )                                                       │
-│                                                             │
-│  8. Update creator_profile.verification_status = 'verified' │
-│  9. Show success message                                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ SUCCESS SCREEN                                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ✅ TikTok Connected Successfully!                           │
-│                                                             │
-│ @marythcreator                                              │
-│ 47,234 followers                                            │
-│                                                             │
-│ [Connect Another Platform]  [Continue →]                    │
-└─────────────────────────────────────────────────────────────┘
-1.2.2 Instagram Connection Sub-Flow
-Note: More complex due to Business Account requirement
-Creator clicks "Connect Account" on Instagram
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Check Account Type                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Do you have an Instagram Business or Creator Account?"     │
-│                                                             │
-│ [Yes, I have a Business Account] → Continue to OAuth        │
-│ [No, I have a Personal Account] → Show conversion guide     │
-│                                                             │
-│ IF "No" selected:                                           │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ ℹ️  How to Convert to Business Account:            │   │
-│ │                                                     │   │
-│ │ 1. Open Instagram app                              │   │
-│ │ 2. Go to Settings → Account                        │   │
-│ │ 3. Select "Switch to Professional Account"         │   │
-│ │ 4. Choose "Business"                               │   │
-│ │ 5. Connect to Facebook Page                        │   │
-│ │                                                     │   │
-│ │ [Watch Video Tutorial]  [I've Converted]           │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Facebook Login (Required for Instagram)             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Redirect to Facebook OAuth:                             │
-│     https://www.facebook.com/v18.0/dialog/oauth             │
-│     ?client_id={APP_ID}                                     │
-│     &redirect_uri={CALLBACK}                                │
-│     &scope=instagram_basic,instagram_manage_insights,       │
-│             pages_read_engagement                           │
-│                                                             │
-│ Creator:                                                    │
-│  • Logs into Facebook                                       │
-│  • Selects connected Instagram Business Account            │
-│  • Grants permissions                                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Fetch Instagram Data                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Exchange code for access token                          │
-│  2. Get Instagram Business Account ID:                      │
-│     GET /{facebook-page-id}?fields=instagram_business_accou │
-│     nt                                                      │
-│  3. Get Instagram profile data:                             │
-│     GET /{ig-user-id}?fields=username,followers_count       │
-│                                                             │
-│  4. Validate:                                               │
-│     IF followers_count < 5,000:                             │
-│       ❌ Error: "Minimum 5K followers required"             │
-│     IF account_type != 'BUSINESS':                          │
-│       ❌ Error: "Business account required"                 │
-│                                                             │
-│  5. Store data (same as TikTok flow)                        │
-└─────────────────────────────────────────────────────────────┘
-1.3 Profile Setup
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 4: Set Your Rates                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "How much do you charge per video?"                         │
-│                                                             │
-│ TikTok Base Fee:                                            │
-│ [$75] ◄────●────────────────► [$500]                       │
-│  $50                                  Max                   │
-│                                                             │
-│ 💡 Most creators charge: $75-$150                           │
-│ 📊 Your potential earnings for 100K views:                  │
-│     Base Fee: $75 + Performance: $400 = $475 total          │
-│                                                             │
-│ Instagram Base Fee:                                         │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ Facebook Base Fee:                                          │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile with base fees                    │
-│  • Calculate average fee for matching algorithm             │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 5: Build Your Portfolio                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Upload 3-10 sample videos to showcase your style"          │
-│                                                             │
-│ [Drag & Drop Videos Here]                                   │
-│  or [Browse Files]                                          │
-│                                                             │
-│ Uploaded (2/10):                                            │
-│ ┌─────────┐  ┌─────────┐                                   │
-│ │ [Video] │  │ [Video] │  [+ Add More]                     │
-│ │  30s    │  │  45s    │                                   │
-│ └─────────┘  └─────────┘                                   │
-│                                                             │
-│ For each video:                                             │
-│  • Title: [Product Review - SaaS Tool]                      │
-│  • Platform: [TikTok ▼]                                     │
-│                                                             │
-│ [Skip for now]  [Continue →]                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Upload to S3 (max 500MB per video)                      │
-│  2. Generate thumbnail (frame at 2s)                        │
-│  3. Transcode to web format (H.264, 720p)                   │
-│  4. Store metadata in creator_profile.portfolio_videos      │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 6: Category & Bio                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What niches do you specialize in? (Select all that apply)   │
-│                                                             │
-│ ☑ SaaS & Software    ☐ E-commerce     ☐ Health & Fitness   │
-│ ☑ B2B Tech           ☐ Beauty         ☐ Food & Beverage    │
-│ ☐ Finance            ☐ Fashion        ☐ Gaming             │
-│                                                             │
-│ Tell brands about yourself: (500 char max)                  │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Hi! I'm Mary, a tech enthusiast who creates          │   │
-│ │ engaging video reviews for SaaS products. My         │   │
-│ │ audience loves honest, detailed breakdowns...        │   │
-│ │                                                      │   │
-│ │ 347/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ [Back]  [Complete Setup →]                                  │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile.categories                        │
-│  • Update creator_profile.bio                               │
-│  • Set profile_completed = true                             │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 7: Payment Setup (Stripe Connect)                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Last step: Set up payouts"                                 │
-│                                                             │
-│ Nala uses Stripe to send you payments securely.             │
-│                                                             │
-│ [Connect Stripe Account]                                    │
-│                                                             │
-│ System Actions:                                             │
-│  1. Create Stripe Connect Express account link:             │
-│     POST /v1/account_links                                  │
-│     type: 'account_onboarding'                              │
-│  2. Redirect creator to Stripe hosted onboarding            │
-│                                                             │
-│ Creator completes on Stripe:                                │
-│  • Personal information (name, DOB, SSN)                    │
-│  • Business details (if applicable)                         │
-│  • Bank account for deposits                                │
-│  • Identity verification (photo ID)                         │
-│                                                             │
-│ Stripe redirects back to Nala with account_id               │
-│                                                             │
-│ System Actions:                                             │
-│  1. Store stripe_account_id in users table                  │
-│  2. Verify account capabilities:                            │
-│     - transfers: 'active'                                   │
-│     - card_payments: 'active' (if needed)                   │
-│  3. Mark creator as payment_ready = true                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ 🎉 SUCCESS: You're All Set!                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your creator profile is live!                               │
-│                                                             │
-│ ✅ TikTok connected (47K followers)                         │
-│ ✅ Base fee set ($75/video)                                 │
-│ ✅ Portfolio added (2 videos)                               │
-│ ✅ Payments ready                                           │
-│                                                             │
-│ Next steps:                                                 │
-│ • Brands will discover your profile                         │
-│ • You'll receive brief invitations                          │
-│ • Start earning with performance-based pay!                 │
-│                                                             │
-│ [Go to Dashboard →]                                         │
-└─────────────────────────────────────────────────────────────┘
-
-2. Founder Campaign Creation Flow
-2.1 Campaign Initiation
-Entry Point: Dashboard → "Create Campaign" button
-┌─────────────────────────────────────────────────────────────┐
-│ Create New Campaign                     [Save Draft] [Exit] │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Progress: ●──○──○──○──○──○  Step 1 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 1: Campaign Basics                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Name: *                                            │
-│ [Q4 Product Launch Campaign                              ] │
-│                                                             │
-│ What are you promoting?                                     │
-│ [ProductivityPro - AI-powered task management SaaS       ] │
-│                                                             │
-│ Target Audience:                                            │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Professionals aged 25-40, interested in              │   │
-│ │ productivity tools, remote workers, small business   │   │
-│ │ owners.                                              │   │
-│ │                                                      │   │
-│ │ 178/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Campaign Goal:                                              │
-│ ○ Brand Awareness    ● Website Traffic    ○ Signups        │
-│ ○ Sales              ○ App Downloads                        │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Auto-save every 30 seconds                               │
-│  • Create draft campaign record                             │
-│  • Status: 'draft'                                          │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──○──○──○──○  Step 2 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 2: Content Requirements                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ How many videos do you need?                                │
-│ [5▼] videos                                                 │
-│  (Min: 1, Max: 10 per campaign)                             │
-│                                                             │
-│ Preferred video length:                                     │
-│ ○ 15 seconds     ● 30 seconds                               │
-│ ○ 60 seconds     ○ Creator's choice                         │
-│                                                             │
-│ Which platforms? (Select all that apply)                    │
-│ ☑ TikTok    ☑ Instagram Reels    ☐ Facebook Reels          │
-│                                                             │
-│ Video style preference:                                     │
-│ ☑ Product Tutorial    ☐ Unboxing    ☐ Testimonial          │
-│ ☐ Behind the Scenes   ☐ Comparison                          │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Update campaign.videos_requested = 5                     │
-│  • Store platform preferences in brief_data JSONB           │
-│  • Calculate estimated budget preview                       │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──○──○──○  Step 3 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 3: Creative Brief                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Key Talking Points: (What should the creator highlight?)    │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ • AI-powered task prioritization                    │   │
-│ │ • Integrates with 50+ tools (Slack, Gmail, etc)     │   │
-│ │ • Saves 2 hours per day on average                  │   │
-│ │ • Free 14-day trial available                       │   │
-│ │                                                      │   │
-│ │ [+ Add Point]                                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Brand Guidelines: (Upload PDF, images, or describe)         │
-│ [📄 Brand_Guidelines.pdf] [✓ Uploaded]  [Remove]           │
-│ [+ Upload Assets] (Logo, product images, etc.)              │
-│                                                             │
-│ Do's:                          │ Don'ts:                    │
-│ • Be authentic                 │ • Compare to competitors   │
-│ • Show real use cases          │ • Make health claims       │
-│ • Use trending audio           │ • Show competitor logos    │
-│ [+ Add]                        │ [+ Add]                    │
-│                                                             │
-│ Required Hashtags/Mentions:                                 │
-│ [#ProductivityPro #AItools @productivitypro_official     ] │
-│                                                             │
-│ Reference Videos: (Optional - paste URLs)                   │
-│ [https://tiktok.com/@competitor/video/123                ] │
-│ [+ Add Another]                                             │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Store all data in campaign.brief_data (JSONB)            │
-│  • Upload brand assets to S3                                │
-│  • Generate brief preview PDF                               │
-└─────────────────────────────────────────────────────────────┘
-2.2 Posting Schedule & Budget Configuration
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──○──○  Step 4 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 4: Posting Schedule                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ When should the first video go live?                        │
-│ [Nov 25, 2025 ▼]  📅                                        │
-│  (Minimum 5 days from today for creator prep)               │
-│                                                             │
-│ How often should videos be posted?                          │
-│ ● One per day           ○ Every other day                   │
-│ ○ Every 3 days          ○ Weekly                            │
-│ ○ Custom schedule                                           │
-│                                                             │
-│ 📅 Your Posting Calendar:                                   │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Video 1:  Nov 25 (Mon) 📱 TikTok                    │   │
-│ │ Video 2:  Nov 26 (Tue) 📱 TikTok                    │   │
-│ │ Video 3:  Nov 27 (Wed) 📸 Instagram                 │   │
-│ │ Video 4:  Nov 28 (Thu) 📸 Instagram                 │   │
-│ │ Video 5:  Nov 29 (Fri) 📱 TikTok                    │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Preferred posting time: (Optional)                          │
-│ [09:00 AM ▼]  [EST ▼]                                       │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Calculate posting dates                                  │
-│  • Store in campaign.start_date, posting_frequency          │
-│  • Validate timeline (min 5 days buffer)                    │
-└─────────────────────────────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──●──○  Step 5 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 5: Budget Configuration                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ 💰 Set Your Total Budget                                    │
-│                                                             │
-│ Total Campaign Budget:                                      │
-│ $ [1000.00]                                                 │
-│   (Minimum: $500 | Maximum: $50,000)                        │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📊 BUDGET BREAKDOWN                                  │   │
-│ │                                                      │   │
-│ │ Fixed Production Costs:         $250.00 (25%)       │   │
-│ │ └─ 5 videos × $50 base fee                          │   │
-│ │                                                      │   │
-│ │ Variable Performance Budget:    $750.00 (75%)       │   │
-│ │ └─ Pays for actual views achieved                   │   │
-│ │                                                      │   │
-│ │ ─────────────────────────────────────────────────   │   │
-│ │                                                      │   │
-│ │ Maximum Views You Can Purchase:                     │   │
-│ │ 150,000 views @ $5.00 per 1,000                     │   │
-│ │                                                      │   │
-│ │ ═════════════════════════════════════════════════   │   │
-│ │                                                      │   │
-│ │ 💡 How Performance Budget Works:                    │   │
-│ │                                                      │   │
-│ │ If videos achieve 120K views (80% of max):          │   │
-│ │  • You pay: $250 + $600 = $850                      │   │
-│ │  • You save: $150 (refunded automatically)          │   │
-│ │                                                      │   │
-│ │ If videos achieve 150K views (100% of max):         │   │
-│ │  • You pay: $250 + $750 = $1,000 (full budget)      │   │
-│ │  • You save: $0 (great performance!)                │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ☑ I understand that:                                        │
-│    • Base fees are paid when I approve content              │
-│    • Performance budget is charged based on actual views    │
-│    • Unused budget is refunded automatically after 7 days   │
-│                                                             │
-│ [← Back]  [Continue to Creator Selection →]                 │
-│                                                             │
-│ System Actions:                                             │
-│  • Validate budget (min $500)                               │
-│  • Calculate: base_fee_budget, performance_budget           │
-│  • Store in campaigns table                                 │
-│  • Update max_views_purchasable                             │
-└─────────────────────────────────────────────────────────────┘
-│                                                             │
-│ Next up: Video 2 (Due Nov 23)                               │
-│                                                             │
-│ [View All Briefs]  [Upload Next Video]                      │
-└─────────────────────────────────────────────────────────────┘
-
-### 3.3 Founder Content Review
-
-**Trigger:** Founder receives notification of new draft
-┌─────────────────────────────────────────────────────────────┐
-│ FOUNDER DASHBOARD - Content Review Queue                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🔔 1 video ready for review                                 │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Q4 Product Launch Campaign                           │   │
-│ │                                                      │   │
-│ │ 🎥 Video 1 of 5 - TikTok                            │   │
-│ │ Submitted by @marythcreator  |  2 hours ago         │   │
-│ │                                                      │   │
-│ │ [Review Now →]                                       │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-↓ (Founder clicks "Review Now")
-┌─────────────────────────────────────────────────────────────┐
-│ 📹 CONTENT REVIEW INTERFACE                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ┌─────────────────────────┬───────────────────────────┐   │
-│ │ 🎥 VIDEO PLAYER         │ 📋 BRIEF REQUIREMENTS     │   │
-│ │                         │                           │   │
-│ │  ┌─────────────────┐   │ ✓ 30 seconds              │   │
-│ │  │                 │   │ ✓ Product tutorial style  │   │
-│ │  │  [▶ Play]       │   │ ✓ #ProductivityPro used   │   │
-│ │  │                 │   │                           │   │
-│ │  │  Mary's Draft   │   │ Key Talking Points:       │   │
-│ │  │  Video          │   │ • AI prioritization ✓     │   │
-│ │  │                 │   │ • 50+ integrations ✓      │   │
-│ │  │  0:15 / 0:30    │   │ • Free trial ✓            │   │
-│ │  └─────────────────┘   │                           │   │
-│ │                         │ Do's/Don'ts Check:        │   │
-│ │  [0.5x] [1x] [2x]      │ ✓ Authentic               │   │
-│ │  [Download]            │ ✓ Real use case shown     │   │
-│ │                         │ ✓ No competitor mentions  │   │
-│ └─────────────────────────┴───────────────────────────┘   │
-│                                                             │
-│ Creator's Notes:                                            │
-│ "I focused on the AI prioritization feature as requested.   │
-│  Used trending audio 'That's Crazy'."                       │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ YOUR FEEDBACK                                               │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Add Comments: (Timestamped annotations)                     │
-│ [Click on video timeline to add feedback at specific times] │
-│                                                             │
-│ ┌─ Annotations ───────────────────────────────────────┐   │
-│ │ 0:05 - "Love the opening hook!" - You                │   │
-│ │ 0:15 - "Can you show the UI here?" - You             │   │
-│ │ [+ Add Comment]                                      │   │
-│ └──────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ DECISION                                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ [✅ Approve]   [📝 Request Revision]   [❌ Reject]          │
-│                                                             │
-│ ⚠️ Important: Approving will trigger payment of $75 to      │
-│    creator. This cannot be undone.                          │
-└─────────────────────────────────────────────────────────────┘
-
-#### 3.3.1 Approval Flow
-Founder clicks "✅ Approve"
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ⚠️ CONFIRM APPROVAL                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ You are about to approve Video 1                            │
-│                                                             │
-│ This will:                                                  │
-│ ✓ Authorize creator to post on Nov 25                       │
-│ ✓ Release $75 payment to @marythcreator                     │
-│ ✓ Grant you perpetual content usage rights                  │
-│                                                             │
-│ ⚠️ This action cannot be undone                             │
-│                                                             │
-│ [Cancel]  [Confirm Approval]                                │
-│                                                             │
-│ System Actions (Confirm):                                   │
-│  1. Update video.status = 'approved'                        │
-│  2. Update video.approved_at = NOW()                        │
-│  3. Trigger Phase 1 Payment (T-305):                        │
-│     a. Verify escrow has sufficient funds                   │
-│     b. Create Stripe transfer:                              │
-│        POST /v1/transfers                                   │
-│        {                                                    │
-│          amount: 7500, // $75 in cents                      │
-│          currency: 'usd',                                   │
-│          destination: mary.stripe_account_id,               │
-│          transfer_group: campaign.id,                       │
-│          metadata: {                                        │
-│            campaign_id, video_id,                           │
-│            payment_type: 'base_fee'                         │
-│          }                                                  │
-│        }                                                    │
-│     c. Create payment record in database                    │
-│     d. Update video.base_fee_paid = true                    │
-│  4. Send notifications:                                     │
-│     • Creator: "Payment sent! $75 on the way"               │
-│     • Founder: "Approval confirmed"                         │
-│  5. Update campaign.videos_approved += 1                    │
-│  6. Decrement escrow balance                                │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ✅ VIDEO APPROVED                                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Video 1 has been approved!                                  │
-│                                                             │
-│ ✓ $75 payment sent to @marythcreator                        │
-│ ✓ Creator authorized to post on Nov 25                      │
-│                                                             │
-│ Next: Wait for creator to post and track performance        │
-│                                                             │
-│ [View Campaign Dashboard]  [Review Next Video]              │
-└─────────────────────────────────────────────────────────────┘
-
-#### 3.3.2 Revision Request Flow
-Founder clicks "📝 Request Revision"
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ 📝 REQUEST REVISION                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What needs to be changed?                                   │
-│ (Be specific to help the creator deliver what you need)     │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Please make the following changes:                   │   │
-│ │                                                      │   │
-│ │ 1. At 0:15, show the actual ProductivityPro UI       │   │
-│ │    instead of generic screenshots                    │   │
-│ │                                                      │   │
-│ │ 2. Add more emphasis on the "2 hours saved" stat    │   │
-│ │                                                      │   │
-│ │ 3. Include a call-to-action to try the free trial   │   │
-│ │                                                      │   │
-│ │ 187/1000 characters                                  │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Revision deadline:                                          │
-│ [48 hours ▼]  from now (Nov 21 at 2:00 PM)                 │
-│                                                             │
-│ Priority:                                                   │
-│ ○ Minor tweaks     ● Significant changes     ○ Major rework│
-│                                                             │
-│ ☑ Allow creator to ask clarifying questions                │
-│                                                             │
-│ [Cancel]  [Send Revision Request]                           │
-│                                                             │
-│ System Actions (Send):                                      │
-│  1. Update video.status = 'revision_requested'              │
-│  2. Create revision record:                                 │
-│     INSERT INTO revisions (                                 │
-│       video_id, requested_by, feedback,                     │
-│       deadline, priority, iteration_number                  │
-│     )                                                       │
-│  3. Send notification to creator (high priority)            │
-│  4. Email with full feedback                                │
-│  5. Create task in creator dashboard                        │
-│  6. Set reminder 12 hours before deadline                   │
-└─────────────────────────────────────────────────────────────┘
-
-### 3.4 Video Posting & URL Submission
-┌─────────────────────────────────────────────────────────────┐
-│ CREATOR - Post-Approval Phase                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🎉 Video 1 Approved!                                        │
-│                                                             │
-│ ✓ $75 payment sent (check your wallet)                      │
-│ ✓ Ready to post on Nov 25                                   │
-│                                                             │
-│ ⚠️ Important Reminder:                                      │
-│ • Post exactly on Nov 25                                    │
-│ • Use hashtags: #ProductivityPro                            │
-│ • After posting, submit the live URL here immediately       │
-│                                                             │
-│ [I've Posted - Submit URL]  [View Posting Instructions]     │
-└─────────────────────────────────────────────────────────────┘
-↓ (After posting on TikTok/Instagram)
-┌─────────────────────────────────────────────────────────────┐
-│ 🔗 SUBMIT POST URL                                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Video 1 - TikTok Post                                       │
-│                                                             │
-│ Paste your live post URL:                                   │
-│ [https://tiktok.com/@marythcreator/video/7298547382...  ]  │
-│                                                             │
-│ Posting Date/Time:                                          │
-│ [Nov 25, 2025]  [09:30 AM]  [EST ▼]                        │
-│                                                             │
-│ Screenshot (Optional but recommended):                      │
-│ [Upload screenshot showing post is live]                    │
-│                                                             │
-│ [Cancel]  [Submit & Start Tracking]                         │
-│                                                             │
-│ System Actions (Submit):                                    │
-│  1. Validate URL format (TikTok/Instagram domain)           │
-│  2. Extract post ID from URL                                │
-│  3. Verify post exists via API (optional check)             │
-│  4. Update video record:                                    │
-│     • status = 'posted'                                     │
-│     • final_post_url = submitted_url                        │
-│     • posted_at = submitted_datetime                        │
-│  5. Calculate 7-day lock time:                              │
-│     lock_at = posted_at + INTERVAL '7 days'                 │
-│  6. Add to view polling queue (T-302)                       │
-│  7. Send confirmation to founder                            │
-│  8. Initialize first view count snapshot (within 1 hour)    │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ✅ POST URL SUBMITTED                                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your post is now being tracked!                             │
-│                                                             │
-│ 📊 Performance tracking started                             │
-│ 🕐 7-day window: Nov 25 - Dec 2                             │
-│                                                             │
-│ What happens next:                                          │
-│ • Views are updated daily at 12:00 AM EST                   │
-│ • Your performance bonus accumulates in real-time           │
-│ • On Dec 2, final views are locked                          │
-│ • Your bonus is paid automatically within 24 hours          │
-│                                                             │
-│ Current performance:                                        │
-│ Views: 1,247  |  Est. Bonus: $4.99                          │
-│                                                             │
-│ [View Live Performance]  [Continue to Next Video]           │
-└─────────────────────────────────────────────────────────────┘
-
----
-
-## 4. Payment Processing Flow
-
-### 4.1 Phase 1: Base Fee Payment (Detailed)
-
-**Trigger:** Founder approves content (see 3.3.1)
-┌─────────────────────────────────────────────────────────────┐
-│ SYSTEM: Phase 1 Payment Processor                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Event: video.approved (video_id: v123, campaign_id: c456)   │
-│                                                             │
-│ STEP 1: Pre-Flight Validation                               │
-│ ─────────────────────────────────────────────────────────── │
-│ ✓ Check campaign has sufficient escrow balance              │
-│   Current escrow: $1,000                                    │
-│   Required: $75                                             │
-│   Remaining after: $925                                     │
-│                                                             │
-│ ✓ Verify creator Stripe account is active                   │
-│   stripe_account_id: acct_mary123                           │
-│   capabilities.transfers: 'active'                          │
-│                                                             │
-│ ✓ Check for duplicate payment (idempotency)                 │
-│   Query: SELECT * FROM payments                             │
-│          WHERE video_id='v123' AND type='base_fee'          │
-│   Result: No existing payment found ✓                       │
-│                                                             │
-│ STEP 2: Create Database Payment Record (Pending)            │
-│ ─────────────────────────────────────────────────────────── │
-│ INSERT INTO payments (                                      │
-│   id: 'pay_abc123',                                         │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   recipient_id: mary.id,                                    │
-│   amount: 75.00,                                            │
-│   type: 'base_fee',                                         │
-│   status: 'pending',                                        │
-│   created_at: NOW()                                         │
-│ )                                                           │
-│                                                             │
-│ STEP 3: Stripe API Call (With Idempotency Key)              │
-│ ─────────────────────────────────────────────────────────── │
-│ POST https://api.stripe.com/v1/transfers                    │
-│ Headers:                                                    │
-│   Authorization: Bearer sk_live_xxx                         │
-│   Idempotency-Key: c456_v123_base_fee_1732012800           │
-│                                                             │
-│ Body:                                                       │
-│ {                                                           │
-│   amount: 7500,                                             │
-│   currency: "usd",                                          │
-│   destination: "acct_mary123",                              │
-│   transfer_group: "c456",                                   │
-│   description: "Base fee - Video 1 approval",               │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     video_id: "v123",                                       │
-│     payment_type: "base_fee",                               │
-│     founder_id: "mike.id",                                  │
-│     creator_id: "mary.id"                                   │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: (Success)                                         │
-│ {                                                           │
-│   id: "tr_stripe789",                                       │
-│   object: "transfer",                                       │
-│   amount: 7500,                                             │
-│   created: 1732012800,                                      │
-│   destination: "acct_mary123",                              │
-│   status: "paid"                                            │
-│ }                                                           │
-│                                                             │
-│ STEP 4: Update Database (Success State)                     │
-│ ─────────────────────────────────────────────────────────── │
-│ UPDATE payments                                             │
-│ SET                                                         │
-│   status = 'completed',                                     │
-│   stripe_transfer_id = 'tr_stripe789',                      │
-│   processed_at = NOW()                                      │
-│ WHERE id = 'pay_abc123';                                    │
-│                                                             │
-│ UPDATE videos                                               │
-│ SET base_fee_paid = true                                    │
-│ WHERE id = 'v123';                                          │
-│                                                             │
-│ UPDATE campaigns                                            │
-│ SET escrow_balance = escrow_balance - 75.00                 │
-│ WHERE id = 'c456';                                          │
-│                                                             │
-│ STEP 5: Notifications & Webhooks                            │
-│ ─────────────────────────────────────────────────────────── │
-│ • Send email to creator: "Payment sent: $75"                │
-│ • Push notification to creator app                          │
-│ • Update creator wallet balance (live)                      │
-│ • Send confirmation to founder                              │
-│ • Log event to analytics                                    │
-│                                                             │
-│ ✅ Phase 1 Payment Complete                                 │
-└─────────────────────────────────────────────────────────────┘
-
-### 4.2 Phase 2: Performance Bonus & Refund (7-Day Settlement)
-
-**Trigger:** Automated cron job detects video.posted_at >= 168 hours ago
-┌─────────────────────────────────────────────────────────────┐
-│ SYSTEM: 7-Day Metric Lock & Settlement Processor            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Cron Job: Daily at 12:05 AM EST                             │
-│ Query: SELECT * FROM videos                                 │
-│        WHERE status = 'posted'                              │
-│        AND posted_at <= NOW() - INTERVAL '168 hours'        │
-│        AND status != 'locked'                               │
-│                                                             │
-│ Result: video_id 'v123' eligible for lock                   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2A: METRIC LOCK                                       │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ STEP 1: Final View Count Fetch                              │
-│ ─────────────────────────────────────────────────────────── │
-│ • Platform: TikTok                                          │
-│ • Post URL: https://tiktok.com/@marythcreator/video/729... │
-│                                                             │
-│ API Call: GET /v2/video/query/                              │
-│ {                                                           │
-│   video_id: "7298547382..."                                 │
-│ }                                                           │
-│                                                             │
-│ Response:                                                   │
-│ {                                                           │
-│   data: {                                                   │
-│     view_count: 45232,                                      │
-│     like_count: 3421,                                       │
-│     share_count: 287                                        │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ STEP 2: Lock View Count (Immutable)                         │
-│ ─────────────────────────────────────────────────────────── │
-│ BEGIN TRANSACTION;                                          │
-│                                                             │
-│ UPDATE videos                                               │
-│ SET                                                         │
-│   locked_view_count = 45232,                                │
-│   locked_at = NOW(),                                        │
-│   status = 'locked'                                         │
-│ WHERE id = 'v123';                                          │
-│                                                             │
-│ INSERT INTO view_snapshots (                                │
-│   video_id, view_count, snapshot_at, data_source            │
-│ ) VALUES (                                                  │
-│   'v123', 45232, NOW(), 'tiktok_api_final'                  │
-│ );                                                          │
-│                                                             │
-│ COMMIT;                                                     │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2B: SETTLEMENT CALCULATION                            │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Budget Overview:                                   │
-│ • Total Budget: $1,000.00                                   │
-│ • Base Fee Budget: $250.00 (5 videos × $50, but Mary gets  │
-│   $75/video = $375 total)                                   │
-│ • Performance Budget Available: $625.00                     │
-│                                                             │
-│ Final Views Achieved: 45,232 (across all 5 videos so far)   │
-│ This specific video (v123): 45,232 views                    │
-│                                                             │
-│ Calculation for Video 1:                                    │
-│ ───────────────────────────────────────────────────────────│
-│ Views in thousands: 45232 / 1000 = 45.232                   │
-│                                                             │
-│ Creator Performance Bonus:                                  │
-│   45.232 × $4.00 = $180.93                                  │
-│                                                             │
-│ Nala Revenue (Markup):                                      │
-│   45.232 × $1.00 = $45.23                                   │
-│                                                             │
-│ Total Performance Cost:                                     │
-│   45.232 × $5.00 = $226.16                                  │
-│                                                             │
-│ [Stored in settlement record]                               │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2C: PAYMENT EXECUTION                                 │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ STEP 1: Creator Performance Bonus Transfer                  │
-│ ─────────────────────────────────────────────────────────── │
-│ POST /v1/transfers                                          │
-│ {                                                           │
-│   amount: 18093, // $180.93 in cents                        │
-│   currency: "usd",                                          │
-│   destination: "acct_mary123",                              │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     video_id: "v123",                                       │
-│     payment_type: "performance_bonus",                      │
-│     views_achieved: 45232                                   │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: { id: "tr_perf456", status: "paid" }              │
-│                                                             │
-│ INSERT INTO payments (                                      │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   recipient_id: mary.id,                                    │
-│   amount: 180.93,                                           │
-│   type: 'performance_bonus',                                │
-│   status: 'completed',                                      │
-│   stripe_transfer_id: 'tr_perf456',                         │
-│   metadata: {views: 45232}                                  │
-│ );                                                          │
-│                                                             │
-│ STEP 2: Nala Revenue Recording                              │
-│ ─────────────────────────────────────────────────────────── │
-│ INSERT INTO revenue (                                       │
-│   campaign_id: 'c456',                                      │
-│   video_id: 'v123',                                         │
-│   amount: 45.23,                                            │
-│   type: 'markup',                                           │
-│   views_count: 45232                                        │
-│ );                                                          │
-│                                                             │
-│ // Funds stay in platform Stripe account                    │
-│                                                             │
-│ STEP 3: Calculate Campaign-Level Refund                     │
-│ ─────────────────────────────────────────────────────────── │
-│ // After ALL 5 videos are locked, calculate total refund    │
-│                                                             │
-│ Total Performance Budget: $625.00                           │
-│ Total Performance Cost (all videos): $450.00                │
-│ Refund Amount: $625.00 - $450.00 = $175.00                  │
-│                                                             │
-│ POST /v1/refunds                                            │
-│ {                                                           │
-│   payment_intent: "pi_founder123",                          │
-│   amount: 17500, // $175 in cents                           │
-│   reason: "requested_by_customer",                          │
-│   metadata: {                                               │
-│     campaign_id: "c456",                                    │
-│     refund_type: "unspent_performance_budget",              │
-│     original_budget: 625.00,                                │
-│     actual_cost: 450.00                                     │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ Response: { id: "re_refund789", status: "succeeded" }       │
-│                                                             │
-│ INSERT INTO payments (                                      │
-│   campaign_id: 'c456',                                      │
-│   recipient_id: mike.id,                                    │
-│   amount: 175.00,                                           │
-│   type: 'refund',                                           │
-│   status: 'completed',                                      │
-│   stripe_refund_id: 're_refund789'                          │
-│ );                                                          │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2D: FINALIZATION                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ UPDATE campaigns                                            │
-│ SET                                                         │
-│   status = 'completed',                                     │
-│   completed_at = NOW(),                                     │
-│   final_views_total = 226160, // Sum of all videos          │
-│   total_paid_to_creator = 555.93, // Base + Performance     │
-│   total_refunded_to_founder = 175.00,                       │
-│   platform_revenue = 226.16 // Nala markup                  │
-│ WHERE id = 'c456';                                          │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ PHASE 2E: NOTIFICATIONS & REPORTING                         │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ To Creator (Mary):                                          │
-│ ───────────────────────────────────────────────────────────│
-│ Subject: Campaign Complete - $180.93 Bonus Paid!            │
-│                                                             │
-│ Your Q4 Product Launch campaign has ended!                  │
-│                                                             │
-│ Final Performance:                                          │
-│ • Video 1: 45,232 views                                     │
-│ • Performance Bonus: $180.93                                │
-│ • Total Earned: $255.93 ($75 base + $180.93 bonus)         │
-│                                                             │
-│ Payment sent to your account.                               │
-│                                                             │
-│ [View Campaign Report] [Leave Review for Client]            │
-│                                                             │
-│ ───────────────────────────────────────────────────────────│
-│                                                             │
-│ To Founder (Mike):                                          │
-│ ───────────────────────────────────────────────────────────│
-│ Subject: Campaign Complete - $175 Refund Processed          │
-│                                                             │
-│ Your Q4 Product Launch campaign has concluded!              │
-│                                                             │
-│ Campaign Performance:                                       │
-│ • Total Views: 226,160                                      │
-│ • Videos Delivered: 5/5                                     │
-│ • Total Spent: $825.00                                      │
-│ • Refund Issued: $175.00                                    │
-│                                                             │
-│ Your refund will appear in 5-7 business days.               │
-│                                                             │
-│ [Download Performance Report] [Leave Review for Creator]     │
-│                                                             │
-│ ✅ Phase 2 Settlement Complete                              │
-└─────────────────────────────────────────────────────────────┘
-
-### 4.3 Error Handling & Recovery Flows
-┌─────────────────────────────────────────────────────────────┐
-│ ERROR SCENARIO 1: Stripe Transfer Fails                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Stripe API Response (Error):                                │
-│ {                                                           │
-│   error: {                                                  │
-│     type: "invalid_request_error",                          │
-│     code: "account_invalid",                                │
-│     message: "The destination account is not active"        │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ System Recovery Actions:                                    │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Update payment status to 'failed'                        │
-│ 2. Add to retry queue with exponential backoff:             │
-│    • Retry 1: 1 minute later                                │
-│    • Retry 2: 5 minutes later                               │
-│    • Retry 3: 15 minutes later                              │
-│ 3. If all retries fail:                                     │
-│    • Flag for manual review                                 │
-│    • Alert admin dashboard                                  │
-│    • Notify creator: "Payment delayed - we're fixing it"    │
-│ 4. Admin manually resolves:                                 │
-│    • Contact creator to update Stripe account               │
-│    • Process payment manually once fixed                    │
-│    • Log resolution in audit trail                          │
-└─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│ ERROR SCENARIO 2: API View Count Unavailable                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ TikTok API Response (Error):                                │
-│ {                                                           │
-│   error: {                                                  │
-│     code: 10000,                                            │
-│     message: "Server internal error"                        │
-│   }                                                         │
-│ }                                                           │
-│                                                             │
-│ System Recovery Actions:                                    │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Use last known view count from database:                 │
-│    SELECT view_count FROM view_snapshots                    │
-│    WHERE video_id = 'v123'                                  │
-│    ORDER BY snapshot_at DESC LIMIT 1                        │
-│                                                             │
-│ 2. Lock with last known count + flag:                       │
-│    locked_view_count = 43180 (last snapshot)                │
-│    locked_with_api_error = true                             │
-│                                                             │
-│ 3. Send notification to admin:                              │
-│    "Video v123 locked with API error - manual review needed"│
-│                                                             │
-│ 4. Admin Dashboard shows flagged video:                     │
-│    [Review] button allows manual view count adjustment      │
-│                                                             │
-│ 5. Process settlement with adjusted count if needed         │
-└─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│ ERROR SCENARIO 3: Insufficient Escrow Balance               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Scenario: Founder's payment method declined after deposit   │
-│                                                             │
-│ Pre-Flight Check Result:                                    │
-│ Campaign escrow: $50 (should be $1,000)                     │
-│ Required for approval: $75                                  │
-│ ❌ Insufficient funds                                       │
-│                                                             │
-│ System Actions:                                             │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Block approval action:                                   │
-│    Show founder: "⚠️ Insufficient campaign funds"           │
-│                                                             │
-│ 2. Request additional funding:                              │
-│    ┌─────────────────────────────────────────────────┐     │
-│    │ Your campaign requires additional funding       │     │
-│    │                                                 │     │
-│    │ Current Balance: $50.00                         │     │
-│    │ Required: $75.00                                │     │
-│    │ Amount Needed: $25.00                           │     │
-│    │                                                 │     │
-│    │ [Add Funds] [Pause Campaign]                    │     │
-│    └─────────────────────────────────────────────────┘     │
-│                                                             │
-│ 3. Notify creator of delay (transparent communication)      │
-│                                                             │
-│ 4. Pause campaign until refunded                            │
-└─────────────────────────────────────────────────────────────┘
-
----
-
-## 5. Performance Tracking Flow
-
-### 5.1 Daily View Count Updates
-┌─────────────────────────────────────────────────────────────┐
-│ AUTOMATED: Daily View Polling Job (T-302)                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Cron Schedule: Every day at 12:00 AM EST                    │
-│                                                             │
-│ STEP 1: Query Active Posts                                  │
-│ ─────────────────────────────────────────────────────────── │
-│ SELECT * FROM videos                                        │
-│ WHERE status = 'posted'                                     │
-│   AND posted_at > NOW() - INTERVAL '7 days'                 │
-│   AND status != 'locked'                                    │
-│ ORDER BY posted_at ASC;                                     │
-│                                                             │
-│ Results: 347 active videos across 89 campaigns              │
-│                                                             │
-│ STEP 2: Group by Platform & Batch Process                   │
-│ ─────────────────────────────────────────────────────────── │
-│ TikTok Batch (198 videos):                                  │
-│ • Extract video IDs                                         │
-│ • Batch into groups of 50 (API limit)                       │
-│ • Process batches sequentially                              │
-│                                                             │
-│ Instagram Batch (114 videos):                               │
-│ • Extract media IDs                                         │
-│ • Fetch insights for each                                   │
-│                                                             │
-│ Facebook Batch (35 videos):                                 │
-│ • Similar to Instagram process                              │
-│                                                             │
-│ STEP 3: API Calls with Rate Limit Management                │
-│ ─────────────────────────────────────────────────────────── │
-│ For each batch:                                             │
-│                                                             │
-│ TRY:                                                        │
-│   response = await tiktokAPI.getVideoData({                 │
-│     video_ids: batch_of_50,                                 │
-│     fields: ['view_count', 'like_count']                    │
-│   })                                                        │
-│                                                             │
-│   FOR each video in response:                               │
-│     • Parse view_count                                      │
-│     • Compare to last snapshot                              │
-│     • Calculate delta (new_views - old_views)               │
-│                                                             │
-│     UPDATE videos                                           │
-│     SET                                                     │
-│       current_view_count = new_views,                       │
-│       last_view_update = NOW()                              │
-│     WHERE id = video_id;                                    │
-│                                                             │
-│     INSERT INTO view_snapshots (                            │
-│       video_id, view_count, snapshot_at                     │
-│     ) VALUES (video_id, new_views, NOW());                  │
-│                                                             │
-│ CATCH RateLimitError:                                       │
-│   • Wait exponentially (60s, 120s, 240s)                    │
-│   • Retry batch                                             │
-│   • Log to monitoring                                       │
-│                                                             │
-│ CATCH APIError:                                             │
-│   • Log error details                                       │
-│   • Continue to next batch                                  │
-│   • Flag for manual review if persistent                    │
-│                                                             │
-│ STEP 4: Update Creator Wallets (Real-Time Calculations)     │
-│ ─────────────────────────────────────────────────────────── │
-│ FOR each updated video:                                     │
-│   new_performance_bonus = (current_view_count / 1000) * 4.00│
-│                                                             │
-│   UPDATE creator_wallets                                    │
-│   SET pending_performance_bonus = new_performance_bonus     │
-│   WHERE video_id = video_id;                                │
-│                                                             │
-│   // Trigger WebSocket update to live dashboards            │
-│   websocket.emit('wallet_update', {                         │
-│     creator_id: creator_id,                                 │
-│     video_id: video_id,                                     │
-│     new_bonus: new_performance_bonus                        │
-│   });                                                       │
-│                                                             │
-│ STEP 5: Check for 7-Day Lock Eligibility                    │
-│ ─────────────────────────────────────────────────────────── │
-│ SELECT * FROM videos                                        │
-│ WHERE status = 'posted'                                     │
-│   AND posted_at <= NOW() - INTERVAL '168 hours'             │
-│   AND status != 'locked';                                   │
-│                                                             │
-│ FOR each eligible video:                                    │
-│   • Trigger Phase 2 settlement (See 4.2)                    │
-│                                                             │
-│ STEP 6: Monitoring & Alerting                               │
-│ ─────────────────────────────────────────────────────────── │
-│ Log metrics:                                                │
-│ • Total videos processed: 347                               │
-│ • Successful updates: 342 (98.6%)                           │
-│ • API errors: 5 (1.4%)                                      │
-│ • Processing time: 8.3 minutes                              │
-│ • Rate limit hits: 0                                        │
-│                                                             │
-│ IF error_rate > 10%:                                        │
-│   ALERT ops_team via PagerDuty                              │
-│                                                             │
-│ ✅ Daily Polling Complete                                   │
-└─────────────────────────────────────────────────────────────┘
-
-### 5.2 Creator Live Performance Dashboard
-┌─────────────────────────────────────────────────────────────┐
-│ CREATOR DASHBOARD - Live Performance View                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 💰 Wallet                                                   │
-│ ───────────────────────────────────────────────────────────│
-│ Available Balance:        $342.50                           │
-│ Pending Performance:      $127.80  ⏱️ Updates daily         │
-│ Lifetime Earnings:        $8,945.00                         │
-│                                                             │
-│ [Instant Payout] [View History]                             │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 📊 ACTIVE CAMPAIGNS (2)                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📹 Q4 Product Launch                                 │   │
-│ │ ────────────────────────────────────────────────────│   │
-│ │                                                      │   │
-│ │ Video 1/5 - TikTok  🟢 LIVE                         │   │
-│ │ Posted: Nov 25, 9:30 AM                             │   │
-│ │                                                      │   │
-│ │ ┌──────────────────────────────────────────────┐   │   │
-│ │ │ 👁️ 45,232 views                                │   │   │
-│ │ │ ████████████████░░░░  Day 3/7                  │   │   │
-│ │ │                                                │   │   │
-│ │ │ Performance Bonus (Live):                      │   │   │
-│ │ │ $180.93  (+$24.50 since yesterday)            │   │   │
-│ │ │                                                │   │   │
-│ │ │ Projected Final (if current pace continues):   │   │   │
-│ │ │ ~65K views → ~$260 bonus                       │   │   │
-│ │ │                                                │   │   │
-│ │ │ Locks in: 4 days, 14 hours                     │   │   │
-│ │ └──────────────────────────────────────────────┘   │   │
-│ │                                                      │   │
-│ │ [View Post] [View Analytics]                         │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📹 Video 2/5 - TikTok  🟡 Pending Approval          │   │
-│ │ Submitted: 2 hours ago                               │   │
-│ │ Base Fee: $75 (paid on approval)                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 📈 PERFORMANCE INSIGHTS                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ This Week:                                                  │
-│ • Average views per video: 42,340                           │
-│ • Best performing platform: TikTok (avg 48K views)          │
-│ • Total performance bonus: $507.60                          │
-│                                                             │
-│ Tips to Boost Performance:                                  │
-│ • Post between 7-9 AM EST for maximum reach                 │
-│ • Use trending sounds (currently: "That's Crazy")           │
-│ • Add captions for accessibility (+15% engagement avg)      │
-│                                                             │
-│ Last updated: 2 minutes ago  [Refresh]                      │
-└─────────────────────────────────────────────────────────────┘
-
-### 5.3 Founder Performance Dashboard
-┌─────────────────────────────────────────────────────────────┐
-│ FOUNDER DASHBOARD - Campaign Performance                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 📊 Q4 Product Launch Campaign                               │
-│                                                             │
-│ Status: Active  |  Creator: @marythcreator                  │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 💰 BUDGET OVERVIEW                                          │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Total Budget:           $1,000.00                           │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Spent:     $255.93  █████░░░░░░░░░  25.6%          │   │
-│ │ Reserved:  $445.00  █████████░░░░░  44.5%          │   │
-│ │ Available: $299.07  ██████░░░░░░░░  29.9%          │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Breakdown:                                                  │
-│ • Base Fees Paid:        $75.00  (1/5 videos)              │
-│ • Performance Cost:      $180.93 (45.2K views)              │
-│ • Projected Refund:      $299.07 (if pace continues)        │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 📹 VIDEO PERFORMANCE                                        │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ ┌────────────────────────────────────────────────────┐    │
-│ │ Video 1 - TikTok                🟢 LIVE            │    │
-│ │ Posted: Nov 25, 9:30 AM                            │    │
-│ │                                                     │    │
-│ │ 👁️ 45,232 views  ████████░░  Day 3/7              │    │
-│ │                                                     │    │
-│ │ Performance vs. Target:                             │    │
-│ │ Target: 25,000 views (avg for similar campaigns)    │    │
-│ │ Actual: 45,232 views (+80.9% above target!) 🎉     │    │
-│ │                                                     │    │
-│ │ Cost for this video so far: $75 + $226 = $301      │    │
-│ │                                                     │    │
-│ │ Engagement:                                         │    │
-│ │ • Likes: 3,421  (7.6% rate)                        │    │
-│ │ • Shares: 287   (0.6% rate)                        │    │
-│ │ • Comments: 156                                     │    │
-│ │                                                     │    │
-│ │ 🔗 Watch Post: [Open TikTok →]                     │    │
-│ │                                                     │    │
-│ │ Locks in: 4 days, 14 hours                          │    │
-│ └────────────────────────────────────────────────────┘    │
-│                                                             │
-│ ┌────────────────────────────────────────────────────┐    │
-│ │ Video 2 - TikTok                🟡 In Review        │    │
-│ │ Submitted: 2 hours ago                              │    │
-│ │ [Review Content →]                                  │    │
-│ └────────────────────────────────────────────────────┘    │
-│                                                             │
-│ ┌────────────────────────────────────────────────────┐    │
-│ │ Video 3-5                       ⏳ In Progress      │    │
-│ │ Expected delivery: Nov 23-26                        │    │
-│ └────────────────────────────────────────────────────┘    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ 📈 CAMPAIGN INSIGHTS                                        │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ ROI Projection:                                             │
-│ If current pace continues across all 5 videos:              │
-│ • Total Views: ~226K                                        │
-│ • Total Cost: ~$825                                         │
-│ • Cost per 1,000 views: $3.65 ✅ (Industry avg: $5-8)      │
-│                                                             │
-│ Benchmarks vs. Similar Campaigns:                           │
-│ • Views: Top 15% 🏆                                         │
-│ • Engagement: Top 20% 📈                                    │
-│ • Cost efficiency: Top 10% 💰                               │
-│                                                             │
-│ [Download Report (PDF)] [Export Data (CSV)]                 │
-│                                                             │
-│ Last updated: 1 minute ago  [Refresh]                       │
-└─────────────────────────────────────────────────────────────┘
-
----
-
-## 6. Dispute Resolution Flow
-
-### 6.1 View Count Dispute (Founder-Initiated)
-┌─────────────────────────────────────────────────────────────┐
-│ SCENARIO: Founder Disputes View Count                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Founder believes reported views are inaccurate              │
-│                                                             │
-│ Entry Point: Campaign Dashboard → "Report Issue"            │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 🚨 Report an Issue                                   │   │
-│ │                                                      │   │
-│ │ Video: Video 1 - TikTok                              │   │
-│ │ Current Views: 45,232                                │   │
-│ │                                                      │   │
-│ │ Issue Type:                                          │   │
-│ │ ● View count inaccurate                              │   │
-│ │ ○ Content doesn't match brief                        │   │
-│ │ ○ Posting schedule violation                         │   │
-│ │ ○ Other                                              │   │
-│ │                                                      │   │
-│ │ Description:                                         │   │
-│ │ ┌──────────────────────────────────────────────┐   │   │
-│ │ │ When I check the video directly on TikTok,   │   │   │
-│ │ │ it shows 48,500 views, not 45,232. Please    │   │   │
-│ │ │ verify the correct count.                    │   │   │
-│ │ │                                              │   │   │
-│ │ │ 124/1000 characters                          │   │   │
-│ │ └──────────────────────────────────────────────┘   │   │
-│ │                                                      │   │
-│ │ Screenshot (Optional):                               │   │
-│ │ [Upload screenshot of TikTok analytics]              │   │
-│ │                                                      │   │
-│ │ [Cancel] [Submit Dispute]                            │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ System Actions:                                             │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Create dispute record:                                   │
-│    INSERT INTO disputes (                                   │
-│      campaign_id, video_id, reported_by: 'founder',         │
-│      type: 'view_count', status: 'pending',                 │
-│      description, evidence_url                              │
-│    )                                                        │
-│                                                             │
-│ 2. Pause 7-day lock for this video (if not locked yet)      │
-│    UPDATE videos                                            │
-│    SET lock_paused = true                                   │
-│    WHERE id = video_id;                                     │
-│                                                             │
-│ 3. Alert admin team (high priority)                         │
-│                                                             │
-│ 4. Notify creator of dispute                                │
-│                                                             │
-│ 5. Route to Admin Dispute Queue                             │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ ADMIN DISPUTE RESOLUTION DASHBOARD                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 🚨 Active Disputes (3)                                      │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Dispute #D-1847                     🟡 PENDING       │   │
-│ │                                                      │   │
-│ │ Type: View Count Discrepancy                         │   │
-│ │ Campaign: Q4 Product Launch (#c456)                  │   │
-│ │ Video: Video 1 - TikTok (#v123)                      │   │
-│ │                                                      │   │
-│ │ Reported by: @mikethfounder                          │   │
-│ │ Reported: 1 hour ago                                 │   │
-│ │                                                      │   │
-│ │ Details:                                             │   │
-│ │ "When I check the video directly on TikTok, it      │   │
-│ │  shows 48,500 views, not 45,232."                    │   │
-│ │                                                      │   │
-│ │ Evidence: [screenshot_tiktok.png]                    │   │
-│ │                                                      │   │
-│ │ Current Data:                                        │   │
-│ │ • Platform Reported: 45,232 views                    │   │
-│ │ • Founder Claims: 48,500 views                       │   │
-│ │ • Difference: +3,268 views (+7.2%)                   │   │
-│ │ • Last API sync: 6 hours ago                         │   │
-│ │                                                      │   │
-│ │ [Investigate] [View Full Thread]                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-↓ (Admin clicks "Investigate")
-┌─────────────────────────────────────────────────────────────┐
-│ ADMIN INVESTIGATION TOOLS                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ STEP 1: Re-fetch Live Data from TikTok API                  │
-│ ───────────────────────────────────────────────────────────│
-│ [Fetch Latest View Count]  ← Manual API call               │
-│                                                             │
-│ Result:                                                     │
-│ ✅ API Response: 48,412 views (as of now)                   │
-│                                                             │
-│ Analysis:                                                   │
-│ • Our last sync: 45,232 (6 hours ago)                       │
-│ • Current actual: 48,412                                    │
-│ • Founder's claim: 48,500 (close match ✓)                   │
-│                                                             │
-│ Conclusion: Sync delay caused discrepancy. Founder correct. │
-│                                                             │
-│ STEP 2: View History Audit                                  │
-│ ───────────────────────────────────────────────────────────│
-│ View Snapshot History:                                      │
-│ │ Nov 25, 12:00 AM: 1,247 views                            │
-│ │ Nov 26, 12:00 AM: 12,450 views (+11,203)                 │
-│ │ Nov 27, 12:00 AM: 28,910 views (+16,460)                 │
-│ │ Nov 28, 12:00 AM: 45,232 views (+16,322) ← Last sync     │
-│ │ Nov 28, 10:45 AM: 48,412 views (+3,180)  ← Manual check  │
-│                                                             │
-│ Growth rate: Normal. No anomalies detected.                 │
-│                                                             │
-│ STEP 3: Resolution Options                                  │
-│ ───────────────────────────────────────────────────────────│
-│ ● Update to correct count (48,412)                          │
-│ ○ Maintain original count (dispute invalid)                 │
-│ ○ Average the two values (compromise)                       │
-│ ○ Escalate for further investigation                        │
-│                                                             │
-│ Adjustment Impact:                                          │
-│ • Old view count: 45,232                                    │
-│ • New view count: 48,412                                    │
-│ • Difference: +3,180 views                                  │
-│                                                             │
-│ Payment Impact:                                             │
-│ • Additional creator bonus: +$12.72                         │
-│ • Additional Nala revenue: +$3.18                           │
-│ • Reduced founder refund: -$15.90                           │
-│                                                             │
-│ Notes for Parties:                                          │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Investigation confirmed the view count was outdated  │   │
-│ │ due to sync timing. Updated to current accurate      │   │
-│ │ count of 48,412. Thank you for reporting this!       │   │
-│ │                                                      │   │
-│ │ 168/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ [Cancel] [Resolve Dispute & Apply Changes]                  │
-│                                                             │
-│ System Actions (Resolve):                                   │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Update video.current_view_count = 48412                  │
-│ 2. Create correction snapshot                               │
-│ 3. Recalculate performance bonus                            │
-│ 4. Update dispute status = 'resolved'                       │
-│ 5. Notify both parties with resolution details              │
-│ 6. Resume 7-day lock countdown                              │
-│ 7. Log audit trail                                          │
-└─────────────────────────────────────────────────────────────┘
-
-### 6.2 Content Quality Dispute (Post-Approval)
-┌─────────────────────────────────────────────────────────────┐
-│ RARE SCENARIO: Founder Disputes After Approval              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Note: This is discouraged as approval triggers payment.     │
-│ Only valid for severe violations (fraud, brand damage).     │
-│                                                             │
-│ Founder submits dispute:                                    │
-│ "Creator posted content that violates brand guidelines      │
-│  despite my approval. The video includes competitor logo."  │
-│                                                             │
-│ Admin Review Process:                                       │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Review approved draft vs. live post                      │
-│    • Compare side-by-side                                   │
-│    • Check for material differences                         │
-│                                                             │
-│ 2. Determine if violation occurred:                         │
-│    ✓ Material Change: Draft didn't show competitor logo,    │
-│      but live post does                                     │
-│    → Creator violated agreement                             │
-│                                                             │
-│ 3. Resolution Options:                                      │
-│    a) Full Refund to Founder:                               │
-│       • Return base fee ($75)                               │
-│       • Cancel performance tracking                         │
-│       • Terminate creator from platform (strike system)     │
-│                                                             │
-│    b) Partial Refund:                                       │
-│       • Return 50% of base fee                              │
-│       • Performance tracking continues                      │
-│       • Issue warning to creator                            │
-│                                                             │
-│    c) No Action (Dispute Invalid):                          │
-│       • Founder approved content as-is                      │
-│       • No material changes in live version                 │
-│       • Maintain original agreement                         │
-│                                                             │
-│ 4. Implement decision and notify both parties               │
-│                                                             │
-│ ⚠️ Post-approval disputes require strong evidence           │
-│    Admin reviews on case-by-case basis                      │
-└─────────────────────────────────────────────────────────────┘
-
-### 6.3 Posting Schedule Violation
-┌─────────────────────────────────────────────────────────────┐
-│ AUTOMATED: Posting Schedule Monitor                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Daily Check: Compare actual vs. scheduled post times        │
-│                                                             │
-│ DETECTED VIOLATION:                                         │
-│ ───────────────────────────────────────────────────────────│
-│ Campaign: Q4 Product Launch (#c456)                         │
-│ Video 2: Expected Nov 26, 9:00 AM EST                       │
-│ Actual: Nov 27, 2:30 PM EST                                 │
-│ Delay: 29.5 hours (MAJOR violation)                         │
-│                                                             │
-│ Automatic Actions:                                          │
-│ ───────────────────────────────────────────────────────────│
-│ 1. Flag campaign for admin review                           │
-│ 2. Send alert to creator:                                   │
-│    "⚠️ You posted 29 hours late. This may affect campaign." │
-│ 3. Notify founder:                                          │
-│    "Video 2 was posted late. You may request adjustment."   │
-│ 4. Add note to campaign record                              │
-│                                                             │
-│ Admin Dashboard View:                                       │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ ⚠️ Schedule Violation - Campaign #c456              │   │
-│ │                                                      │   │
-│ │ Severity: MAJOR (24+ hours late)                     │   │
-│ │                                                      │   │
-│ │ Options:                                             │   │
-│ │ 1. [No Action] - Minor impact, let it slide          │   │
-│ │ 2. [Issue Warning] - Notify creator formally         │   │
-│ │ 3. [Apply Penalty] - Reduce payment by X%            │   │
-│ │ 4. [Cancel Video] - Remove from campaign             │   │
-│ │                                                      │   │
-│ │ Founder's Preference:                                │   │
-│ │ ○ I'm fine with the delay                            │   │
-│ │ ○ I want compensation (partial refund)               │   │
-│ │ ● I want to cancel this video                        │   │
-│ │                                                      │   │
-│ │ [Make Decision]                                      │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Resolution Flow:                                            │
-│ ───────────────────────────────────────────────────────────│
-│ IF Founder requests cancellation:                           │
-│   1. Remove video from campaign                             │
-│   2. Refund base fee to founder (if already paid)           │
-│   3. Do not count toward performance metrics                │
-│   4. Issue strike to creator account                        │
-│                                                             │
-│ IF Founder accepts delay:                                   │
-│   1. Continue tracking as normal                            │
-│   2. Update posting calendar                                │
-│   3. Close violation report                                 │
-└─────────────────────────────────────────────────────────────┘
-
----
-
-## Summary: Complete User Journey Map
-┌─────────────────────────────────────────────────────────────┐
-│                    NALA PLATFORM                            │
-│              COMPLETE USER JOURNEY MAP                      │
-└─────────────────────────────────────────────────────────────┘
-CREATOR JOURNEY:
+```
+AUTHENTICATION ENDPOINTS
 ═══════════════════════════════════════════════════════════════
 
-Sign Up & Onboarding (30 mins)
-├─ Email registration
-├─ Connect social accounts (TikTok/Instagram/Facebook)
-├─ Set base fees ($50-500/video)
-├─ Build portfolio (3-10 sample videos)
-├─ Write bio & select niches
-└─ Connect Stripe for payouts
-Receive Campaign Invitation (< 1 min)
-├─ Email + in-app notification
-├─ Review brief details
-└─ Accept or decline
-Content Creation Phase (3-5 days)
-├─ Review campaign brief thoroughly
-├─ Download brand assets
-├─ Create video content
-├─ Upload draft for review
-└─ Wait for founder approval/feedback
-Revision Handling (if needed) (1-2 days)
-├─ Receive revision requests
-├─ Make requested changes
-└─ Resubmit updated draft
-Post-Approval Phase (< 1 hour)
-├─ Receive approval notification
-├─ Base fee payment received ($75)
-├─ Post video on scheduled date
-└─ Submit live post URL
-Performance Tracking (7 days)
-├─ Monitor views daily
-├─ Watch performance bonus accumulate
-├─ Track projections
-└─ Receive final bonus on day 7
-Campaign Completion (Day 8)
-├─ Final views locked
-├─ Performance bonus paid automatically
-├─ Leave review for founder
-└─ View campaign report
+POST /api/v1/auth/register
+  Purpose: Create new user account
+  Request: {
+    email: string,
+    password: string,
+    first_name: string,
+    last_name: string,
+    user_type: enum (FOUNDER, CREATOR, ADMIN),
+    phone?: string
+  }
+  Response: {
+    user_id: UUID,
+    email: string,
+    auth_token: JWT,
+    profile_completeness: integer,
+    next_steps: array
+  }
+  Status: 201 Created | 400 Bad Request | 409 Conflict (email exists)
 
-TOTAL CREATOR TIME: ~2-3 hours active work per campaign
-TOTAL CREATOR EARNINGS: $75-$975 per video (avg ~$200-400)
-FOUNDER JOURNEY:
+POST /api/v1/auth/login
+  Purpose: Authenticate existing user
+  Request: { email: string, password: string }
+  Response: {
+    auth_token: JWT,
+    user_id: UUID,
+    user_type: enum,
+    refresh_token: JWT
+  }
+  Status: 200 OK | 401 Unauthorized | 429 Too Many Attempts
+
+POST /api/v1/auth/logout
+  Purpose: Invalidate current session
+  Headers: Authorization: Bearer {token}
+  Response: { message: "Logged out successfully" }
+  Status: 200 OK
+
+POST /api/v1/auth/refresh-token
+  Purpose: Get new access token
+  Request: { refresh_token: string }
+  Response: { auth_token: JWT }
+  Status: 200 OK | 401 Unauthorized
+
+─────────────────────────────────────────────────────────────────
+
+CREATOR ENDPOINTS
 ═══════════════════════════════════════════════════════════════
 
-Sign Up & Quick Onboarding (10 mins)
-├─ Email registration
-├─ Company information
-└─ Add payment method
-Campaign Creation (20-30 mins)
-├─ STEP 1: Campaign basics (product, audience, goal)
-├─ STEP 2: Content requirements (5 videos, 30s, platforms)
-├─ STEP 3: Creative brief (talking points, do's/don'ts)
-├─ STEP 4: Posting schedule (daily, starting Nov 25)
-├─ STEP 5: Budget allocation ($1,000 total)
-└─ STEP 6: Select creator from marketplace
-Payment & Launch (5 mins)
-├─ Review campaign summary
-├─ Deposit funds to escrow ($1,000)
-├─ Campaign goes live
-└─ Wait for creator acceptance
-Content Review Phase (Per video: 10-15 mins)
-├─ Receive draft notification
-├─ Review video content
-├─ Check against brief requirements
-└─ Approve or request revision
-Active Campaign Monitoring (Daily: 2-5 mins)
-├─ Check performance dashboard
-├─ Track view counts
-├─ Monitor budget spend
-└─ View projected refund
-Campaign Completion (Day 8 after last post)
-├─ All videos locked at 7-day mark
-├─ Final settlement processed
-├─ Unused budget refunded automatically
-├─ Download performance report
-└─ Leave review for creator
+GET /api/v1/creators/profile
+  Purpose: Get current creator's profile
+  Headers: Authorization: Bearer {token}
+  Response: {
+    creator_id: UUID,
+    email: string,
+    first_name: string,
+    last_name: string,
+    bio: string,
+    profile_completeness: integer,
+    kyc_status: enum,
+    rating: decimal,
+    total_campaigns: integer,
+    social_accounts: object,
+    base_rate_card: { platform: string, rate: decimal },
+    stripe_account_id: string
+  }
+  Status: 200 OK | 401 Unauthorized
 
-TOTAL FOUNDER TIME: ~1-2 hours total for 5-video campaign
-TOTAL FOUNDER COST: $500-$1,000 (only pay for actual views)
-AVERAGE REFUND: 15-30% of performance budget
-ADMIN JOURNEY:
+PUT /api/v1/creators/profile
+  Purpose: Update creator profile
+  Request: {
+    bio?: string,
+    social_accounts?: object,
+    expertise_platforms?: array,
+    profile_photo_url?: string
+  }
+  Response: Updated creator profile object
+  Status: 200 OK | 400 Bad Request | 401 Unauthorized
+
+POST /api/v1/creators/rate-card
+  Purpose: Set or update base fee
+  Request: {
+    platform: enum (TIKTOK, INSTAGRAM, FACEBOOK),
+    base_fee_per_video: decimal (20-500)
+  }
+  Response: {
+    rate_card_id: UUID,
+    platform: string,
+    base_fee_per_video: decimal,
+    effective_date: date,
+    previous_rate: decimal
+  }
+  Status: 201 Created | 200 OK | 400 Bad Request
+
+GET /api/v1/creators/dashboard
+  Purpose: Get creator task dashboard
+  Response: {
+    available_briefs: array [{
+      campaign_id: UUID,
+      title: string,
+      base_fee: decimal,
+      platforms: array,
+      deadline: timestamp,
+      status: enum
+    }],
+    assigned_campaigns: array [{
+      campaign_id: UUID,
+      creator_assignment_id: UUID,
+      status: enum,
+      base_fee_earned: decimal,
+      deadline: timestamp
+    }],
+    notifications: array
+  }
+  Status: 200 OK | 401 Unauthorized
+
+GET /api/v1/creators/available-briefs
+  Purpose: Get briefs filtered by creator expertise
+  Query: {
+    platform?: enum,
+    min_rate?: decimal,
+    experience_level?: enum,
+    limit?: integer (default 20)
+  }
+  Response: {
+    briefs: array [{
+      campaign_id: UUID,
+      title: string,
+      description: string,
+      platforms: array,
+      base_fee: decimal,
+      founder_rating: decimal,
+      total_videos: integer,
+      created_at: timestamp
+    }],
+    total_count: integer,
+    has_more: boolean
+  }
+  Status: 200 OK
+
+POST /api/v1/creators/apply-brief
+  Purpose: Apply for a brief
+  Request: {
+    campaign_id: UUID,
+    application_message: string (max 200 chars)
+  }
+  Response: {
+    application_id: UUID,
+    campaign_id: UUID,
+    status: enum (SUBMITTED),
+    submitted_at: timestamp
+  }
+  Status: 201 Created | 400 Bad Request | 404 Not Found
+
+POST /api/v1/creators/assignments/{assignment_id}/accept
+  Purpose: Accept campaign assignment
+  Response: {
+    campaign_assignment_id: UUID,
+    status: enum (ACCEPTED),
+    accepted_at: timestamp
+  }
+  Status: 200 OK | 400 Bad Request (already assigned)
+
+POST /api/v1/creators/assignments/{assignment_id}/upload-draft
+  Purpose: Upload video draft
+  Request: FormData {
+    video_file: File (max 1GB),
+    title: string,
+    description?: string
+  }
+  Response: {
+    draft_id: UUID,
+    version: integer,
+    file_url: string,
+    upload_status: enum (PROCESSING, READY),
+    estimated_processing_time_seconds: integer
+  }
+  Status: 201 Created | 413 Payload Too Large
+
+GET /api/v1/creators/assignments/{assignment_id}/feedback
+  Purpose: Get revision feedback from founder
+  Response: {
+    feedback_id: UUID,
+    revision_request_date: timestamp,
+    feedback_text: string,
+    revision_deadline: timestamp,
+    revision_number: integer
+  }
+  Status: 200 OK | 404 Not Found
+
+POST /api/v1/creators/assignments/{assignment_id}/submit-url
+  Purpose: Submit posting URL after publishing
+  Request: {
+    posting_url: string,
+    platform: enum (TIKTOK, INSTAGRAM, FACEBOOK),
+    posted_at: timestamp
+  }
+  Response: {
+    status: enum (POSTED),
+    tracking_started_at: timestamp,
+    estimated_metric_lock: timestamp
+  }
+  Status: 200 OK | 400 Bad Request (invalid URL)
+
+GET /api/v1/creators/wallet
+  Purpose: Get creator earnings wallet
+  Response: {
+    available_balance: decimal,
+    pending_balance: decimal,
+    lifetime_earnings: decimal,
+    earnings_breakdown: array [{
+      campaign_id: UUID,
+      base_fee: decimal,
+      performance_bonus: decimal,
+      total: decimal,
+      status: enum (EARNED, PENDING, PAID)
+    }],
+    recent_transactions: array [{
+      transaction_id: UUID,
+      amount: decimal,
+      type: enum (PAYOUT, BONUS_ACCRUAL),
+      timestamp: timestamp
+    }]
+  }
+  Status: 200 OK
+
+POST /api/v1/creators/wallet/request-payout
+  Purpose: Request instant payout
+  Request: {
+    amount?: decimal (default all available),
+    payout_method: enum (STRIPE)
+  }
+  Response: {
+    payout_id: UUID,
+    amount: decimal,
+    status: enum (REQUESTED),
+    estimated_arrival: timestamp
+  }
+  Status: 201 Created | 400 Bad Request (insufficient balance)
+
+GET /api/v1/creators/campaigns/{campaign_id}/performance
+  Purpose: Get individual campaign performance
+  Response: {
+    campaign_id: UUID,
+    creator_assignment_id: UUID,
+    video_url: string,
+    platform: enum,
+    views_count: integer,
+    metric_locked: boolean,
+    base_fee_paid: decimal,
+    base_fee_paid_date: timestamp,
+    performance_bonus: decimal,
+    views_threshold: integer,
+    estimated_completion: timestamp
+  }
+  Status: 200 OK
+
+─────────────────────────────────────────────────────────────────
+
+FOUNDER ENDPOINTS
 ═══════════════════════════════════════════════════════════════
 
-Platform Monitoring (Ongoing)
-├─ Monitor API health (TikTok, Meta, Stripe)
-├─ Review payment processing queue
-├─ Check daily polling job success rate
-└─ Track platform metrics (GMV, campaigns, users)
-Creator Verification (Per creator: 10 mins)
-├─ Review application
-├─ Verify social account authenticity
-├─ Check follower count accuracy
-└─ Approve or reject
-Dispute Resolution (Per dispute: 30-60 mins)
-├─ Review dispute details
-├─ Investigate with tools (API checks, audit logs)
-├─ Communicate with both parties
-├─ Make fair decision
-└─ Implement resolution (refund, adjustment, etc.)
-Posting Schedule Violations (Per incident: 5-10 mins)
-├─ Review flagged violation
-├─ Assess severity
-├─ Get founder preference
-└─ Apply appropriate action
-Payment Failures (Per failure: 15-30 mins)
-├─ Investigate root cause
-├─ Contact affected party (creator or founder)
-├─ Manually process payment if needed
-└─ Update system to prevent recurrence
+POST /api/v1/founders/campaigns
+  Purpose: Create new campaign (brief builder completion)
+  Request: {
+    campaign_title: string,
+    campaign_description: string,
+    product_category: enum,
+    product_link?: string,
+    number_of_videos: integer (1-10),
+    platforms: array (TIKTOK, INSTAGRAM, FACEBOOK),
+    posting_schedule: object {
+      type: enum (DAILY, WEEKLY, CUSTOM),
+      dates?: array of dates (if custom)
+    },
+    content_tone: string,
+    key_messages: array (3-5 items),
+    fixed_budget: decimal (auto-calculated),
+    variable_budget: decimal,
+    creator_filter_criteria: object
+  }
+  Response: {
+    campaign_id: UUID,
+    status: enum (DRAFT),
+    total_budget: decimal,
+    max_views_purchasable: integer,
+    next_step: "Complete payment"
+  }
+  Status: 201 Created | 400 Bad Request | 401 Unauthorized
 
-SYSTEM AUTOMATED PROCESSES:
+GET /api/v1/founders/campaigns/{campaign_id}
+  Purpose: Get campaign details
+  Response: {
+    campaign_id: UUID,
+    title: string,
+    description: string,
+    status: enum,
+    total_budget: decimal,
+    number_of_videos: integer,
+    platforms: array,
+    created_at: timestamp,
+    applications: array [{
+      application_id: UUID,
+      creator_id: UUID,
+      creator_name: string,
+      creator_rating: decimal,
+      application_date: timestamp,
+      status: enum
+    }],
+    assignments: array [{
+      assignment_id: UUID,
+      creator_id: UUID,
+      creator_name: string,
+      video_number: integer,
+      status: enum,
+      base_fee: decimal,
+      deadline: timestamp
+    }]
+  }
+  Status: 200 OK | 404 Not Found
+
+POST /api/v1/founders/campaigns/{campaign_id}/fund
+  Purpose: Initiate escrow payment
+  Request: {
+    amount: decimal,
+    payment_method: enum (CARD, BANK, APPLE_PAY),
+    stripe_payment_token: string
+  }
+  Response: {
+    funding_id: UUID,
+    stripe_charge_id: string,
+    amount_charged: decimal,
+    status: enum (COMPLETED),
+    campaign_status: enum (LIVE)
+  }
+  Status: 200 OK | 400 Bad Request | 402 Payment Failed
+
+POST /api/v1/founders/campaigns/{campaign_id}/assign-creators
+  Purpose: Assign creators to videos
+  Request: {
+    assignments: array [{
+      creator_id: UUID,
+      video_number: integer,
+      base_fee: decimal
+    }]
+  }
+  Response: {
+    assignments: array of assignment objects,
+    total_base_fee: decimal,
+    notifications_sent: integer
+  }
+  Status: 201 Created | 400 Bad Request
+
+GET /api/v1/founders/campaigns/{campaign_id}/review
+  Purpose: Get content review portal data
+  Response: {
+    campaign_id: UUID,
+    assignments: array [{
+      assignment_id: UUID,
+      creator_id: UUID,
+      creator_name: string,
+      creator_rating: decimal,
+      video_number: integer,
+      status: enum,
+      draft_video_url?: string,
+      draft_submitted_date?: timestamp,
+      revision_count: integer,
+      revision_deadline?: timestamp
+    }],
+    review_instructions: string
+  }
+  Status: 200 OK
+
+POST /api/v1/founders/campaigns/{campaign_id}/assignments/{assignment_id}/approve
+  Purpose: Approve creator draft
+  Response: {
+    status: enum (APPROVED),
+    approved_at: timestamp,
+    payout_initiated: true,
+    phase_1_payout_amount: decimal,
+    next_step: "Awaiting posting URL from creator"
+  }
+  Status: 200 OK | 400 Bad Request (invalid state)
+
+POST /api/v1/founders/campaigns/{campaign_id}/assignments/{assignment_id}/request-revision
+  Purpose: Request revision with feedback
+  Request: {
+    feedback_text: string (max 1000 chars),
+    revision_deadline_days: integer (1, 3, or 5),
+    auto_approve_after_deadline?: boolean (default true)
+  }
+  Response: {
+    status: enum (REVISION_REQUESTED),
+    feedback_sent_at: timestamp,
+    deadline: timestamp,
+    notification_sent_to_creator: true
+  }
+  Status: 200 OK | 400 Bad Request
+
+GET /api/v1/founders/campaigns/{campaign_id}/performance
+  Purpose: Get campaign performance dashboard
+  Response: {
+    campaign_id: UUID,
+    total_views_achieved: integer,
+    max_views_purchasable: integer,
+    achievement_percentage: decimal,
+    total_budget_spent: decimal,
+    total_budget_remaining: decimal,
+    projected_refund: decimal,
+    metric_lock_timestamp: timestamp,
+    days_remaining: integer,
+    videos: array [{
+      assignment_id: UUID,
+      creator_name: string,
+      platform: enum,
+      views_count: integer,
+      performance_bonus_accrued: decimal,
+      posted_date: timestamp,
+      metric_locked: boolean
+    }],
+    status: enum (TRACKING, METRIC_LOCKED, SETTLED)
+  }
+  Status: 200 OK
+
+GET /api/v1/founders/campaigns/{campaign_id}/export-report
+  Purpose: Generate PDF performance report
+  Response: PDF file (application/pdf)
+  Status: 200 OK | 404 Not Found
+
+─────────────────────────────────────────────────────────────────
+
+ADMIN ENDPOINTS
 ═══════════════════════════════════════════════════════════════
 
-Daily View Polling (12:00 AM EST)
-├─ Query all active posts (< 7 days old)
-├─ Batch API calls to TikTok, Meta
-├─ Update view counts in database
-├─ Calculate performance bonuses
-└─ Update creator wallets (live)
-7-Day Metric Lock (Continuous check)
-├─ Identify posts >= 168 hours old
-├─ Lock final view count (immutable)
-├─ Calculate settlement breakdown
-├─ Process Phase 2 payments
-└─ Send notifications
-Payment Processing (Real-time)
-├─ Phase 1: Base fee on approval
-├─ Phase 2: Performance bonus + refund
-├─ Error handling & retries
-└─ Audit logging
-Notifications (Real-time & scheduled)
-├─ Email notifications
-├─ In-app push notifications
-├─ SMS for critical actions (optional)
-└─ Webhook events for integrations
-Deadline Reminders (Scheduled)
-├─ Draft due reminders (3 days, 1 day, 6 hours before)
-├─ Posting reminders (1 day, 3 hours before)
-├─ Review reminders for founders
-└─ Payment due alerts
+GET /api/v1/admin/dashboard
+  Purpose: Admin overview dashboard
+  Response: {
+    total_campaigns: integer,
+    total_creators: integer,
+    total_founders: integer,
+    total_gmv: decimal,
+    recent_transactions: array,
+    pending_disputes: integer,
+    verification_queue_size: integer
+  }
+  Status: 200 OK | 403 Forbidden (not admin)
 
-KEY METRICS & MONITORING:
-═══════════════════════════════════════════════════════════════
-Platform Health:
-├─ API Uptime: 99.9% target
-├─ Payment Success Rate: 99.5% target
-├─ View Polling Accuracy: 98%+ target
-└─ Average Response Time: < 2s
-Business Metrics:
-├─ GMV (Gross Merchandise Volume): Total $ processed
-├─ Take Rate: 20% (Nala revenue / Total performance budget)
-├─ Campaign Completion Rate: 90%+ target
-└─ User Satisfaction: 4.5+ stars (creators & founders)
-User Engagement:
-├─ Creator Repeat Rate: 70%+ target
-├─ Founder Repeat Rate: 50%+ target
-├─ Average Campaign Size: $1,000-$5,000
-└─ Videos per Campaign: 3-7 average
-EDGE CASES & SPECIAL SCENARIOS:
+POST /api/v1/admin/creators/{creator_id}/verify
+  Purpose: Approve KYC verification
+  Request: { approval_status: enum (APPROVED, REJECTED) }
+  Response: { creator_id: UUID, status: enum, verified_at: timestamp }
+  Status: 200 OK
+
+POST /api/v1/admin/disputes
+  Purpose: Create/manage dispute
+  Request: {
+    campaign_id: UUID,
+    reporter_id: UUID,
+    issue_type: enum (NON_PAYMENT, QUALITY, FRAUD, OTHER),
+    description: string
+  }
+  Response: { dispute_id: UUID, status: enum (OPEN), created_at: timestamp }
+  Status: 201 Created
+
+GET /api/v1/admin/audit-logs
+  Purpose: Get platform audit trail
+  Query: { limit?: integer, offset?: integer }
+  Response: {
+    logs: array [{
+      log_id: UUID,
+      action: string,
+      user_id: UUID,
+      timestamp: timestamp,
+      details: object
+    }],
+    total_count: integer
+  }
+  Status: 200 OK
+```
+
+### 7.3 Database Schema (PostgreSQL)
+
+```sql
+-- USERS TABLE
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  phone VARCHAR(20),
+  user_type ENUM ('FOUNDER', 'CREATOR', 'ADMIN') NOT NULL,
+  status ENUM ('ACTIVE', 'SUSPENDED', 'BANNED') DEFAULT 'ACTIVE',
+  profile_completeness INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login_at TIMESTAMP,
+  two_factor_enabled BOOLEAN DEFAULT FALSE,
+  INDEX (email),
+  INDEX (user_type)
+);
+
+-- CREATORS TABLE
+CREATE TABLE creators (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID UNIQUE NOT NULL REFERENCES users(id),
+  legal_name VARCHAR(255),
+  date_of_birth DATE,
+  government_id_verified BOOLEAN DEFAULT FALSE,
+  address_verified BOOLEAN DEFAULT FALSE,
+  kyc_status ENUM ('PENDING', 'VERIFIED', 'REJECTED') DEFAULT 'PENDING',
+  stripe_account_id VARCHAR(255),
+  stripe_verified BOOLEAN DEFAULT FALSE,
+  bio TEXT,
+  expertise_platforms JSONB, -- ['TIKTOK', 'INSTAGRAM', 'FACEBOOK']
+  portfolio_urls TEXT[],
+  average_rating DECIMAL(3,2) DEFAULT 0.00,
+  total_campaigns INTEGER DEFAULT 0,
+  total_earnings DECIMAL(12,2) DEFAULT 0.00,
+  social_accounts JSONB, -- { tiktok: { username, follower_count }, ... }
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (kyc_status),
+  INDEX (average_rating),
+  INDEX (total_campaigns)
+);
+
+-- CREATORS RATE CARD
+CREATE TABLE creator_rate_cards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id UUID NOT NULL REFERENCES creators(id),
+  platform ENUM ('TIKTOK', 'INSTAGRAM', 'FACEBOOK') NOT NULL,
+  base_fee_per_video DECIMAL(10,2) NOT NULL,
+  effective_date DATE DEFAULT CURRENT_DATE,
+  previous_rate DECIMAL(10,2),
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (creator_id, platform, effective_date),
+  INDEX (creator_id),
+  INDEX (platform)
+);
+
+-- FOUNDERS TABLE
+CREATE TABLE founders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID UNIQUE NOT NULL REFERENCES users(id),
+  company_name VARCHAR(255),
+  company_website VARCHAR(255),
+  total_campaigns INTEGER DEFAULT 0,
+  total_spent DECIMAL(15,2) DEFAULT 0.00,
+  average_campaign_budget DECIMAL(12,2) DEFAULT 0.00,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (user_id)
+);
+
+-- CAMPAIGNS TABLE
+CREATE TABLE campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  founder_id UUID NOT NULL REFERENCES founders(id),
+  title VARCHAR(200) NOT NULL,
+  description TEXT NOT NULL,
+  product_category VARCHAR(100),
+  product_link VARCHAR(500),
+  number_of_videos INTEGER NOT NULL,
+  platforms JSONB NOT NULL, -- ['TIKTOK', 'INSTAGRAM']
+  posting_schedule JSONB NOT NULL, -- { type, dates, frequency }
+  content_tone VARCHAR(100),
+  key_messages TEXT[],
+  fixed_budget DECIMAL(12,2) NOT NULL,
+  variable_budget DECIMAL(12,2) NOT NULL,
+  total_budget DECIMAL(12,2) NOT NULL,
+  max_views_purchasable INTEGER NOT NULL,
+  creator_filter_criteria JSONB,
+  status ENUM ('DRAFT', 'LIVE', 'CLOSED', 'COMPLETED') DEFAULT 'DRAFT',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  launched_at TIMESTAMP,
+  completed_at TIMESTAMP,
+  INDEX (founder_id),
+  INDEX (status),
+  INDEX (launched_at)
+);
+
+-- CAMPAIGN FUNDING TABLE
+CREATE TABLE campaign_fundings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL REFERENCES campaigns(id),
+  founder_id UUID NOT NULL REFERENCES founders(id),
+  stripe_charge_id VARCHAR(255) UNIQUE,
+  payment_method ENUM ('CARD', 'BANK', 'APPLE_PAY') NOT NULL,
+  amount_charged DECIMAL(12,2) NOT NULL,
+  escrow_amount_held DECIMAL(12,2) NOT NULL,
+  status ENUM ('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED') DEFAULT 'PENDING',
+  charged_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (campaign_id),
+  INDEX (stripe_charge_id)
+);
+
+-- CAMPAIGN ASSIGNMENTS TABLE
+CREATE TABLE campaign_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL REFERENCES campaigns(id),
+  creator_id UUID NOT NULL REFERENCES creators(id),
+  status ENUM ('OFFERED', 'ACCEPTED', 'REJECTED', 'IN_PROGRESS', 'SUBMITTED_FOR_REVIEW', 'REVISION_REQUESTED', 'APPROVED', 'POSTED', 'COMPLETED') DEFAULT 'OFFERED',
+  base_fee_earned DECIMAL(10,2) NOT NULL,
+  base_fee_paid BOOLEAN DEFAULT FALSE,
+  base_fee_paid_date TIMESTAMP,
+  video_number INTEGER,
+  assignment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  acceptance_date TIMESTAMP,
+  deadline TIMESTAMP,
+  draft_submission_date TIMESTAMP,
+  approval_date TIMESTAMP,
+  posting_date TIMESTAMP,
+  posting_url VARCHAR(500),
+  posting_platform ENUM ('TIKTOK', 'INSTAGRAM', 'FACEBOOK'),
+  posted_at_verification TIMESTAMP,
+  revision_count INTEGER DEFAULT 0,
+  current_revision_deadline TIMESTAMP,
+  auto_approve_enabled BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (campaign_id),
+  INDEX (creator_id),
+  INDEX (status),
+  INDEX (posting_url)
+);
+
+-- CONTENT REVIEW TABLE
+CREATE TABLE content_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_assignment_id UUID NOT NULL REFERENCES campaign_assignments(id),
+  founder_id UUID NOT NULL REFERENCES founders(id),
+  creator_id UUID NOT NULL REFERENCES creators(id),
+  status ENUM ('SUBMITTED_FOR_REVIEW', 'REVISION_REQUESTED', 'APPROVED', 'APPROVED_AUTO') DEFAULT 'SUBMITTED_FOR_REVIEW',
+  video_file_url VARCHAR(500),
+  video_duration_seconds INTEGER,
+  video_file_size_mb DECIMAL(10,2),
+  submitted_at TIMESTAMP,
+  reviewed_at TIMESTAMP,
+  approved_at TIMESTAMP,
+  revision_history JSONB, -- Array of revision objects
+  review_notes TEXT,
+  revision_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (campaign_assignment_id),
+  INDEX (status)
+);
+
+-- VIDEO PERFORMANCE TABLE
+CREATE TABLE video_performances (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_assignment_id UUID NOT NULL REFERENCES campaign_assignments(id),
+  platform ENUM ('TIKTOK', 'INSTAGRAM', 'FACEBOOK') NOT NULL,
+  views_count INTEGER DEFAULT 0,
+  likes_count INTEGER DEFAULT 0,
+  comments_count INTEGER DEFAULT 0,
+  shares_count INTEGER DEFAULT 0,
+  watch_time_hours DECIMAL(12,2) DEFAULT 0.00,
+  engagement_rate DECIMAL(5,2) DEFAULT 0.00,
+  metric_locked BOOLEAN DEFAULT FALSE,
+  final_views_locked INTEGER,
+  metric_lock_timestamp TIMESTAMP,
+  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_sync_timestamp TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (campaign_assignment_id),
+  INDEX (metric_locked),
+  INDEX (last_sync_timestamp)
+);
+
+-- CREATOR WALLET TABLE
+CREATE TABLE creator_wallets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id UUID UNIQUE NOT NULL REFERENCES creators(id),
+  available_balance DECIMAL(12,2) DEFAULT 0.00,
+  pending_balance DECIMAL(12,2) DEFAULT 0.00,
+  lifetime_earnings DECIMAL(15,2) DEFAULT 0.00,
+  last_payout_date DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (creator_id)
+);
+
+-- PAYOUT TRANSACTIONS TABLE
+CREATE TABLE payout_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id UUID NOT NULL REFERENCES creators(id),
+  creator_wallet_id UUID NOT NULL REFERENCES creator_wallets(id),
+  amount DECIMAL(12,2) NOT NULL,
+  payout_method ENUM ('STRIPE', 'BANK_TRANSFER') DEFAULT 'STRIPE',
+  status ENUM ('REQUESTED', 'PROCESSING', 'COMPLETED', 'FAILED') DEFAULT 'REQUESTED',
+  request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  completion_date TIMESTAMP,
+  stripe_payout_id VARCHAR(255),
+  failure_reason TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (creator_id),
+  INDEX (status),
+  INDEX (stripe_payout_id)
+);
+
+-- PERFORMANCE BONUSES TABLE
+CREATE TABLE performance_bonuses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_assignment_id UUID NOT NULL REFERENCES campaign_assignments(id),
+  creator_id UUID NOT NULL REFERENCES creators(id),
+  views_achieved INTEGER NOT NULL,
+  rate_per_thousand_views DECIMAL(5,2) DEFAULT 4.00,
+  bonus_amount DECIMAL(12,2) NOT NULL,
+  status ENUM ('ACCRUING', 'LOCKED', 'PAID') DEFAULT 'ACCRUING',
+  calculated_at TIMESTAMP,
+  locked_at TIMESTAMP,
+  paid_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (campaign_assignment_id),
+  INDEX (creator_id),
+  INDEX (status)
+);
+
+-- CAMPAIGN PERFORMANCE TABLE
+CREATE TABLE campaign_performances (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL REFERENCES campaigns(id),
+  total_views_achieved INTEGER DEFAULT 0,
+  max_views_purchasable INTEGER NOT NULL,
+  achievement_percentage DECIMAL(5,2) DEFAULT 0.00,
+  total_budget_spent DECIMAL(12,2) DEFAULT 0.00,
+  total_budget_remaining DECIMAL(12,2) NOT NULL,
+  projected_refund DECIMAL(12,2),
+  final_refund_amount DECIMAL(12,2),
+  metric_lock_timestamp TIMESTAMP,
+  settlement_completed_timestamp TIMESTAMP,
+  last_sync_timestamp TIMESTAMP,
+  status ENUM ('TRACKING', 'METRIC_LOCKED', 'SETTLED') DEFAULT 'TRACKING',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (campaign_id),
+  INDEX (status)
+);
+
+-- AUDIT LOGS TABLE
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  action VARCHAR(255) NOT NULL,
+  resource_type VARCHAR(100),
+  resource_id UUID,
+  details JSONB,
+  ip_address VARCHAR(50),
+  user_agent TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (user_id),
+  INDEX (action),
+  INDEX (resource_type),
+  INDEX (created_at)
+);
+
+-- DISPUTES TABLE
+CREATE TABLE disputes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL REFERENCES campaigns(id),
+  reporter_id UUID NOT NULL REFERENCES users(id),
+  respondent_id UUID REFERENCES users(id),
+  issue_type ENUM ('NON_PAYMENT', 'QUALITY', 'FRAUD', 'LATE_POSTING', 'OTHER') NOT NULL,
+  description TEXT NOT NULL,
+  status ENUM ('OPEN', 'IN_REVIEW', 'RESOLVED', 'CLOSED') DEFAULT 'OPEN',
+  resolution TEXT,
+  resolved_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  resolved_at TIMESTAMP,
+  INDEX (campaign_id),
+  INDEX (status),
+  INDEX (created_at)
+);
+
+-- REFRESH TOKENS TABLE (for session management)
+CREATE TABLE refresh_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  token_hash VARCHAR(255) NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (user_id),
+  INDEX (expires_at)
+);
+```
+
+### 7.4 Cron Jobs & Scheduled Tasks
+
+```
+SCHEDULED JOBS CONFIGURATION
 ═══════════════════════════════════════════════════════════════
 
-Zero Views Achieved
-└─ Creator still receives base fee, full performance budget refunded
-Viral Video (Views Exceed Budget)
-└─ Cap payment at maximum views purchasable, creator earns max bonus
-Creator Account Suspended Mid-Campaign
-└─ Pause campaign, founder gets full refund, find replacement creator
-Founder Payment Method Fails
-└─ Pause campaign, notify founder, block approvals until funded
-API Data Unavailable at Lock Time
-└─ Use last known count, flag for manual admin review
-Posting on Wrong Platform
-└─ Admin review, founder decides: accept or reject
-Content Violates Platform Guidelines (removed)
-└─ Founder gets refund, creator may face penalty/termination
+JOB 1: Daily View Count Sync
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Schedule: Daily at 3:00 AM UTC
+Priority: CRITICAL
+Timeout: 30 minutes
+Retries: 3 attempts with exponential backoff
 
-SECURITY & COMPLIANCE:
-═══════════════════════════════════════════════════════════════
-├─ PCI DSS Compliance (via Stripe)
-├─ GDPR & CCPA Compliance (data privacy)
-├─ SOC 2 Type II (future goal)
-├─ Encryption: AES-256 at rest, TLS 1.3 in transit
-├─ 2FA for high-value transactions
-└─ Regular security audits
-This comprehensive flow ensures:
-✓ Clear expectations for all parties
-✓ Automated processes reduce manual work
-✓ Fair dispute resolution mechanisms
-✓ Transparent payment tracking
-✓ Minimal time investment for users
-✓ High trust through escrow & verification
-✓ Scalable architecture for growth
+Process:
+1. Query all active campaigns (status = 'LIVE' or recent 'COMPLETED')
+2. For each campaign_assignment with status >= 'POSTED':
+   a. Get video_url from campaign_assignment
+   b. Extract platform (TIKTOK, INSTAGRAM, FACEBOOK)
+   c. Call appropriate API:
+      - TikTok: GET /api/v1/video/data (display API)
+        └─ Returns: view_count, engagement metrics
+      - Meta/Instagram: GET /me/media (Graph API v18.0)
+        └─ Returns: insights[0].values[0].value (views)
+      - Facebook: GET /me/videos (Graph API v18.0)
+        └─ Returns: insights for video post
+   d. Check: Is video >= 7 days old?
+      - If YES: Lock metrics, skip future syncs
+      - If NO: Update video_performances table
+   e. Calculate performance bonus (views × $4/1k)
+   f. Update creator_wallets pending_balance
+3. Generate notifications for creators (view milestones)
+4. Log all API calls to audit_logs table
+
+Error Handling:
+├─ API Rate Limit Hit: Retry with backoff, continue with next video
+├─ Invalid URL: Flag in audit logs, manual review required
+├─ API Down: Retry up to 3x, alert engineering
+└─ Network Timeout: Requeue job for next run
+
+Metrics to Track:
+├─ Total videos synced
+├─ API calls made
+├─ Success rate per platform
+├─ Views updated
+├─ Exceptions raised
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+JOB 2: Metric Lock Trigger (7-Day Mark)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Schedule: Every 6 hours (to catch all 7-day windows)
+Priority: CRITICAL
+Timeout: 15 minutes
+
+Process:
+1. Query video_performances where:
+   - metric_locked = FALSE
+   - posted_date <= NOW() - INTERVAL 7 days 1 hour
+2. For each video ready to lock:
+   a. Lock final view count: metric_locked = TRUE
+   b. Calculate creator bonus: final_views × $4.00/1k
+   c. Update performance_bonuses table: status = LOCKED
+   d. Trigger Phase 2 Settlement (see JOB 3)
+3. Update campaign_performances: metric_lock_timestamp
+4. Mark campaign status: If all videos locked, METRIC_LOCKED
+5. Send notifications to creators & founders
+
+Logging:
+├─ Each video locked with timestamp
+├─ Bonus amounts calculated
+├─ Settlement trigger initiated
+└─ Notifications sent
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+JOB 3: Phase 2 Settlement & Payment Processing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Schedule: Triggered after JOB 2 (metric lock)
+Priority: CRITICAL
+Timeout: 20 minutes
+Retries: Automatic with exponential backoff
+
+Process:
+1. For each campaign with all metrics locked:
+   a. Calculate totals:
+      ├─ Total views achieved (sum all videos)
+      ├─ Total creator bonuses owed
+      ├─ Total Nala markup earned
+      └─ Founder refund amount
+   
+   b. Initiate Stripe transfers in sequence:
+      ├─ For each creator:
+      │  └─ stripe.transfers.create({
+      │      amount: bonus_amount * 100 (cents),
+      │      currency: 'usd',
+      │      destination: creator.stripe_account_id,
+      │      description: f"Performance bonus - {campaign.title}",
+      │      metadata: {campaign_id, creator_id}
+      │    })
+      │
+      ├─ Founder refund:
+      │  └─ stripe.refunds.create({
+      │      charge_id: campaign_funding.stripe_charge_id,
+      │      amount: refund_amount * 100,
+      │      reason: "unspent_creator_credit"
+      │    })
+      │
+      └─ (Nala markup automatically retained in platform account)
+   
+   c. Update database:
+      ├─ performance_bonuses: status = PAID
+      ├─ payout_transactions: Create records for each payout
+      ├─ creator_wallets: available_balance += bonus
+      ├─ campaigns: status = COMPLETED
+      └─ campaign_performances: settlement_completed_timestamp
+   
+   d. Send confirmation emails:
+      ├─ To creators: "Payment processed! Arrives in 1-3 business days"
+      ├─ To founder: "Campaign complete! Refund of $X processed"
+      └─ To Nala admin: Settlement confirmation & revenue summary
+
+2. Handle payment failures:
+   └─ If Stripe transfer fails:
+      ├─ Retry up to 3 times with increasing delays
+      ├─ Create dispute record if persistent failure
+      ├─ Alert engineering team
+      └─ Mark payout_transaction: status = FAILED
+
+Logging:
+├─ Each Stripe API call (request & response)
+├─ Transfer IDs & timestamps
+├─ Calculated amounts for audit
+└─ Any failures or retries
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+JOB 4: Auto-Approve Content (Deadline Exceeded)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Schedule: Every 4 hours
+Priority: HIGH
+Timeout: 10 minutes
+
+Process:
+1. Query campaign_assignments where:
+   - status = REVISION_REQUESTED
+   - current_revision_deadline < NOW()
+   - auto_approve_enabled = TRUE
+2. For each expired revision:
+   a. Set status = APPROVED_AUTO
+   b. Trigger Phase 1 Payout (base fee to creator)
+   c. Send notification to creator: "Revision deadline passed, draft auto-approved!"
+   d. Send notification to founder: "Draft auto-approved per policy"
+3. Log each auto-approval with reason
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+JOB 5: Cleanup & Maintenance
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Schedule: Weekly (Sunday 2:00 AM UTC)
+Priority: MEDIUM
+
+Tasks:
+├─ Delete expired refresh_tokens
+├─ Archive completed campaigns > 90 days old
+├─ Compress video draft files (move to glacier storage)
+├─ Generate weekly performance reports
+└─ Clean up Redis cache (expired sessions)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+JOB 6: KYC Verification Reminders
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Schedule: Daily at 9:00 AM UTC
+Priority: MEDIUM
+
+Process:
+1. Query creators where kyc_status = PENDING
+2. For each creator:
+   a. If pending > 7 days: Send reminder email
+   b. If pending > 14 days: Restrict brief access
+   c. If pending > 30 days: Suspend account
+```
 
 ---
 
-## Appendix: Quick Reference Tables
+## 8. SECURITY & COMPLIANCE REQUIREMENTS
 
-### A. User Actions & System Responses
+### 8.1 Authentication & Authorization
 
-| User Action | System Response Time | Notifications Sent |
-|------------|---------------------|-------------------|
-| Sign up | Immediate | Email verification |
-| Connect social account | 2-5 seconds | Success confirmation |
-| Submit draft | < 30 seconds (upload) | Founder notified |
-| Approve content | < 2 minutes | Creator + payment |
-| Post video + submit URL | < 10 seconds | Founder notified |
-| Daily view update | 12:00 AM EST daily | Real-time dashboard |
-| 7-day lock | Within 5 minutes | Both parties emailed |
-| Refund processing | 5-7 business days | Email confirmation |
+```
+AUTHENTICATION FLOW
+═══════════════════════════════════════════════════════════════
 
-### B. Payment Timeline
+1. Registration:
+   ├─ Password: Min 12 chars, 1 uppercase, 1 number, 1 special char
+   ├─ Email verification: 24-hour link expiration
+   ├─ Rate limit: 5 failed registrations per IP/hour
+   └─ Store: password_hash (bcrypt, cost=12)
 
-| Event | Timing | Amount | Recipient |
-|-------|--------|--------|----------|
-| Campaign funding | At launch | $1,000 | Escrow |
-| Base fee payment | On approval | $75/video | Creator |
-| Performance bonus | 7 days post-publish | $4/1k views | Creator |
-| Nala markup | 7 days post-publish | $1/1k views | Nala |
-| Founder refund | 7 days post-publish | Unused budget | Founder |
+2. Login:
+   ├─ Rate limit: 5 failed attempts = 15-minute lockout
+   ├─ Return: JWT access token (15-min expiry) + refresh token (7-day)
+   ├─ Store refresh_tokens in DB (revocable)
+   └─ Log: All login attempts with IP address
 
-### C. Support Response Times (SLA)
+3. Session Management:
+   ├─ Access token: Stored in memory (SPA) or HTTP-only cookie (web)
+   ├─ Refresh token: HTTP-only, secure, sameSite=Strict
+   ├─ CSRF protection: Double-submit cookie for POST/PUT/DELETE
+   └─ Session timeout: 15 minutes of inactivity
 
-| Issue Severity | First Response | Resolution Target |
-|---------------|---------------|------------------|
-| Critical (payment failure) | 15 minutes | 2 hours |
-| High (dispute) | 1 hour | 24 hours |
-| Medium (technical issue) | 4 hours | 48 hours |
-| Low (general question) | 24 hours | 5 business days |
+4. Two-Factor Authentication (Optional, required for Admin):
+   ├─ Method: Time-based OTP (TOTP) or SMS
+   ├─ Setup: QR code + backup codes
+   └─ Enforcement: Admin tier only (initially)
+
+5. OAuth Social Login (Future):
+   ├─ TikTok OAuth: For creator account linking
+   ├─ Meta OAuth: For Instagram/Facebook account linking
+   └─ Scopes: Read-only access to public profile + analytics
+```
+
+### 8.2 Data Security
+
+```
+ENCRYPTION & PRIVACY
+═══════════════════════════════════════════════════════════════
+
+At Rest:
+├─ Database: AES-256 encryption (RDS encryption)
+├─ S3 files: Server-side encryption (SSE-S3)
+├─ Government IDs: Extra encryption layer + separate key vault
+└─ Payment tokens: Never stored (PCI-DSS via Stripe)
+
+In Transit:
+├─ HTTPS/TLS 1.3 everywhere
+├─ Certificate pinning for mobile apps
+├─ API calls: All encrypted
+└─ Webhooks: HMAC signature verification
+
+PII Data Handling:
+├─ Government IDs: Stored only for verification, deleted after 90 days
+├─ Bank account info: Via Stripe Connect (not stored directly)
+├─ Phone numbers: Hashed with salt for SMS
+└─ Email: Indexed but not searchable publicly
+
+Data Retention Policy:
+├─ Campaign data: Retained for 3 years (tax compliance)
+├─ Video drafts: Deleted 30 days after campaign completion
+├─ Audit logs: Retained for 7 years
+├─ Personal data: Deleted upon account deletion (except legal holds)
+└─ Disputes: Retained for 2 years minimum
+
+Payment Data (PCI-DSS Level 1):
+├─ Zero storage of card numbers
+├─ All card processing via Stripe Connect
+├─ Stripe account ID stored (tokenized)
+└─ Annual PCI-DSS audit required
+```
+
+### 8.3 Compliance Requirements
+
+```
+REGULATORY COMPLIANCE
+═══════════════════════════════════════════════════════════════
+
+GDPR (EU Users):
+├─ Consent: Explicit opt-in for marketing emails
+├─ Right to Access: Export user data (JSON format)
+├─ Right to Deletion: Full account + data removal
+├─ Right to Portability: Download data in standard format
+└─ Privacy Policy: 45+ days notice before changes
+
+CCPA (California Users):
+├─ Disclosure: Clear privacy policy
+├─ User Rights: Access, delete, opt-out sale of personal info
+└─ Compliance: Annual CCPA audit
+
+KYC/AML (Anti-Money Laundering):
+├─ Creator verification:
+│  ├─ Identity verification (government ID)
+│  ├─ Address verification
+│  └─ Sanction list screening (SDN list)
+├─ Transaction monitoring:
+│  └─ Flag suspicious patterns (velocity, amount anomalies)
+└─ Record keeping: All KYC docs retained 5 years
+
+1099 Tax Compliance:
+├─ Threshold: $20,000 + 200 transactions in a year
+├─ Reporting: IRS Form 1099-NEC to creators
+├─ Creator threshold check: Automated annual
+└─ Documentation: Stored securely for 7 years
+
+Content Rights & Licensing:
+├─ UGC Rights License: Generated upon Phase 2 settlement
+├─ Perpetual use rights for founder
+├─ Creator retains attribution rights
+└─ License stored in campaign_assignments table
+
+Payment Regulations:
+├─ No payment to sanctioned countries/persons
+├─ Transaction limits: None (compliant with AML)
+├─ Chargeback protection: Clear terms & conditions
+└─ Refund policy: Unspent budget auto-refunded (transparent)
+```
+SECTION 13: ADMIN DASHBOARD & MANAGEMENT FEATURES
+13.1 Admin Module Overview
+Role: Sarah (Nala Admin)
+Responsibility: Platform governance, creator/founder verification, dispute resolution, compliance, revenue monitoring, system health
+Key Functions:
+
+Creator & Founder account management (verification, suspension, banning)
+Campaign oversight & intervention
+Dispute resolution & escalation
+Revenue tracking & financial reconciliation
+Platform compliance & audit trails
+System health monitoring & alerts
+Content policy enforcement
+Payment troubleshooting
+
+
+13.2 Admin Dashboard - Main Overview
+Feature A-101: Admin Dashboard Home (Overview)
+Priority: P0 (Critical)
+Description: Executive dashboard showing platform health, key metrics, and quick-action items for admin.
+Acceptance Criteria:
+✓ Real-time metrics displayed (auto-refresh every 60 seconds)
+✓ Platform health status indicators (API, DB, Stripe, view sync)
+✓ Today's GMV (Gross Merchandise Volume) displayed prominently
+✓ Active campaigns counter + breakdown by status
+✓ New creator applications (verification queue)
+✓ Pending disputes + resolution needed count
+✓ Failed payments + manual interventions needed
+✓ Alerts widget (critical issues highlighted in red)
+✓ Quick actions: Create announcement, broadcast email, system status
+✓ Search bar: Find user, campaign, transaction by ID
+✓ Date range selector for all metrics (default: today, last 7 days, last 30 days)
+Dashboard Layout:
+┌─────────────────────────────────────────────────────────────────┐
+│ NALA ADMIN DASHBOARD                                       🔔 🔧│
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ 📊 KEY METRICS (Live)              ⚙️ SYSTEM STATUS              │
+│ ├─ Today's GMV: $47,230            ├─ API: ✅ Healthy           │
+│ ├─ Active Campaigns: 142            ├─ Database: ✅ Healthy      │
+│ ├─ Creators Online: 312             ├─ Stripe: ✅ Connected      │
+│ ├─ Founders Online: 48              ├─ View Sync: ✅ Last run 30m│
+│ └─ Payouts Processed Today: $12,450 └─ All Systems: GO ✅        │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ ⚠️ URGENT ALERTS (4 items need attention)                        │
+│ ┌──────────────────────────────────────────────────────────────┐│
+│ │ 🔴 Payment Processing Error (3 payouts failed)              ││
+│ │    Amount: $2,340 | Creators: John Smith, Mary Jane, ...   ││
+│ │    Action: [Investigate] [Manual Payout] [Email Creators]  ││
+│ │                                                              ││
+│ │ 🟡 KYC Verification Pending (127 creators waiting)          ││
+│ │    Oldest: 8 days pending                                  ││
+│ │    Action: [Batch Review] [Auto-Approve] [Send Reminders]  ││
+│ │                                                              ││
+│ │ 🟡 Open Disputes (5 active)                                 ││
+│ │    Latest: Creator vs Founder payment mismatch              ││
+│ │    Action: [Review] [Escalate] [Auto-Resolve]              ││
+│ │                                                              ││
+│ │ 🔴 Potential Fraud Alert                                    ││
+│ │    Creator "UserXYZ123" posted 50 videos in 4 hours         ││
+│ │    Action: [Review] [Suspend] [Investigate]                ││
+│ └──────────────────────────────────────────────────────────────┘│
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ 📈 CAMPAIGN ACTIVITY (Last 7 Days)                              │
+│ ├─ Launched: 34 campaigns                                      │
+│ ├─ Completed: 28 campaigns                                     │
+│ ├─ Avg Budget: $1,245                                          │
+│ └─ Refund Rate: 34% (trending up ⚠️)                            │
+│                                                                  │
+│ 👥 CREATOR ACTIVITY (Live)                                      │
+│ ├─ New Signups Today: 12                                       │
+│ ├─ KYC Verified: 8                                             │
+│ ├─ Suspended: 0                                                │
+│ ├─ Avg Base Fee: $52                                           │
+│ └─ Top Earner Today: Mary (+$4,200 in bonuses)                │
+│                                                                  │
+│ 💰 FINANCIAL SUMMARY (Last 30 Days)                             │
+│ ├─ Total GMV: $1,243,500                                       │
+│ ├─ Nala Revenue: $12,435                                       │
+│ ├─ Creator Payouts: $742,000                                   │
+│ ├─ Founder Refunds: $380,200                                   │
+│ └─ Platform Fee %: 1.00% ✅                                     │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│ [Quick Actions]                                                  │
+│ [📢 Broadcast Message] [⚙️ System Config] [📊 Reports] [🔍 Audit]│
+└─────────────────────────────────────────────────────────────────┘
+Data Model:
+admin_dashboard_metrics (Cached in Redis, updated every 60s)
+├─ todays_gmv: decimal
+├─ active_campaigns: integer
+├─ creators_online: integer
+├─ founders_online: integer
+├─ payouts_processed_today: decimal
+├─ system_status: object {api, db, stripe, view_sync}
+├─ alerts: array [{severity, type, count, action_items}]
+├─ campaign_activity: object {launched, completed, avg_budget}
+├─ creator_activity: object {new_signups, kyc_verified, suspended}
+└─ financial_summary: object {gmv, revenue, payouts, refunds}
+
+Feature A-102: Creator Management Console
+Priority: P0 (Critical)
+Description: Comprehensive creator account management, verification, and compliance monitoring.
+Acceptance Criteria:
+✓ View all creators with sortable columns (name, email, rating, status, earnings)
+✓ Filter by: verification status (pending, verified, rejected), platform, location
+✓ Search by: creator name, email, creator_id
+✓ View creator details: Profile, social accounts, bank info, KYC docs, campaigns
+✓ Batch actions: Approve KYC, Reject, Suspend, Ban, Email, Export
+✓ Inline KYC approval/rejection
+✓ Suspend creator (temporary, campaigns paused, earnings frozen)
+✓ Ban creator (permanent, all campaigns closed, refund issued)
+✓ View creator's earning history + timeline
+✓ See all campaigns creator participated in
+✓ Manual earnings adjustment (with audit trail + reason)
+✓ Activity log per creator (last 30 days)
+✓ Export creator data (CSV) for reporting
+Creator Management Interface:
+┌─────────────────────────────────────────────────────────────────┐
+│ CREATOR MANAGEMENT                              Filter  Search  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ Filters: [All Status ▼] [All Platforms ▼] [All Locations ▼]   │
+│ KYC Status: [PENDING: 47] [VERIFIED: 312] [REJECTED: 8] [BANNED: 3]
+│                                                                  │
+│ CREATOR LIST:                                                    │
+│ ┌────┬──────────────┬─────────────────┬────────┬────────┬──────┐│
+│ │ID  │ Name         │ Email           │ Rating │ Status │ Earn ││
+│ ├────┼──────────────┼─────────────────┼────────┼────────┼──────┤│
+│ │1   │ Mary Johnson │ mary@email.com  │ 4.8★   │ ✅VER  │ $12k││
+│ │    │              │                 │        │        │      ││
+│ │    │ TikTok: 45K followers | Instagram: 28K followers       ││
+│ │    │ Campaigns: 23 | Completion Rate: 95%                   ││
+│ │    │ [View Details] [Suspend] [Ban] [Earnings History]      ││
+│ │    │                                                          ││
+│ ├────┼──────────────┼─────────────────┼────────┼────────┼──────┤│
+│ │2   │ John Smith   │ john@email.com  │ 4.5★   │ ⏳PEND │ $450││
+│ │    │              │                 │        │        │      ││
+│ │    │ TikTok: 12K followers | Instagram: 5.2K followers     ││
+│ │    │ Campaigns: 3 | Completion Rate: 100%                  ││
+│ │    │ KYC Documents: [View] [Approve] [Reject]              ││
+│ │    │ [View Details] [Suspend] [Ban] [Earnings History]     ││
+│ │    │                                                          ││
+│ ├────┼──────────────┼─────────────────┼────────┼────────┼──────┤│
+│ │3   │ Sarah Chen   │ sarah@email.com │ 4.2★   │ ⛔SUSP │ $8.3k││
+│ │    │              │                 │        │        │      ││
+│ │    │ TikTok: 8.5K followers | Instagram: 12K followers     ││
+│ │    │ Campaigns: 5 | Completion Rate: 80%                   ││
+│ │    │ Suspended Since: Nov 10 (Reason: Multiple late posts)  ││
+│ │    │ [View Details] [Reactivate] [Ban] [Earnings History]  ││
+│ │    │                                                          ││
+│ └────┴──────────────┴─────────────────┴────────┴────────┴──────┘│
+│                                                                  │
+│ [✓ Batch Actions] ▼ For Selected (2 creators):                 │
+│ [Approve KYC] [Reject KYC] [Suspend All] [Ban All] [Email All]│
+│                                                                  │
+│ [Showing 1-10 of 328] [< Previous] [Next >]                    │
+│ [Export CSV] [Export PDF]                                      │
+└─────────────────────────────────────────────────────────────────┘
+Creator Detail View:
+┌─────────────────────────────────────────────────────────────────┐
+│ CREATOR DETAILS: Mary Johnson                             [< Back]│
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ PROFILE INFORMATION                                              │
+│ ├─ Creator ID: uuid-12345                                       │
+│ ├─ Email: mary@email.com                                        │
+│ ├─ Name: Mary Johnson                                           │
+│ ├─ Phone: +1-555-0123                                           │
+│ ├─ Joined: Nov 10, 2024                                         │
+│ ├─ Status: ✅ VERIFIED                                          │
+│ ├─ Overall Rating: 4.8/5.0 (23 campaigns)                      │
+│ └─ Profile Completeness: 100%                                   │
+│                                                                  │
+│ KYC VERIFICATION                                                 │
+│ ├─ Identity Verified: ✅ Yes                                    │
+│ │  └─ ID Type: US Passport | Verified: Nov 12, 2024           │
+│ ├─ Address Verified: ✅ Yes                                     │
+│ │  └─ Address: 123 Main St, Los Angeles, CA 90210             │
+│ ├─ Sanction Check: ✅ Clear (SDN list)                          │
+│ ├─ Status: VERIFIED (Nov 12, 2024)                              │
+│ └─ [Re-Verify] [Reject] [Flag for Review]                      │
+│                                                                  │
+│ SOCIAL ACCOUNTS                                                  │
+│ ├─ TikTok: @maryj | Followers: 45K | Verified: ✅              │
+│ ├─ Instagram: @maryj123 | Followers: 28K | Verified: ✅        │
+│ └─ Facebook: /maryj | Followers: 12K | Verified: ✅            │
+│                                                                  │
+│ BANK ACCOUNT (via Stripe Connect)                               │
+│ ├─ Stripe Account ID: acct_xxx...xxx                            │
+│ ├─ Account Holder: Mary Johnson                                 │
+│ ├─ Status: ✅ Active                                            │
+│ ├─ Bank: Chase Bank (ending: 4532)                              │
+│ └─ [Update] [Verify] [Disconnect]                              │
+│                                                                  │
+│ EARNINGS SUMMARY                                                 │
+│ ├─ Total Earnings: $12,450.50                                   │
+│ ├─ Lifetime Base Fees: $1,150                                   │
+│ ├─ Lifetime Bonuses: $11,300.50                                 │
+│ ├─ Available Balance: $245.75                                   │
+│ ├─ Pending (< 7 days): $0                                       │
+│ ├─ Last Payout: $2,345 on Nov 15, 2024                         │
+│ └─ [Adjust Earnings] [Force Payout] [View Transaction History] │
+│                                                                  │
+│ CAMPAIGN HISTORY                                                 │
+│ ├─ Total Campaigns: 23                                          │
+│ ├─ Completion Rate: 95%                                         │
+│ ├─ Avg Views per Video: 52,340                                 │
+│ ├─ Avg Base Fee: $50                                            │
+│ └─ [View All Campaigns] [View Details]                         │
+│                                                                  │
+│ PERFORMANCE METRICS                                              │
+│ ├─ Avg Rating from Founders: 4.9/5.0                            │
+│ ├─ Content Approval Rate: 98% (first draft approved)            │
+│ ├─ On-Time Posting Rate: 100%                                   │
+│ ├─ Late Post Incidents: 0                                       │
+│ └─ Dispute Count: 0                                             │
+│                                                                  │
+│ ACTIVITY LOG (Last 30 Days)                                      │
+│ ├─ Nov 20: Posted video for Campaign XYZ (26.5k views)         │
+│ ├─ Nov 19: Draft approved for Campaign ABC                      │
+│ ├─ Nov 18: Submitted draft for Campaign ABC                     │
+│ ├─ Nov 15: Payout $2,345 processed (Stripe)                    │
+│ ├─ Nov 14: Applied for Campaign XYZ                             │
+│ └─ [View Full Activity] [Export Log]                           │
+│                                                                  │
+│ ADMIN ACTIONS                                                    │
+│ ├─ [✅ Suspend] [❌ Ban] [⚙️ Edit] [📧 Email] [📋 Notes]         │
+│ │                                                                │
+│ │ Internal Notes:                                               │
+│ │ ┌─────────────────────────────────────────────────────────┐  │
+│ │ │ Top performer. Consistent quality. Monitor for new...  │  │
+│ │ │ [Save Notes]                                            │  │
+│ │ └─────────────────────────────────────────────────────────┘  │
+│ │                                                                │
+│ └─ [Restrict Platforms] [Change Base Rate Limit] [Manual Verify]
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+Data Model:
+creator_details_view:
+├─ creator_id: UUID
+├─ user_info: {email, name, phone, joined_date, status}
+├─ kyc_verification: {identity, address, sanction_check, status}
+├─ social_accounts: array [{platform, username, followers, verified}]
+├─ stripe_connect: {account_id, holder_name, status, bank_info}
+├─ earnings: {total, base_fees, bonuses, available, pending, last_payout}
+├─ campaigns: {total, completion_rate, avg_views, avg_fee}
+├─ performance: {avg_rating, approval_rate, on_time_rate, disputes}
+├─ activity_log: array [{timestamp, action, details}]
+└─ admin_notes: text
+
+Feature A-103: Founder Management Console
+Priority: P0 (Critical)
+Description: Founder account management, campaign oversight, and dispute handling.
+Acceptance Criteria:
+✓ View all founders with sortable columns (name, company, campaigns, spend)
+✓ Filter by: status (active, suspended, banned), spend tier, location
+✓ Search by: founder name, email, company name
+✓ View founder details: Profile, campaigns, spending history, payment methods
+✓ View founder's campaigns: List with status, budget, performance
+✓ Suspend founder (temporary, cannot create campaigns, refund pending)
+✓ Ban founder (permanent, all campaigns refunded, accounts frozen)
+✓ Manual refund processing (if payment failed)
+✓ Contact founder: Email, SMS notifications
+✓ Activity log per founder (last 30 days)
+✓ Spending analytics: Budget allocation, refund rates, campaign success
+✓ Export founder data (CSV) for reporting
+Founder Management Interface:
+┌─────────────────────────────────────────────────────────────────┐
+│ FOUNDER MANAGEMENT                              Filter  Search  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ Filters: [All Status ▼] [All Tiers ▼] [All Regions ▼]          │
+│ Status: [ACTIVE: 156] [SUSPENDED: 3] [BANNED: 1]               │
+│                                                                  │
+│ FOUNDER LIST:                                                    │
+│ ┌────┬──────────────┬─────────────────┬─────────┬──────────────┐│
+│ │ID  │ Name         │ Company         │ Spend   │ Campaigns    ││
+│ ├────┼──────────────┼─────────────────┼─────────┼──────────────┤│
+│ │1   │ Mike Chen    │ Acme SaaS       │ $24.5k  │ 12 completed ││
+│ │    │              │                 │         │  2 active    ││
+│ │    │ Email: mike@acme.com                                    ││
+│ │    │ Joined: Aug 2024 | Status: ✅ ACTIVE | Tier: Gold      ││
+│ │    │ Avg Budget: $2,145 | Total Refunds: $3,240 (13%)       ││
+│ │    │ [View Details] [Campaigns] [Payment Methods] [Suspend] ││
+│ │    │                                                          ││
+│ ├────┼──────────────┼─────────────────┼─────────┼──────────────┤│
+│ │2   │ Sarah Khan   │ TechStartup     │ $8,340  │ 5 completed  ││
+│ │    │              │                 │         │  1 active    ││
+│ │    │ Email: sarah@tech.io                                    ││
+│ │    │ Joined: Sep 2024 | Status: ✅ ACTIVE | Tier: Silver    ││
+│ │    │ Avg Budget: $1,668 | Total Refunds: $540 (6%)          ││
+│ │    │ [View Details] [Campaigns] [Payment Methods] [Suspend] ││
+│ │    │                                                          ││
+│ ├────┼──────────────┼─────────────────┼─────────┼──────────────┤│
+│ │3   │ John Patel   │ Innovation Co   │ $1,200  │ 1 active     ││
+│ │    │              │                 │         │              ││
+│ │    │ Email: john@innovation.com                              ││
+│ │    │ Joined: Oct 2024 | Status: ⛔ SUSPENDED | Reason: Late ││
+│ │    │                                        Payments         ││
+│ │    │ Avg Budget: $1,200 | Total Refunds: $0                 ││
+│ │    │ [View Details] [Campaigns] [Payment Methods] [Reactivate]
+│ │    │                                                          ││
+│ └────┴──────────────┴─────────────────┴─────────┴──────────────┘│
+│                                                                  │
+│ [✓ Batch Actions] ▼ For Selected (1 founder):                  │
+│ [Email] [Suspend] [Ban] [Force Refund] [Restrict Budget]       │
+│                                                                  │
+│ [Showing 1-10 of 160] [< Previous] [Next >]                    │
+│ [Export CSV] [Export PDF]                                      │
+└─────────────────────────────────────────────────────────────────┘
+Founder Detail View:
+┌─────────────────────────────────────────────────────────────────┐
+│ FOUNDER DETAILS: Mike Chen (Acme SaaS)                    [< Back]│
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ PROFILE INFORMATION                                              │
+│ ├─ Founder ID: uuid-54321                                       │
+│ ├─ Name: Mike Chen                                              │
+│ ├─ Email: mike@acme.com                                         │
+│ ├─ Phone: +1-555-0456                                           │
+│ ├─ Company: Acme SaaS Inc.                                      │
+│ ├─ Company Website: www.acme.com                                │
+│ ├─ Joined: Aug 15, 2024                                         │
+│ ├─ Status: ✅ ACTIVE                                            │
+│ ├─ Tier: GOLD (High-Value Customer)                             │
+│ └─ Account Manager: Sarah (sarah@nala.io)                      │
+│                                                                  │
+│ SPENDING OVERVIEW                                                │
+│ ├─ Total Spent (All-Time): $24,540                              │
+│ ├─ Monthly Average: $6,135                                      │
+│ ├─ Largest Campaign: $5,200                                     │
+│ ├─ Total Refunds Issued: $3,240 (13%)                           │
+│ ├─ Estimated LTV: $45,000+ (projected over 24 months)          │
+│ └─ Refund Trend: Decreasing ✅ (was 18% → now 13%)             │
+│                                                                  │
+│ PAYMENT METHODS                                                  │
+│ ├─ Preferred Card: Visa ending 4242                             │
+│ │  └─ Status: ✅ Valid | Exp: 12/2026                           │
+│ ├─ Backup Card: Amex ending 3782                                │
+│ │  └─ Status: ✅ Valid | Exp: 08/2025                           │
+│ ├─ Bank Transfer: Available (Jack's Bank)                       │
+│ └─ [Update Methods] [Add New] [Remove]                         │
+│                                                                  │
+│ CAMPAIGN HISTORY                                                 │
+│ ├─ Total Campaigns: 14 (12 completed, 2 active)                │
+│ ├─ Completion Rate: 86%                                         │
+│ ├─ Avg Budget: $1,753                                           │
+│ ├─ Avg Campaign Duration: 7.2 days                              │
+│ ├─ Total Views Generated: 890,450                               │
+│ ├─ Avg ROI (based on refunds): 87%                              │
+│ └─ [View All Campaigns]                                        │
+│                                                                  │
+│ RECENT CAMPAIGNS:                                                │
+│ ┌────────────────────────────────────────────────────────────┐  │
+│ │ Campaign: Acme Product Launch (Nov 25-Dec 2)              │  │
+│ │ Status: ✅ COMPLETED | Videos: 5 | Budget: $1,250        │  │
+│ │ Total Views: 87,450 | Refund Issued: $312.75 ✓           │  │
+│ │ Creators: 5 (Mary, John, Lisa, Sarah, Tom)                │  │
+│ │ [View Details] [Re-Launch Similar]                        │  │
+│ │                                                              │  │
+│ │ Campaign: Summer Features Demo (Nov 18-25)                │  │
+│ │ Status: ✅ COMPLETED | Videos: 3 | Budget: $800          │  │
+│ │ Total Views: 45,230 | Refund Issued: $120 ✓              │  │
+│ │ Creators: 3                                                 │  │
+│ │ [View Details]                                             │  │
+│ │                                                              │  │
+│ │ Campaign: Black Friday Special (ACTIVE)                    │  │
+│ │ Status: 🔵 LIVE | Videos: 4 | Budget: $1,500            │  │
+│ │ Current Views: 145,670 | Projected Refund: $145          │  │
+│ │ Days Remaining: 2 (Metric lock Nov 28)                    │  │
+│ │ [View Details] [Pause] [Cancel]                           │  │
+│ └────────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│ CREATOR RELATIONSHIPS                                            │
+│ ├─ Favorite Creators: Mary (5 campaigns), John (3 campaigns)   │
+│ ├─ Avg Content Approval Time: 18 hours                          │
+│ ├─ Disputes with Creators: 0                                   │
+│ └─ Creator Satisfaction: Excellent (no complaints)             │
+│                                                                  │
+│ ACTIVITY LOG (Last 30 Days)                                      │
+│ ├─ Nov 25: Campaign "Acme Launch" completed + refund processed │
+│ ├─ Nov 25: Approved content from creators (5 videos)           │
+│ ├─ Nov 24: Created new campaign "Black Friday Special"         │
+│ ├─ Nov 24: Paid $1,500 escrow for new campaign                │
+│ ├─ Nov 20: Viewed campaign performance dashboard               │
+│ └─ [View Full Activity] [Export Log]                           │
+│                                                                  │
+│ ADMIN ACTIONS                                                    │
+│ ├─ [📧 Email] [⏸️ Suspend] [❌ Ban] [✏️ Edit] [💰 Manual Refund]│
+│ │                                                                │
+│ │ Internal Notes:                                               │
+│ │ ┌─────────────────────────────────────────────────────────┐  │
+│ │ │ Excellent customer. High repeat rate. Strong content │  │
+│ │ │ approval rates. Consider for priority support tier. │  │
+│ │ │ [Save Notes]                                         │  │
+│ │ └─────────────────────────────────────────────────────────┘  │
+│ │                                                                │
+│ └─ [Restrict Campaign Budget] [Whitelist for Beta] [VIP Status]
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+Feature A-104: Dispute Management & Resolution
+Priority: P0 (Critical)
+Description: Comprehensive dispute handling system for founder-creator conflicts, payment issues, and quality concerns.
+Acceptance Criteria:
+✓ View all disputes with filters: status (open, in_review, resolved, closed)
+✓ Dispute types: Payment mismatch, Content quality, Late posting, Fraud, Other
+✓ Display: Campaign info, parties involved, issue description, timestamp
+✓ Escalation levels: AUTO (system resolution), MANUAL (admin review), LEGAL (lawyer)
+✓ Resolution options: Auto-refund, Manual adjustment, Mediation, System ruling
+✓ Chat/communication thread with both parties within dispute
+✓ Attach evidence: Screenshots, video links, payment proofs
+✓ Manual payout/refund override (with audit trail)
+✓ Mediation: Proposed resolution, acceptance from both parties
+✓ Close dispute with resolution notes
+✓ Export dispute report for legal review
+✓ Analytics: Dispute rate trends, common issues, resolution times
+Dispute Management Interface:
+┌─────────────────────────────────────────────────────────────────┐
+│ DISPUTE MANAGEMENT                              Filter  Search  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ Filters: [All Status ▼] [All Types ▼] [Date Range ▼]           │
+│ Status: [OPEN: 5] [IN_REVIEW: 3] [RESOLVED: 12] [CLOSED: 28]  │
+│                                                                  │
+│ OPEN DISPUTES (Requiring Action
+##############################################
+
+## 9. TESTING & VALIDATION REQUIREMENTS
+
+### 9.1 Test Coverage
+
+```
+UNIT TESTS (80% coverage target)
+═══════════════════════════════════════════════════════════════
+- Payment calculation functions
+- View count aggregation
+- Bonus calculation (views × rate)
+- Refund amount calculation
+- User permission checks
+- Email template rendering
+
+INTEGRATION TESTS (API Routes)
+═══════════════════════════════════════════════════════════════
+- Creator registration → Profile completion → Brief application
+- Founder campaign creation → Payment → Brief posting
+- API → Database → Stripe webhook synchronization
+- Cron jobs: View sync, metric lock, settlement
+
+E2E TESTS (User Workflows)
+═══════════════════════════════════════════════════════════════
+Scenario 1: Complete Happy Path
+├─ Founder: Create campaign → Fund → Assign creators → Approve content
+├─ Creators: Apply → Accept → Upload draft → Submit URL → Track performance
+├─ System: Sync views → Lock metrics → Process payments → Settle
+└─ Verification: All balances correct, all notifications sent
+
+Scenario 2: Revision Workflow
+├─ Content review → Request revision → Creator re-uploads → Approve
+└─ Verification: Base fee paid after final approval
+
+Scenario 3: Early Settlement
+├─ Creator requests early payout (before day 7)
+└─ Verification: Correct bonus amount accrued
+
+Scenario 4: Error Recovery
+├─ Payment fails → Retry → Success
+├─ API timeout → Retry → Success
+└─ Creator late posting → Flagged → Manual review
+
+LOAD TESTING
+═══════════════════════════════════════════════════════════════
+- 1,000 concurrent campaigns active
+- Daily view sync for 5,000 videos
+- Payment processing for 500+ payouts
+- Target: < 2 second response time (p95)
+
+SECURITY TESTING
+═══════════════════════════════════════════════════════════════
+- SQL injection attempts
+- CSRF token validation
+- Unauthorized endpoint access
+- Payment tampering attempts
+- Data leakage via error messages
+
+PERFORMANCE TESTING
+═══════════════════════════════════════════════════════════════
+- Dashboard load: < 1 second (< 500ms target)
+- Video upload: Handle 1GB files without timeout
+- API throughput: 1,000 requests/second sustained
+- Database queries: All < 100ms (p95)
+```
 
 ---
 
-**End of Detailed User Flows Document**
+## 10. SUCCESS METRICS & KPIs
 
-*This document should be used in conjunction with the Product Requirements Document (PRD) for complete platform understanding.*
-│# Nala Platform - Detailed User Flows
+```
+BUSINESS KPIs
+═══════════════════════════════════════════════════════════════
 
-## Table of Contents
-1. [Creator Onboarding Flow](#1-creator-onboarding-flow)
-2. [Founder Campaign Creation Flow](#2-founder-campaign-creation-flow)
-3. [Content Creation & Review Flow](#3-content-creation--review-flow)
-4. [Payment Processing Flow](#4-payment-processing-flow)
-5. [Performance Tracking Flow](#5-performance-tracking-flow)
-6. [Dispute Resolution Flow](#6-dispute-resolution-flow)
+Financial:
+├─ GMV (Gross Merchandise Volume): $1M+ (Year 1)
+├─ Revenue (Nala markup): $10k+ (Year 1)
+├─ Average campaign budget: $500-$2,000
+├─ Cost per acquisition (Creator): $50
+└─ Customer LTV (Founder): $5,000+
 
----
+Volume:
+├─ Campaigns launched: 100+ per month (by Month 6)
+├─ Creator base: 500+ verified (by Month 6)
+├─ Founder base: 200+ active (by Month 6)
+├─ Total videos produced: 1,000+ per month
+└─ Total views generated: 50M+ per month
 
-## 1. Creator Onboarding Flow
+Performance:
+├─ Average views per video: 50k
+├─ View achievement %: 75%+ of maximum purchasable
+├─ Creator repeat rate: 50%+ (3+ campaigns)
+├─ Founder repeat rate: 60%+ (2+ campaigns)
+└─ Platform uptime: 99.9%+
 
-### 1.1 Account Registration
+Quality:
+├─ Payment accuracy: 99.99% (no errors)
+├─ View tracking accuracy: 99.95%
+├─ Creator approval rate: 70%+ (first draft approval)
+├─ Dispute rate: < 2%
+└─ Creator satisfaction: 4.5/5.0 avg rating
 
-**Entry Point:** Landing page → "Sign Up as Creator" button
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Basic Information                                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Creator enters:                                             │
-│  • Full Name                                                │
-│  • Email Address                                            │
-│  • Password (8+ chars, 1 number, 1 special)                │
-│  • Confirm Password                                         │
-│                                                             │
-│ [Checkbox] I agree to Terms of Service & Privacy Policy    │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Validate email format and uniqueness                    │
-│  2. Hash password (bcrypt)                                  │
-│  3. Create user record (role: 'creator')                    │
-│  4. Send verification email                                 │
-│  5. Create empty creator_profile record                     │
-│  6. Generate session token                                  │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Email Verification                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Screen: "Check your email"                                  │
-│  📧 We sent a verification link to mary@email.com          │
-│                                                             │
-│ Creator clicks link in email →                              │
-│                                                             │
-│ System Actions:                                             │
-│  1. Verify token from email link                            │
-│  2. Update user.email_verified = true                       │
-│  3. Redirect to platform onboarding                         │
-└─────────────────────────────────────────────────────────────┘
+Engagement:
+├─ Creator onboarding completion: 85%+
+├─ Creator monthly active rate: 60%+
+├─ Brief application rate: 20+ per brief (avg)
+├─ Content revision requests: < 1.5 per video avg
+└─ Founder dashboard engagement: 3+ logins per week
 
-### 1.2 Social Media Account Connection
+OPERATIONAL KPIs
+═══════════════════════════════════════════════════════════════
 
-**Critical Path:** This determines creator eligibility
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Connect Your Platforms                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Connect your social accounts to start earning"             │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 🎵 TikTok         [Connect Account]   Not Connected │   │
-│ │    Minimum: 10,000 followers                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📸 Instagram      [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ │    ⚠️ Requires Business Account                     │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 👍 Facebook       [Connect Account]   Not Connected │   │
-│ │    Minimum: 5,000 followers                         │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Note: Connect at least one platform to continue            │
-│                                                             │
-│ [Skip for now]  [Continue]  ← Disabled until 1 connected   │
-└─────────────────────────────────────────────────────────────┘
+Speed:
+├─ Creator onboarding time: < 24 hours
+├─ Brief-to-assignment time: < 48 hours
+├─ Content approval time: 24-72 hours avg
+├─ Payout processing time: 1-3 business days
+└─ Settlement timing: 7 days locked + 1 day payout
 
-#### 1.2.1 TikTok Connection Sub-Flow
-Creator clicks "Connect Account" on TikTok
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ POPUP: TikTok OAuth                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Generate OAuth state token (CSRF protection)            │
-│  2. Redirect to TikTok Login Kit:                           │
-│     https://www.tiktok.com/auth/authorize/                  │
-│     ?client_key={CLIENT_KEY}                                │
-│     &scope=user.info.basic,video.list,video.insights        │
-│     &response_type=code                                     │
-│     &redirect_uri={CALLBACK_URL}                            │
-│     &state={STATE_TOKEN}                                    │
-│                                                             │
-│ Creator sees TikTok login screen →                          │
-│  • Logs into TikTok (if not already)                        │
-│  • Reviews permissions request                              │
-│  • Clicks "Authorize"                                       │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ CALLBACK: TikTok Returns to Nala                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Receive authorization code                              │
-│  2. Verify state token (prevent CSRF)                       │
-│  3. Exchange code for access token:                         │
-│     POST https://open-api.tiktok.com/oauth/access_token/    │
-│  4. Fetch user profile:                                     │
-│     GET /v2/user/info/                                      │
-│  5. Extract: username, follower_count, user_id              │
-│                                                             │
-│  6. Validate eligibility:                                   │
-│     IF follower_count < 10,000:                             │
-│       ❌ Show error: "Minimum 10K followers required"       │
-│       STOP                                                  │
-│                                                             │
-│  7. Store in database:                                      │
-│     INSERT INTO social_accounts (                           │
-│       creator_id, platform, platform_user_id,               │
-│       username, follower_count,                             │
-│       access_token [ENCRYPTED], refresh_token [ENCRYPTED],  │
-│       token_expires_at, verified_at                         │
-│     )                                                       │
-│                                                             │
-│  8. Update creator_profile.verification_status = 'verified' │
-│  9. Show success message                                    │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ SUCCESS SCREEN                                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ✅ TikTok Connected Successfully!                           │
-│                                                             │
-│ @marythcreator                                              │
-│ 47,234 followers                                            │
-│                                                             │
-│ [Connect Another Platform]  [Continue →]                    │
-└─────────────────────────────────────────────────────────────┘
+Reliability:
+├─ API uptime: 99.95%
+├─ Payment success rate: 99.9%
+├─ View sync success rate: 98%+
+├─ Email delivery rate: 98%+
+└─ Support response time: < 4 hours
 
-#### 1.2.2 Instagram Connection Sub-Flow
-
-**Note:** More complex due to Business Account requirement
-Creator clicks "Connect Account" on Instagram
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 1: Check Account Type                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Do you have an Instagram Business or Creator Account?"     │
-│                                                             │
-│ [Yes, I have a Business Account] → Continue to OAuth        │
-│ [No, I have a Personal Account] → Show conversion guide     │
-│                                                             │
-│ IF "No" selected:                                           │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ ℹ️  How to Convert to Business Account:            │   │
-│ │                                                     │   │
-│ │ 1. Open Instagram app                              │   │
-│ │ 2. Go to Settings → Account                        │   │
-│ │ 3. Select "Switch to Professional Account"         │   │
-│ │ 4. Choose "Business"                               │   │
-│ │ 5. Connect to Facebook Page                        │   │
-│ │                                                     │   │
-│ │ [Watch Video Tutorial]  [I've Converted]           │   │
-│ └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 2: Facebook Login (Required for Instagram)             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Redirect to Facebook OAuth:                             │
-│     https://www.facebook.com/v18.0/dialog/oauth             │
-│     ?client_id={APP_ID}                                     │
-│     &redirect_uri={CALLBACK}                                │
-│     &scope=instagram_basic,instagram_manage_insights,       │
-│             pages_read_engagement                           │
-│                                                             │
-│ Creator:                                                    │
-│  • Logs into Facebook                                       │
-│  • Selects connected Instagram Business Account            │
-│  • Grants permissions                                       │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 3: Fetch Instagram Data                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ System Actions:                                             │
-│  1. Exchange code for access token                          │
-│  2. Get Instagram Business Account ID:                      │
-│     GET /{facebook-page-id}?fields=instagram_business_accou │
-│     nt                                                      │
-│  3. Get Instagram profile data:                             │
-│     GET /{ig-user-id}?fields=username,followers_count       │
-│                                                             │
-│  4. Validate:                                               │
-│     IF followers_count < 5,000:                             │
-│       ❌ Error: "Minimum 5K followers required"             │
-│     IF account_type != 'BUSINESS':                          │
-│       ❌ Error: "Business account required"                 │
-│                                                             │
-│  5. Store data (same as TikTok flow)                        │
-└─────────────────────────────────────────────────────────────┘
-
-### 1.3 Profile Setup
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 4: Set Your Rates                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "How much do you charge per video?"                         │
-│                                                             │
-│ TikTok Base Fee:                                            │
-│ [$75] ◄────●────────────────► [$500]                       │
-│  $50                                  Max                   │
-│                                                             │
-│ 💡 Most creators charge: $75-$150                           │
-│ 📊 Your potential earnings for 100K views:                  │
-│     Base Fee: $75 + Performance: $400 = $475 total          │
-│                                                             │
-│ Instagram Base Fee:                                         │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ Facebook Base Fee:                                          │
-│ [$75] ◄────●────────────────► [$500]                       │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile with base fees                    │
-│  • Calculate average fee for matching algorithm             │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 5: Build Your Portfolio                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Upload 3-10 sample videos to showcase your style"          │
-│                                                             │
-│ [Drag & Drop Videos Here]                                   │
-│  or [Browse Files]                                          │
-│                                                             │
-│ Uploaded (2/10):                                            │
-│ ┌─────────┐  ┌─────────┐                                   │
-│ │ [Video] │  │ [Video] │  [+ Add More]                     │
-│ │  30s    │  │  45s    │                                   │
-│ └─────────┘  └─────────┘                                   │
-│                                                             │
-│ For each video:                                             │
-│  • Title: [Product Review - SaaS Tool]                      │
-│  • Platform: [TikTok ▼]                                     │
-│                                                             │
-│ [Skip for now]  [Continue →]                                │
-│                                                             │
-│ System Actions:                                             │
-│  1. Upload to S3 (max 500MB per video)                      │
-│  2. Generate thumbnail (frame at 2s)                        │
-│  3. Transcode to web format (H.264, 720p)                   │
-│  4. Store metadata in creator_profile.portfolio_videos      │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 6: Category & Bio                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ What niches do you specialize in? (Select all that apply)   │
-│                                                             │
-│ ☑ SaaS & Software    ☐ E-commerce     ☐ Health & Fitness   │
-│ ☑ B2B Tech           ☐ Beauty         ☐ Food & Beverage    │
-│ ☐ Finance            ☐ Fashion        ☐ Gaming             │
-│                                                             │
-│ Tell brands about yourself: (500 char max)                  │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Hi! I'm Mary, a tech enthusiast who creates          │   │
-│ │ engaging video reviews for SaaS products. My         │   │
-│ │ audience loves honest, detailed breakdowns...        │   │
-│ │                                                      │   │
-│ │ 347/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ [Back]  [Complete Setup →]                                  │
-│                                                             │
-│ System Actions:                                             │
-│  • Update creator_profile.categories                        │
-│  • Update creator_profile.bio                               │
-│  • Set profile_completed = true                             │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ STEP 7: Payment Setup (Stripe Connect)                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ "Last step: Set up payouts"                                 │
-│                                                             │
-│ Nala uses Stripe to send you payments securely.             │
-│                                                             │
-│ [Connect Stripe Account]                                    │
-│                                                             │
-│ System Actions:                                             │
-│  1. Create Stripe Connect Express account link:             │
-│     POST /v1/account_links                                  │
-│     type: 'account_onboarding'                              │
-│  2. Redirect creator to Stripe hosted onboarding            │
-│                                                             │
-│ Creator completes on Stripe:                                │
-│  • Personal information (name, DOB, SSN)                    │
-│  • Business details (if applicable)                         │
-│  • Bank account for deposits                                │
-│  • Identity verification (photo ID)                         │
-│                                                             │
-│ Stripe redirects back to Nala with account_id               │
-│                                                             │
-│ System Actions:                                             │
-│  1. Store stripe_account_id in users table                  │
-│  2. Verify account capabilities:                            │
-│     - transfers: 'active'                                   │
-│     - card_payments: 'active' (if needed)                   │
-│  3. Mark creator as payment_ready = true                    │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ 🎉 SUCCESS: You're All Set!                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Your creator profile is live!                               │
-│                                                             │
-│ ✅ TikTok connected (47K followers)                         │
-│ ✅ Base fee set ($75/video)                                 │
-│ ✅ Portfolio added (2 videos)                               │
-│ ✅ Payments ready                                           │
-│                                                             │
-│ Next steps:                                                 │
-│ • Brands will discover your profile                         │
-│ • You'll receive brief invitations                          │
-│ • Start earning with performance-based pay!                 │
-│                                                             │
-│ [Go to Dashboard →]                                         │
-└─────────────────────────────────────────────────────────────┘
+Adoption:
+├─ Creator verification completion: 80%+
+├─ Founder payment success: 95%+
+├─ Brief completion rate: 85%+
+└─ Video posting rate: 90%+
+```
 
 ---
 
-## 2. Founder Campaign Creation Flow
+## 11. ROLLOUT & DEPLOYMENT PLAN
 
-### 2.1 Campaign Initiation
+### Phase 1: Closed Alpha (Month 1)
+```
+├─ 10 founders (hand-selected)
+├─ 50 creators (influencer pool)
+├─ Focus: Core workflow validation
+├─ Daily monitoring & feedback
+└─ Iterate on UX/payment flow
+```
 
-**Entry Point:** Dashboard → "Create Campaign" button
-┌─────────────────────────────────────────────────────────────┐
-│ Create New Campaign                     [Save Draft] [Exit] │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ Progress: ●──○──○──○──○──○  Step 1 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 1: Campaign Basics                                     │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Campaign Name: *                                            │
-│ [Q4 Product Launch Campaign                              ] │
-│                                                             │
-│ What are you promoting?                                     │
-│ [ProductivityPro - AI-powered task management SaaS       ] │
-│                                                             │
-│ Target Audience:                                            │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Professionals aged 25-40, interested in              │   │
-│ │ productivity tools, remote workers, small business   │   │
-│ │ owners.                                              │   │
-│ │                                                      │   │
-│ │ 178/500 characters                                   │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Campaign Goal:                                              │
-│ ○ Brand Awareness    ● Website Traffic    ○ Signups        │
-│ ○ Sales              ○ App Downloads                        │
-│                                                             │
-│ [Continue →]                                                │
-│                                                             │
-│ System Actions:                                             │
-│  • Auto-save every 30 seconds                               │
-│  • Create draft campaign record                             │
-│  • Status: 'draft'                                          │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──○──○──○──○  Step 2 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 2: Content Requirements                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ How many videos do you need?                                │
-│ [5▼] videos                                                 │
-│  (Min: 1, Max: 10 per campaign)                             │
-│                                                             │
-│ Preferred video length:                                     │
-│ ○ 15 seconds     ● 30 seconds                               │
-│ ○ 60 seconds     ○ Creator's choice                         │
-│                                                             │
-│ Which platforms? (Select all that apply)                    │
-│ ☑ TikTok    ☑ Instagram Reels    ☐ Facebook Reels          │
-│                                                             │
-│ Video style preference:                                     │
-│ ☑ Product Tutorial    ☐ Unboxing    ☐ Testimonial          │
-│ ☐ Behind the Scenes   ☐ Comparison                          │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Update campaign.videos_requested = 5                     │
-│  • Store platform preferences in brief_data JSONB           │
-│  • Calculate estimated budget preview                       │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──○──○──○  Step 3 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 3: Creative Brief                                      │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ Key Talking Points: (What should the creator highlight?)    │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ • AI-powered task prioritization                    │   │
-│ │ • Integrates with 50+ tools (Slack, Gmail, etc)     │   │
-│ │ • Saves 2 hours per day on average                  │   │
-│ │ • Free 14-day trial available                       │   │
-│ │                                                      │   │
-│ │ [+ Add Point]                                        │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Brand Guidelines: (Upload PDF, images, or describe)         │
-│ [📄 Brand_Guidelines.pdf] [✓ Uploaded]  [Remove]           │
-│ [+ Upload Assets] (Logo, product images, etc.)              │
-│                                                             │
-│ Do's:                          │ Don'ts:                    │
-│ • Be authentic                 │ • Compare to competitors   │
-│ • Show real use cases          │ • Make health claims       │
-│ • Use trending audio           │ • Show competitor logos    │
-│ [+ Add]                        │ [+ Add]                    │
-│                                                             │
-│ Required Hashtags/Mentions:                                 │
-│ [#ProductivityPro #AItools @productivitypro_official     ] │
-│                                                             │
-│ Reference Videos: (Optional - paste URLs)                   │
-│ [https://tiktok.com/@competitor/video/123                ] │
-│ [+ Add Another]                                             │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Store all data in campaign.brief_data (JSONB)            │
-│  • Upload brand assets to S3                                │
-│  • Generate brief preview PDF                               │
-└─────────────────────────────────────────────────────────────┘
+### Phase 2: Closed Beta (Month 2)
+```
+├─ 50 founders
+├─ 200 creators
+├─ Focus: Platform stability at scale
+├─ Run full settlement cycles
+├─ Gather testimonials & case studies
+└─ Prepare public launch materials
+```
 
-### 2.2 Posting Schedule & Budget Configuration
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──○──○  Step 4 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 4: Posting Schedule                                    │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ When should the first video go live?                        │
-│ [Nov 25, 2025 ▼]  📅                                        │
-│  (Minimum 5 days from today for creator prep)               │
-│                                                             │
-│ How often should videos be posted?                          │
-│ ● One per day           ○ Every other day                   │
-│ ○ Every 3 days          ○ Weekly                            │
-│ ○ Custom schedule                                           │
-│                                                             │
-│ 📅 Your Posting Calendar:                                   │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ Video 1:  Nov 25 (Mon) 📱 TikTok                    │   │
-│ │ Video 2:  Nov 26 (Tue) 📱 TikTok                    │   │
-│ │ Video 3:  Nov 27 (Wed) 📸 Instagram                 │   │
-│ │ Video 4:  Nov 28 (Thu) 📸 Instagram                 │   │
-│ │ Video 5:  Nov 29 (Fri) 📱 TikTok                    │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Preferred posting time: (Optional)                          │
-│ [09:00 AM ▼]  [EST ▼]                                       │
-│                                                             │
-│ [← Back]  [Continue →]                                      │
-│                                                             │
-│ System Actions:                                             │
-│  • Calculate posting dates                                  │
-│  • Store in campaign.start_date, posting_frequency          │
-│  • Validate timeline (min 5 days buffer)                    │
-└─────────────────────────────────────────────────────────────┘
-↓
-┌─────────────────────────────────────────────────────────────┐
-│ Progress: ●──●──●──●──●──○  Step 5 of 6                    │
-│                                                             │
-│ ═══════════════════════════════════════════════════════════ │
-│ STEP 5: Budget Configuration                                │
-│ ═══════════════════════════════════════════════════════════ │
-│                                                             │
-│ 💰 Set Your Total Budget                                    │
-│                                                             │
-│ Total Campaign Budget:                                      │
-│ $ [1000.00]                                                 │
-│   (Minimum: $500 | Maximum: $50,000)                        │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────┐   │
-│ │ 📊 BUDGET BREAKDOWN                                  │   │
-│ │                                                      │   │
-│ │ Fixed Production Costs:         $250.00 (25%)       │   │
-│ │ └─ 5 videos × $50 base fee                          │   │
-│ │                                                      │   │
-│ │ Variable Performance Budget:    $750.00 (75%)       │   │
-│ │ └─ Pays for actual views achieved                   │   │
-│ │                                                      │   │
-│ │ ─────────────────────────────────────────────────   │   │
-│ │                                                      │   │
-│ │ Maximum Views You Can Purchase:                     │   │
-│ │ 150,000 views @ $5.00 per 1,000                     │   │
-│ │                                                      │   │
-│ │ ═════════════════════════════════════════════════   │   │
-│ │                                                      │   │
-│ │ 💡 How Performance Budget Works:                    │   │
-│ │                                                      │   │
-│ │ If videos achieve 120K views (80% of max):          │   │
-│ │  • You pay: $250 + $600 = $850                      │   │
-│ │  • You save: $150 (refunded automatically)          │   │
-│ │                                                      │   │
-│ │ If videos achieve 150K views (100% of max):         │   │
-│ │  • You pay: $250 + $750 = $1,000 (full budget)      │   │
-│ │  • You save: $0 (great performance!)                │   │
-│ └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│ ☑ I understand that:                                        │
-│    • Base fees are paid when I approve content              │
-│    • Performance budget is charged based on actual views    │
-│    • Unused budget is refunded automatically after 7 days   │
-│                                                             │
-│ [← Back]  [Continue to Creator Selection →]                 │
-│                                                             │
-│ System Actions:                                             │
-│  • Validate budget (min $500)                               │
-│  • Calculate: base_fee_budget, performance_budget           │
-│  • Store in campaigns table                                 │
-│  • Update max_views_purchasable                             │
-└─────────────────────────────────────────────────────────────┘
+### Phase 3: Open Beta (Month 3)
+```
+├─ Unrestricted signups
+├─ Focus: Viral loop & organic growth
+├─ Optimize conversion funnels
+├─ Expand creator supply
+├─ Monitor churn & engagement
+└─ Prepare for scale
+```
 
+### Phase 4: General Availability (Month 4+)
+```
+├─ Full marketing launch
+├─ Paid acquisition campaigns
+├─ Premium features & tiers (future)
+├─ International expansion prep
+└─ Scale infrastructure
+```
 
+---
 
+## 12. APPENDIX
+
+### A. Glossary of Terms
+
+```
+UGC: User-Generated Content
+KYC: Know Your Customer (identity verification)
+AML: Anti-Money Laundering
+Escrow: Funds held by third party until conditions met
+GMV: Gross Merchandise Volume (total value processed)
+LTV: Lifetime Value (average revenue per user over lifetime)
+DAU: Daily Active Users
+MAU: Monthly Active Users
+CAC: Customer Acquisition Cost
+Metric Lock: Point at which view counts become immutable (7-day mark)
+Phase 1 Payout: Base fee payment to creator (upon approval)
+Phase 2 Settlement: Performance bonus + refund (upon metric lock)
+Brief: Campaign requirements document created by founder
+Assignment: Creator assigned to produce video(s) for specific brief
+```
+
+### B. Error Codes & Handling
+
+```
+AUTHENTICATION ERRORS
+─────────────────────────────────────────────────────────
+401 Unauthorized: Invalid or expired token
+└─ Action: Redirect to login, clear local storage
+
+403 Forbidden: User lacks permission
+└─ Action: Show "Access Denied" message
+
+429 Too Many Requests: Rate limit exceeded
+└─ Action: Show "Please wait X seconds", retry button
+
+─────────────────────────────────────────────────────────
+
+PAYMENT ERRORS
+─────────────────────────────────────────────────────────
+402 Payment Failed: Card declined, insufficient funds
+└─ Action: Show error from Stripe, allow retry
+
+409 Conflict: Campaign already funded
+└─ Action: Redirect to campaign dashboard
+
+422 Unprocessable Entity: Invalid amount/currency
+└─ Action: Show validation error, allow correction
+
+─────────────────────────────────────────────────────────
+
+BUSINESS LOGIC ERRORS
+─────────────────────────────────────────────────────────
+400 Invalid State: Action not allowed in current state
+└─ Example: Approving already-approved content
+└─ Action: Show "This action is no longer available"
+
+400 Insufficient Balance: Creator requesting payout > balance
+└─ Action: Show available balance, suggest waiting
+
+400 Deadline Passed: Cannot upload draft after deadline
+└─ Action: Show "Deadline passed", contact founder
+
+404 Not Found: Resource doesn't exist
+└─ Action: Show "Not found", redirect to list view
+
+─────────────────────────────────────────────────────────
+
+EXTERNAL API ERRORS
+─────────────────────────────────────────────────────────
+503 Service Unavailable: TikTok/Meta API down
+└─ Action: Log error, queue for retry, show user notice
+
+504 Gateway Timeout: API taking too long to respond
+└─ Action: Retry up to 3x, flag for manual review
+
+400 Invalid URL: Posted video URL not found on platform
+└─ Action: Ask creator to verify URL, resubmit
+
+─────────────────────────────────────────────────────────
+
+SYSTEM ERRORS
+─────────────────────────────────────────────────────────
+500 Internal Server Error: Unexpected server error
+└─ Action: Log to Sentry, show generic message, offer support
+
+503 Service Unavailable: Database down, Redis down
+└─ Action: Show maintenance page, queue requests
+
+Database Connection Error: Cannot connect to database
+└─ Action: Alert engineering, log incident, show user-friendly message
+```
+
+### C. Notification Templates
+
+```
+EMAIL TEMPLATE 1: Creator Application Accepted
+═════════════════════════════════════════════════════════
+Subject: You're Assigned! - {{campaign.title}}
+
+Body:
+Hi {{creator.first_name}},
+
+Great news! {{founder.company_name}} selected you for their campaign:
+
+📋 Campaign: {{campaign.title}}
+💰 Base Fee: ${{assignment.base_fee}} per video
+📅 Content Deadline: {{assignment.deadline | date}}
+📱 Platforms: {{campaign.platforms | join}}
+
+Your mission: Create {{campaign.number_of_videos}} amazing videos 
+showcasing {{campaign.product_name}}.
+
+👉 Get Started: [Link to Task Dashboard]
+
+What happens next?
+1. You have until {{assignment.deadline}} to upload your video drafts
+2. {{founder.company_name}} reviews and gives feedback
+3. After approval, you post the video
+4. Your earnings start accruing based on views!
+
+Questions? Reply to this email or check our Help Center.
+
+—The Nala Team
+
+═════════════════════════════════════════════════════════
+
+EMAIL TEMPLATE 2: Content Approved + Payment Sent
+═════════════════════════════════════════════════════════
+Subject: Your Draft is APPROVED! 🎉 + ${{base_fee}} Earned
+
+Body:
+Hi {{creator.first_name}},
+
+Awesome work! {{founder.company_name}} LOVED your video. 
+
+✅ Status: APPROVED
+💰 Base Fee Paid: ${{assignment.base_fee}}
+
+What's next?
+1. Post your video by {{posting_deadline}}
+2. Copy the video URL into your Nala dashboard
+3. Watch your performance bonus grow in real-time!
+
+For every 1,000 views your video gets, you earn $4.00.
+If you get 100k views, that's an extra $400! 💪
+
+Check your earnings here: [Link to Wallet]
+
+Don't forget to post by {{posting_deadline}}, or the campaign 
+will be marked late.
+
+—The Nala Team
+
+═════════════════════════════════════════════════════════
+
+EMAIL TEMPLATE 3: Campaign Complete + Payment Processed
+═════════════════════════════════════════════════════════
+Subject: Payment Processed! Campaign {{campaign.title}} Complete
+
+Body:
+Hi {{creator.first_name}},
+
+Your campaign is officially complete! 🎉
+
+📊 Final Results:
+├─ Views Achieved: {{performance.views_count | number}}
+├─ Base Fee: ${{assignment.base_fee}} ✓
+└─ Performance Bonus: ${{performance_bonus.amount}} ✓
+
+💵 Total Earned: ${{total_earned}}
+🏦 Payment Status: PROCESSING
+
+Your funds will arrive in your bank account within 1-3 business days.
+
+Keep track of all your earnings here: [Link to Wallet]
+
+Thanks for creating amazing content! We'd love to work with you again.
+
+—The Nala Team
+
+═════════════════════════════════════════════════════════
+
+SMS TEMPLATE 1: Brief Application Status
+═════════════════════════════════════════════════════════
+Hi {{creator.first_name}}! You've been selected for 
+"{{campaign.title}}" 🎉 Base fee: ${{base_fee}}.
+View details: [Short URL]
+
+═════════════════════════════════════════════════════════
+
+SMS TEMPLATE 2: Content Review Feedback
+═════════════════════════════════════════════════════════
+Hi {{creator.first_name}}! We have feedback on your 
+{{campaign.title}} draft. Check your dashboard for revision 
+details. Deadline: {{deadline | date}}
+
+═════════════════════════════════════════════════════════
+
+PUSH NOTIFICATION TEMPLATE 1: Earnings Milestone
+═════════════════════════════════════════════════════════
+Title: Your video just hit {{views | number}} views! 🚀
+Body: Bonus so far: +${{bonus_earned}}
+CTA: View Details
+
+═════════════════════════════════════════════════════════
+
+PUSH NOTIFICATION TEMPLATE 2: Payment Processed
+═════════════════════════════════════════════════════════
+Title: Payment Complete ✓
+Body: ${{amount}} arrived in your account!
+CTA: View Wallet
+
+═════════════════════════════════════════════════════════
+```
+
+### D. Stripe Integration Specifications
+
+```
+STRIPE CONNECT SETUP
+═════════════════════════════════════════════════════════
+
+Account Types:
+├─ Platform Account (Nala): Aggregates all funds, holds escrow
+└─ Connected Accounts: Individual creator accounts (Express)
+
+Connected Account Onboarding (Creator):
+├─ Stripe.connect.accountLinks.create({
+│   account: creator.stripe_account_id,
+│   type: 'account_onboarding'
+│ })
+├─ Redirect to Stripe-hosted form
+├─ Creator completes: Banking, identity, business info
+└─ Webhook: account.updated → Mark kyc_status = VERIFIED
+
+Phase 1 Payout (Base Fee):
+├─ stripe.transfers.create({
+│   amount: 5000, // $50.00 in cents
+│   currency: 'usd',
+│   destination: creator.stripe_account_id,
+│   source_transaction: charge_id,
+│   description: 'Base Fee - Acme Campaign Video 1'
+│ })
+├─ Webhook: transfer.created → Update DB, notify creator
+└─ Creator sees payout in Stripe Connect dashboard
+
+Phase 2 Payout (Performance Bonus):
+├─ stripe.transfers.create({
+│   amount: 106000, // $1,060.00 (from example: 26.5k views × $4/1k)
+│   currency: 'usd',
+│   destination: creator.stripe_account_id,
+│   source_transaction: charge_id,
+│   description: 'Performance Bonus - Acme Campaign Video 1'
+│ })
+├─ Webhook: transfer.created → Update DB, notify creator
+└─ Creator receives funds in connected bank account
+
+Founder Refund:
+├─ stripe.refunds.create({
+│   charge_id: campaign_funding.stripe_charge_id,
+│   amount: 312750, // $3,127.50 (unspent budget)
+│   reason: 'unspent_creator_credit',
+│   metadata: {campaign_id}
+│ })
+├─ Webhook: charge.refunded → Update DB, notify founder
+└─ Founder sees refund to original payment method in 3-5 days
+
+Webhook Events Monitored:
+├─ transfer.created: Creator payment initiated
+├─ transfer.paid: Creator payment confirmed (funds transferred)
+├─ transfer.failed: Transfer bounced (insufficient funds, account closed)
+├─ charge.refunded: Founder refund processed
+├─ charge.dispute.created: Chargeback initiated
+├─ account.updated: Creator KYC verification completed
+└─ connect.deauthorized: Creator revoked access
+
+Error Scenarios:
+├─ Creator account suspended: Transfer will fail, retry later
+├─ Creator bank account invalid: Stripe holds funds, auto-retry 3x
+├─ Founder card expired: Refund fails, manual intervention needed
+└─ Insufficient escrow balance: Flag for audit, escalate
+```
+
+### E. API Rate Limiting
+
+```
+RATE LIMITS BY ENDPOINT
+═════════════════════════════════════════════════════════
+
+Auth Endpoints:
+├─ POST /auth/register: 10 req/hour per IP
+├─ POST /auth/login: 5 failed attempts = 15 min lockout
+└─ POST /auth/refresh-token: 100 req/hour per user
+
+Creator Endpoints (Authenticated):
+├─ GET /creators/available-briefs: 60 req/hour
+├─ POST /creators/apply-brief: 20 req/hour
+├─ POST /creators/upload-draft: 5 req/hour (20 MB max per upload)
+└─ GET /creators/dashboard: 60 req/hour
+
+Founder Endpoints (Authenticated):
+├─ POST /founders/campaigns: 20 req/hour
+├─ GET /founders/campaigns: 100 req/hour
+└─ POST /founders/fund: 10 req/hour (prevent accidental double-charges)
+
+Admin Endpoints (Admin Only):
+├─ GET /admin/audit-logs: 10 req/hour
+└─ POST /admin/disputes: 20 req/hour
+
+Global Rate Limit:
+├─ 1,000 requests per second platform-wide
+└─ IP bans after 10,000 requests/hour from single source
+
+Redis-Based Implementation:
+├─ Token bucket algorithm with sliding window
+├─ TTL: Automatically expires bucket after inactivity
+└─ Distributed: Works across multiple API servers
+
+Response Headers:
+├─ X-RateLimit-Limit: 60
+├─ X-RateLimit-Remaining: 45
+├─ X-RateLimit-Reset: 1700000000 (Unix timestamp)
+└─ Retry-After: 300 (seconds, on 429 response)
+```
+
+### F. Monitoring & Alerting
+
+```
+KEY METRICS TO MONITOR
+═════════════════════════════════════════════════════════
+
+Real-Time Dashboards:
+├─ Active campaigns: Count + trends
+├─ Daily GMV: Revenue in progress
+├─ Payment success rate: % (target 99.9%)
+├─ View sync success: % (target 98%+)
+├─ API latency: p95 (target < 500ms)
+└─ Server errors: Count + rate
+
+Critical Alerts (Page On-Call):
+├─ Payment processing failure rate > 1%
+├─ API uptime < 95%
+├─ Database connection pool exhausted
+├─ Stripe API unavailable
+└─ View sync missing 2+ consecutive runs
+
+Warning Alerts (Slack Notification):
+├─ API latency p95 > 1 second
+├─ Error rate > 0.1%
+├─ Job queue depth > 1,000
+├─ Unverified creator payout requests > 100
+└─ Creator KYC verification pending > 48 hours
+
+Performance Tracking:
+├─ Campaign completion time (brief to settlement)
+├─ View counting accuracy vs. platform native counts
+├─ Creator onboarding drop-off rate (by stage)
+├─ Founder campaign creation drop-off (by step)
+└─ Payment processing time (average)
+
+Business Analytics:
+├─ Daily/weekly/monthly GMV
+├─ Creator earnings distribution
+├─ Founder budget distribution
+├─ Popular content categories/tones
+├─ Creator churn rate
+└─ Founder repeat rate
+```
+
+### G. Rollback Procedures
+
+```
+DATABASE MIGRATION ROLLBACK
+═════════════════════════════════════════════════════════
+
+Process:
+1. Identify issue (bad migration, data corruption)
+2. Alert engineering + ops team
+3. Stop all ongoing jobs (pause Cron jobs)
+4. Restore database from latest good backup
+5. Re-run settled transactions via audit logs
+6. Verify data integrity (count checks, balances)
+7. Resume normal operations
+8. Post-mortem analysis
+
+Backup Strategy:
+├─ Daily full backups (retained 30 days)
+├─ Hourly incremental backups (retained 7 days)
+├─ Real-time replication to standby database
+└─ Cross-region backup copy (for disaster recovery)
+
+Test Rollback Procedures:
+├─ Monthly dry-run restoration from backup
+├─ Verify payment calculations post-restore
+└─ Document time-to-recovery (target < 1 hour)
+
+─────────────────────────────────────────────────────────
+
+API ROLLBACK
+─────────────────────────────────────────────────────────
+
+Process:
+1. Monitor for increased error rates (>0.5%)
+2. Trigger automatic rollback to previous version
+3. Notify on-call + engineering team
+4. Investigate issue in parallel
+5. Fix + deploy hotfix once root cause identified
+
+Blue-Green Deployment:
+├─ v1 running on servers {A, B, C}
+├─ v2 deployed on servers {D, E, F}
+├─ Traffic routed to v2 via load balancer
+├─ If errors detected → Switch traffic back to v1
+└─ Minimal user impact (< 10 seconds)
+
+Feature Flags:
+├─ New critical features behind feature flags
+├─ Gradual rollout: 1% → 10% → 50% → 100%
+└─ Instant disable if issues detected
+```
+
+### H. Disaster Recovery Plan
+
+```
+DISASTER SCENARIOS & RESPONSES
+═════════════════════════════════════════════════════════
+
+Scenario 1: Data Center Outage
+├─ Impact: Platform down 30+ minutes
+├─ Response:
+│  ├─ Failover to backup region (automated, < 2 min)
+│  ├─ Database replication sync
+│  ├─ DNS update propagation
+│  └─ Notify users via status page
+├─ Recovery: < 15 minutes to full service
+└─ Prevention: Cross-region replication (ongoing)
+
+Scenario 2: Stripe API Unavailable
+├─ Impact: Cannot process payments/refunds
+├─ Response:
+│  ├─ Queue all payment requests
+│  ├─ Retry with exponential backoff (up to 24 hours)
+│  ├─ Send emails to affected users
+│  └─ Manual intervention by ops team
+├─ Recovery: Auto-retry when Stripe recovers
+└─ SLA: Max 24-hour delay for payments
+
+Scenario 3: TikTok/Meta API Data Corruption
+├─ Impact: Incorrect view counts tracked
+├─ Response:
+│  ├─ Stop view sync immediately
+│  ├─ Alert engineering + ops
+│  ├─ Manual audit of recent syncs
+│  ├─ Rollback corrupted data
+│  └─ Notify affected creators + founders
+├─ Recovery: Resume sync after fix deployed
+└─ Compensation: Manual review + adjustment if needed
+
+Scenario 4: Security Breach (Data Theft)
+├─ Impact: Customer data exposed
+├─ Response:
+│  ├─ Activate incident response team
+│  ├─ Isolate affected systems
+│  ├─ Notify users within 24 hours (GDPR requirement)
+│  ├─ Forensic investigation
+│  ├─ Password resets for affected users
+│  └─ Credit monitoring offers
+├─ Prevention: Regular security audits, penetration testing
+└─ Legal: Consult with legal counsel + insurance
+
+Scenario 5: Creator Mass Account Lockout
+├─ Impact: 100+ creators cannot access platform
+├─ Response:
+│  ├─ Identify root cause (auth issue, infrastructure)
+│  ├─ Temporary access via direct links
+│  ├─ Restore access within 2-4 hours
+│  ├─ Communicate status via email/SMS
+│  └─ Compensation: No impact to earnings
+├─ Prevention: Load testing, authentication failover
+└─ Monitoring: Watch for spike in login failures
+
+Recovery Time Objectives (RTOs):
+├─ Critical platform outage: RTO 15 minutes
+├─ Payment processing delay: RTO 24 hours
+├─ View data corruption: RTO 2 hours (data integrity)
+└─ Security breach: RTO 1 hour (containment)
+
+Recovery Point Objectives (RPOs):
+├─ Database: RPO 1 hour (max data loss)
+├─ Payment records: RPO 0 (no loss acceptable)
+└─ View counts: RPO 24 hours (next sync)
+```
+
+---
+
+## DOCUMENT CONTROL
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | Nov 18, 2025 | Product Team | Initial PRD (Skeletal) |
+| 2.0 | Nov 23, 2025 | AI Agent | Comprehensive expansion with detailed flows, API specs, DB schema, and implementation guide |
+
+**Status:** APPROVED FOR DEVELOPMENT
+
+**Next Review:** Upon completion of MVP (Phase 1 - Closed Alpha)
+
+**Stakeholders:**
+- Engineering Lead: [Assigned]
+- Product Manager: [Assigned]
+- Finance/Compliance: [Assigned]
+- QA Lead: [Assigned]
+
+---
+
+#

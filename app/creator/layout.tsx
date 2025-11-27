@@ -34,7 +34,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
         { name: 'Briefs', href: '/creator/briefs' },
         { name: 'My Tasks', href: '/creator/tasks' },
         { name: 'Earnings', href: '/creator/earnings' },
-        { name: 'Settings', href: '/creator/settings/connect' },
+        { name: 'Settings', href: '/creator/settings' },
     ];
 
     return (

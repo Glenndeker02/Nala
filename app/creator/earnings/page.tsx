@@ -53,124 +53,22 @@ export default function CreatorEarningsPage() {
     const fetchEarningsData = async () => {
         const token = localStorage.getItem("token");
         try {
-            // Mock data for demonstration
-            const mockSummary: EarningsSummary = {
-                totalEarnings: 515.60,
-                pendingEarnings: 100,
-                paidEarnings: 415.60,
-                baseFeeTotal: 250,
-                performanceBonusTotal: 265.60,
-                campaignsCompleted: 5,
-                averageEarningsPerCampaign: 103.12
-            };
+            const response = await fetch("/api/creator/earnings", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
 
-            const mockCampaigns: CampaignEarning[] = [
-                {
-                    id: "1",
-                    campaignName: "Acme Product Launch",
-                    founderName: "Mike Johnson",
-                    status: "POSTED",
-                    baseFee: 50,
-                    performanceBonus: 50,
-                    total: 100,
-                    views: 12500,
-                    postedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "2",
-                    campaignName: "Fitness App Promotion",
-                    founderName: "Sarah Williams",
-                    status: "COMPLETED",
-                    baseFee: 75,
-                    performanceBonus: 84,
-                    total: 159,
-                    views: 21000,
-                    postedDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-                    settledDate: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "3",
-                    campaignName: "E-commerce Store Launch",
-                    founderName: "David Chen",
-                    status: "COMPLETED",
-                    baseFee: 60,
-                    performanceBonus: 75.60,
-                    total: 135.60,
-                    views: 18900,
-                    postedDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-                    settledDate: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "4",
-                    campaignName: "Tech Startup Launch",
-                    founderName: "Emma Davis",
-                    status: "COMPLETED",
-                    baseFee: 50,
-                    performanceBonus: 56,
-                    total: 106,
-                    views: 14000,
-                    postedDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-                    settledDate: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "5",
-                    campaignName: "Beauty Product Review",
-                    founderName: "Lisa Anderson",
-                    status: "APPROVED",
-                    baseFee: 15,
-                    performanceBonus: 0,
-                    total: 15,
-                    views: 0,
-                    postedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-                }
-            ];
+            if (response.ok) {
+                const result = await response.json();
+                const data = result.data || result;
 
-            const mockPayments: PaymentHistory[] = [
-                {
-                    id: "1",
-                    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                    type: "BASE_FEE",
-                    campaignName: "Acme Product Launch",
-                    amount: 50,
-                    status: "PAID"
-                },
-                {
-                    id: "2",
-                    date: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-                    type: "PERFORMANCE_BONUS",
-                    campaignName: "Fitness App Promotion",
-                    amount: 84,
-                    status: "PAID"
-                },
-                {
-                    id: "3",
-                    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-                    type: "BASE_FEE",
-                    campaignName: "Fitness App Promotion",
-                    amount: 75,
-                    status: "PAID"
-                },
-                {
-                    id: "4",
-                    date: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(),
-                    type: "PERFORMANCE_BONUS",
-                    campaignName: "E-commerce Store Launch",
-                    amount: 75.60,
-                    status: "PAID"
-                },
-                {
-                    id: "5",
-                    date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-                    type: "PERFORMANCE_BONUS",
-                    campaignName: "Acme Product Launch",
-                    amount: 50,
-                    status: "PENDING"
-                }
-            ];
-
-            setSummary(mockSummary);
-            setCampaigns(mockCampaigns);
-            setPayments(mockPayments);
+                setSummary(data.summary);
+                setCampaigns(data.campaigns);
+                setPayments(data.payments);
+            } else {
+                console.error("Failed to fetch earnings");
+            }
         } catch (error) {
             console.error("Error fetching earnings:", error);
         } finally {
@@ -368,8 +266,8 @@ export default function CreatorEarningsPage() {
                                                     <p className="text-sm text-gray-600">{campaign.founderName}</p>
                                                 </div>
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${campaign.status === "COMPLETED"
-                                                        ? "bg-green-50 text-green-700 border border-green-200"
-                                                        : "bg-purple-50 text-purple-700 border border-purple-200"
+                                                    ? "bg-green-50 text-green-700 border border-green-200"
+                                                    : "bg-purple-50 text-purple-700 border border-purple-200"
                                                     }`}>
                                                     {campaign.status}
                                                 </span>

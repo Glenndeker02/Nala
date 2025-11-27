@@ -4,62 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import FounderContentLibrary from "@/app/founder/components/ContentLibrary";
 
-// Placeholder components for additional dashboard sections
-function PerformanceOverview() {
-  return (
-    <Card className="hover:shadow-xl transition-all duration-200 border-2 hover:border-primary-DEFAULT">
-      <CardHeader>
-        <CardTitle>Performance Overview</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 text-sm text-gray-600">
-        {/* TODO: integrate analytics data */}
-        <p>Analytics charts and KPIs will appear here.</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function RecentCreatorActivity() {
-  return (
-    <Card className="hover:shadow-xl transition-all duration-200 border-2 hover:border-primary-DEFAULT">
-      <CardHeader>
-        <CardTitle>Recent Creator Activity</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 text-sm text-gray-600">
-        {/* Placeholder list */}
-        <p>No recent activity.</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function PendingApprovals() {
-  return (
-    <Card className="hover:shadow-xl transition-all duration-200 border-2 hover:border-primary-DEFAULT">
-      <CardHeader>
-        <CardTitle>Pending Approvals</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 text-sm text-gray-600">
-        <p>No pending approvals.</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function MessagesNotifications() {
-  return (
-    <Card className="hover:shadow-xl transition-all duration-200 border-2 hover:border-primary-DEFAULT">
-      <CardHeader>
-        <CardTitle>Messages & Notifications</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 text-sm text-gray-600">
-        <p>No new messages.</p>
-      </CardContent>
-    </Card>
-  );
-}
+// New Components
+import CampaignOverviewCard from "@/app/founder/components/dashboard/CampaignOverviewCard";
+import PerformanceAnalyticsCard from "@/app/founder/components/dashboard/PerformanceAnalyticsCard";
+import ContentLibraryCard from "@/app/founder/components/dashboard/ContentLibraryCard";
+import UpcomingDeadlinesCard from "@/app/founder/components/dashboard/UpcomingDeadlinesCard";
+import NotificationsCard from "@/app/founder/components/dashboard/NotificationsCard";
+import CreatorActivityCard from "@/app/founder/components/dashboard/CreatorActivityCard";
+import WeeklySummaryCard from "@/app/founder/components/dashboard/WeeklySummaryCard";
+import SuggestionsCard from "@/app/founder/components/dashboard/SuggestionsCard";
 
 type Campaign = {
   id: string;
@@ -119,111 +73,111 @@ export default function FounderDashboard() {
   if (!user) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main>
-        <div className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
-          <div className="px-4 sm:px-0">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
-              <p className="mt-2 text-gray-600">Manage your campaigns and track performance</p>
-            </div>
-
-            {/* Action Button */}
-            <div className="mb-8">
-              <Link href="/founder/campaigns/create">
-                <Button size="lg" className="shadow-md">
-                  + Create New Campaign
-                </Button>
-              </Link>
-            </div>
-
-            {/* Grid of dashboard cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {/* Active Campaigns Card */}
-              <Card className="hover:shadow-xl transition-all duration-200 border-2 hover:border-primary-DEFAULT">
-                <CardHeader>
-                  <CardTitle>Active Campaigns</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {loading ? (
-                    <div className="p-8 text-center text-gray-500">Loading campaigns...</div>
-                  ) : campaigns.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <p className="text-gray-500 text-lg mb-2">No campaigns yet</p>
-                      <p className="text-gray-400 text-sm">Create your first campaign to get started!</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {campaigns.map((campaign) => (
-                        <div key={campaign.id} className="p-6 hover:bg-gray-50 transition-colors">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-3">
-                                <h3 className="text-lg font-bold text-gray-900">{campaign.name}</h3>
-                                <span
-                                  className={`text-xs px-3 py-1 rounded-full font-medium ${campaign.status === "ACTIVE"
-                                    ? "bg-green-50 text-green-700 border border-green-200"
-                                    : campaign.status === "COMPLETED"
-                                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                      : "bg-gray-50 text-gray-700 border border-gray-200"}`}
-                                >
-                                  {campaign.status}
-                                </span>
-                              </div>
-
-                              <div className="flex gap-6 text-sm text-gray-600 mb-4">
-                                <div>
-                                  <span className="font-medium text-gray-900">Budget:</span> ${campaign.totalBudget.toLocaleString()}
-                                </div>
-                                <div>
-                                  <span className="font-medium text-gray-900">Videos:</span> {campaign.videosCompleted}/{campaign.videosRequested}
-                                </div>
-                                <div>
-                                  <span className="font-medium text-gray-900">Created:</span> {new Date(campaign.createdAt).toLocaleDateString()}
-                                </div>
-                              </div>
-
-                              <div className="flex gap-4">
-                                <Link href={`/founder/campaigns/${campaign.id}`} className="text-sm text-primary-DEFAULT hover:text-primary-600 font-medium transition-colors">
-                                  View Details →
-                                </Link>
-                                <Link href={`/founder/campaigns/${campaign.id}/edit`} className="text-sm text-primary-DEFAULT hover:text-primary-600 font-medium transition-colors">
-                                  Edit Campaign →
-                                </Link>
-                                <Link href={`/founder/campaigns/${campaign.id}/applications`} className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                                  Applications
-                                </Link>
-                                <Link href={`/founder/campaigns/${campaign.id}/review`} className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                                  Review Videos
-                                </Link>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Performance Overview Card */}
-              <PerformanceOverview />
-
-              {/* Content Library Card */}
-              <FounderContentLibrary />
-
-              {/* Recent Creator Activity Card */}
-              <RecentCreatorActivity />
-
-              {/* Pending Approvals Card */}
-              <PendingApprovals />
-
-              {/* Messages & Notifications Card */}
-              <MessagesNotifications />
-            </div>
+    <div className="min-h-screen bg-gray-50/50">
+      <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+            <p className="mt-1 text-gray-500">Welcome back, {user.firstName || 'Founder'}. Here's what's happening today.</p>
+          </div>
+          <div className="flex gap-3">
+            <Link href="/founder/campaigns/create">
+              <Button size="lg" className="shadow-sm bg-primary-600 hover:bg-primary-700 text-white border-none">
+                + New Campaign
+              </Button>
+            </Link>
           </div>
         </div>
+
+        {/* Top Stats Row - All on same Y-axis */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="lg:col-span-2">
+            <CampaignOverviewCard />
+          </div>
+          <div className="lg:col-span-1">
+            <WeeklySummaryCard />
+          </div>
+          <div className="lg:col-span-1">
+            <SuggestionsCard />
+          </div>
+        </div>
+
+        {/* Second Row - Deadlines, Notifications, Creator Activity on same Y-axis */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <UpcomingDeadlinesCard />
+          <NotificationsCard />
+          <CreatorActivityCard />
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 gap-8">
+
+          {/* Performance and Active Campaigns Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            {/* Performance Chart */}
+            <div className="h-full">
+              <PerformanceAnalyticsCard />
+            </div>
+
+            {/* Active Campaigns List */}
+            <Card className="h-full border-none shadow-sm flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">
+                <CardTitle className="text-lg font-semibold text-gray-800">Active Campaigns</CardTitle>
+                <Link href="/founder/campaigns" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                  View All
+                </Link>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 overflow-y-auto">
+                {loading ? (
+                  <div className="p-8 text-center text-gray-500">Loading campaigns...</div>
+                ) : campaigns.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <p className="text-gray-500 text-lg mb-2">No campaigns yet</p>
+                    <p className="text-gray-400 text-sm">Create your first campaign to get started!</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {campaigns.slice(0, 5).map((campaign) => (
+                      <div key={campaign.id} className="p-5 hover:bg-gray-50 transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="text-base font-semibold text-gray-900">{campaign.name}</h3>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wide ${campaign.status === "ACTIVE" ? "bg-green-100 text-green-700" :
+                                campaign.status === "COMPLETED" ? "bg-blue-100 text-blue-700" :
+                                  "bg-gray-100 text-gray-700"
+                                }`}>
+                                {campaign.status}
+                              </span>
+                            </div>
+                            <div className="flex gap-4 text-sm text-gray-500">
+                              <span>${campaign.totalBudget.toLocaleString()} Budget</span>
+                              <span>•</span>
+                              <span>{campaign.videosCompleted}/{campaign.videosRequested} Videos</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Link href={`/founder/campaigns/${campaign.id}`}>
+                              <Button variant="outline" size="sm" className="text-xs">View Details</Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Content Library */}
+          <div className="mt-20">
+            <ContentLibraryCard />
+          </div>
+        </div>
+
       </main>
     </div>
   );

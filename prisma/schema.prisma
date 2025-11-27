@@ -67,6 +67,16 @@ model User {
   savedFormats      CreatorFormatLibrary[]
   formatRecommendations FormatRecommendation[]
 
+  // Phase 4-6 Relations
+  conversationParticipants ConversationParticipant[]
+  sentMessages          Message[]
+  activities            Activity[]
+  assets                Asset[]
+  submittedVersions     VideoVersion[]       @relation("SubmittedVersions")
+  reviewedVersions      VideoVersion[]       @relation("ReviewedVersions")
+  grantedLicenses       License[]            @relation("LicenseGrantee")
+  assignedVariants      UGCVariant[]
+
   @@map("users")
 }
 
@@ -241,6 +251,10 @@ model Campaign {
   disputes              Dispute[]
   applications          Application[]
 
+  conversations         Conversation[]
+  assets                Asset[]
+  variants              UGCVariant[]
+
   @@index([founderId, status])
   @@map("campaigns")
 }
@@ -301,6 +315,7 @@ model Video {
   viewSnapshots         ViewSnapshot[]
   payments              Payment[]
   revisions             Revision[]
+  versions              VideoVersion[]
   licenses              License[]
   disputes              Dispute[]
 
@@ -947,4 +962,204 @@ model FormatRecommendation {
 
   @@index([creatorId])
   @@map("format_recommendations")
+}
+
+// ============================================
+// MESSAGING & CONVERSATIONS (Phase 4)
+// ============================================
+
+model Conversation {
+  id            String                    @id @default(uuid())
+  campaignId    String?                   @map("campaign_id")
+  campaign      Campaign?                 @relation(fields: [campaignId], references: [id])
+  participants  ConversationParticipant[]
+  messages      Message[]
+  lastMessageAt DateTime?                 @map("last_message_at")
+  createdAt     DateTime                  @default(now()) @map("created_at")
+  
+  @@index([campaignId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String       @map("user_id")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt     DateTime?    @map("last_read_at")
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+  
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String       @map("sender_id")
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String       @db.Text
+  attachments    Json?
+  readBy         String[]     @default([]) @map("read_by")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ============================================
+// ACTIVITY FEEDS (Phase 4)
+// ============================================
+
+model Activity {
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        ActivityType
+  entityType  String       @map("entity_type")
+  entityId    String       @map("entity_id")
+  title       String
+  description String?
+  metadata    Json?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@map("activities")
+}
+
+enum ActivityType {
+  CAMPAIGN_CREATED
+  VIDEO_SUBMITTED
+  VIDEO_APPROVED
+  PAYMENT_SENT
+  APPLICATION_SUBMITTED
+  MILESTONE_REACHED
+}
+
+// ============================================
+// ASSET MANAGEMENT (Phase 5)
+// ============================================
+
+model Asset {
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         AssetType
+  name         String
+  url          String
+  thumbnailUrl String?    @map("thumbnail_url")
+  fileSize     Int        @map("file_size")
+  mimeType     String     @map("mime_type")
+  metadata     Json?
+  tags         String[]
+  campaignId   String?    @map("campaign_id")
+  campaign     Campaign?  @relation(fields: [campaignId], references: [id])
+  createdAt    DateTime   @default(now()) @map("created_at")
+  
+  @@index([userId, type])
+  @@index([campaignId])
+  @@map("assets")
+}
+
+enum AssetType {
+  VIDEO
+  IMAGE
+  DOCUMENT
+  AUDIO
+  OTHER
+}
+
+model VideoVersion {
+  id          String         @id @default(uuid())
+  videoId     String         @map("video_id")
+  video       Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  version     Int
+  submittedBy String         @map("submitted_by")
+  submitter   User           @relation("SubmittedVersions", fields: [submittedBy], references: [id])
+  videoUrl    String         @map("video_url")
+  thumbnailUrl String?       @map("thumbnail_url")
+  notes       String?        @db.Text
+  status      VersionStatus
+  reviewedBy  String?        @map("reviewed_by")
+  reviewer    User?          @relation("ReviewedVersions", fields: [reviewedBy], references: [id])
+  reviewNotes String?        @map("review_notes") @db.Text
+  submittedAt DateTime       @default(now()) @map("submitted_at")
+  reviewedAt  DateTime?      @map("reviewed_at")
+  
+  @@index([videoId, version])
+  @@index([status])
+  @@map("video_versions")
+}
+
+enum VersionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================================
+// A/B TESTING & CONVERSION TRACKING
+// ============================================
+
+model UGCVariant {
+  id          String   @id @default(uuid())
+  campaignId  String   @map("campaign_id")
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creatorId   String   @map("creator_id")
+  creator     User     @relation(fields: [creatorId], references: [id])
+  
+  label       String   // e.g. "Hook 1", "Testimonial"
+  videoUrl    String?  @map("video_url")
+  status      VariantStatus @default(DRAFT)
+  
+  // Tracking
+  utmSource   String?  @map("utm_source")
+  utmMedium   String?  @map("utm_medium")
+  utmCampaign String?  @map("utm_campaign")
+  trackingUrl String?  @map("tracking_url") // The unique link for this variant
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  metrics     VariantMetric[]
+
+  @@map("ugc_variants")
+  @@index([campaignId])
+  @@index([creatorId])
+}
+
+enum VariantStatus {
+  DRAFT
+  PENDING_UPLOAD
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model VariantMetric {
+  id          String     @id @default(uuid())
+  variantId   String     @map("variant_id")
+  variant     UGCVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  
+  date        DateTime   @default(now()) // Daily snapshot
+  
+  views       Int        @default(0)
+  clicks      Int        @default(0)
+  conversions Int        @default(0)
+  spend       Decimal    @default(0) @db.Decimal(10, 2)
+  revenue     Decimal    @default(0) @db.Decimal(10, 2)
+  
+  ctr         Decimal    @default(0) @db.Decimal(5, 2) // Calculated
+  conversionRate Decimal @default(0) @map("conversion_rate") @db.Decimal(5, 2) // Calculated
+  roi         Decimal    @default(0) @db.Decimal(10, 2) // Calculated
+  
+  performanceScore Decimal @default(0) @map("performance_score") @db.Decimal(5, 2)
+
+  @@map("variant_metrics")
+  @@index([variantId, date])
 }

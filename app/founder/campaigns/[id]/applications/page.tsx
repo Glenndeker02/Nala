@@ -40,7 +40,7 @@ export default function ApplicationsPage({ params }: { params: { id: string } })
             });
             const data = await response.json();
             if (response.ok) {
-                setApplications(data.applications);
+                setApplications(data.data?.applications || []);
             }
         } catch (error) {
             console.error("Error fetching applications:", error);

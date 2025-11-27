@@ -72,37 +72,73 @@ export default function EditCampaignPage() {
     const fetchCampaign = async () => {
         const token = localStorage.getItem("token");
         try {
+            console.log('Fetching campaign:', campaignId);
             const response = await fetch(`/api/campaigns/${campaignId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            const data = await response.json();
-            if (response.ok) {
-                const campaign = data.campaign || data;
-                setFormData({
-                    name: campaign.name || "",
-                    description: campaign.description || "",
-                    productLink: campaign.briefData?.productLink || "",
-                    videosRequested: campaign.videosRequested || 1,
-                    platforms: campaign.briefData?.platforms || ["TIKTOK"],
-                    tone: campaign.briefData?.tone || "Casual",
-                    videoLength: campaign.briefData?.videoLength || "30s",
-                    talkingPoints: campaign.briefData?.talkingPoints || [""],
-                    mustHaves: campaign.briefData?.mustHaves || [""],
-                    dontWants: campaign.briefData?.dontWants || [""],
-                    hashtags: campaign.briefData?.hashtags || "",
-                    startDate: campaign.startDate ? new Date(campaign.startDate).toISOString().split('T')[0] : "",
-                    postingFrequency: campaign.postingFrequency || "daily",
-                    totalBudget: campaign.totalBudget || 1000,
-                    baseFeePerVideo: campaign.baseFeePerVideo || 50,
-                    targetAudience: campaign.briefData?.targetAudience || "",
-                    productDescription: campaign.briefData?.productDescription || ""
-                });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const data = await response.json();
+            console.log('Campaign data received:', data);
+
+            // Handle both wrapped and unwrapped responses
+            const campaign = data.campaign || data.data?.campaign || data;
+
+            if (!campaign || !campaign.id) {
+                throw new Error('Invalid campaign data received');
+            }
+
+            console.log('Processing campaign:', campaign);
+
+            // Safely parse briefData if it's a string
+            let briefData = campaign.briefData;
+            if (typeof briefData === 'string') {
+                try {
+                    briefData = JSON.parse(briefData);
+                } catch (e) {
+                    console.error('Failed to parse briefData:', e);
+                    briefData = {};
+                }
+            }
+
+            // Ensure arrays are properly handled
+            const ensureArray = (value: any, defaultValue: string[] = [""]) => {
+                if (Array.isArray(value) && value.length > 0) {
+                    return value;
+                }
+                return defaultValue;
+            };
+
+            const newFormData = {
+                name: campaign.name || "",
+                description: campaign.description || "",
+                productLink: briefData?.productLink || "",
+                videosRequested: campaign.videosRequested || 1,
+                platforms: ensureArray(briefData?.platforms, ["TIKTOK"]),
+                tone: briefData?.tone || "Casual",
+                videoLength: briefData?.videoLength || "30s",
+                talkingPoints: ensureArray(briefData?.talkingPoints),
+                mustHaves: ensureArray(briefData?.mustHaves),
+                dontWants: ensureArray(briefData?.dontWants),
+                hashtags: briefData?.hashtags || "",
+                startDate: campaign.startDate ? new Date(campaign.startDate).toISOString().split('T')[0] : "",
+                postingFrequency: campaign.postingFrequency || "daily",
+                totalBudget: Number(campaign.totalBudget) || 1000,
+                baseFeePerVideo: Number(campaign.baseFeePerVideo) || 50,
+                targetAudience: briefData?.targetAudience || "",
+                productDescription: briefData?.productDescription || ""
+            };
+
+            console.log('Setting form data:', newFormData);
+            setFormData(newFormData);
         } catch (error) {
             console.error("Error fetching campaign:", error);
-            alert("Failed to load campaign details");
+            alert(`Failed to load campaign details: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setLoading(false);
         }
@@ -420,7 +456,7 @@ export default function EditCampaignPage() {
                                         <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                                         <input
                                             type="number"
-                                            min={500}
+                                            min={100}
                                             step={100}
                                             value={formData.totalBudget}
                                             onChange={(e) => handleInputChange("totalBudget", parseFloat(e.target.value))}

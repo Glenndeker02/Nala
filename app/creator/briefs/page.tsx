@@ -6,23 +6,37 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CheckCircle, Sparkles, Clock, Users, DollarSign } from "lucide-react";
 
 type Campaign = {
     id: string;
     name: string;
+    title: string;
     description: string;
-    category: string;
+    industry: string;
     platforms: string[];
     videosRequested: number;
+    videosCompleted: number;
     baseFeePerVideo: number;
+    totalBudget: number;
     maxViews: number;
     tone: string;
-    duration: number;
     founderName: string;
+    founderId: string;
     createdAt: string;
-    deadline: string;
+    startDate: string | null;
+    deadline: string | null;
     applicationsCount: number;
     hasApplied: boolean;
+    appliedDate?: string;
+    isUrgent: boolean;
+    isNew: boolean;
+    isLimitedSlots: boolean;
+    daysUntilDeadline: number | null;
+    daysSinceCreated: number;
+    slotsRemaining: number;
+    category: string;
 };
 
 export default function CreatorBriefsPage() {
@@ -33,9 +47,10 @@ export default function CreatorBriefsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [selectedPlatform, setSelectedPlatform] = useState("All");
+    const [sortBy, setSortBy] = useState("urgency");
 
     const categories = ["All", "SaaS & Software", "E-commerce", "Health & Fitness", "B2B Tech", "Beauty & Cosmetics", "Finance & Fintech"];
-    const platforms = ["All", "TIKTOK", "INSTAGRAM", "FACEBOOK"];
+    const platforms = ["All", "TIKTOK", "INSTAGRAM", "FACEBOOK", "YOUTUBE"];
 
     useEffect(() => {
         fetchAvailableCampaigns();
@@ -43,68 +58,26 @@ export default function CreatorBriefsPage() {
 
     useEffect(() => {
         filterCampaigns();
-    }, [searchTerm, selectedCategory, selectedPlatform, campaigns]);
+    }, [searchTerm, selectedCategory, selectedPlatform, sortBy, campaigns]);
 
     const fetchAvailableCampaigns = async () => {
         const token = localStorage.getItem("token");
         try {
-            // Mock data for demonstration
-            const mockCampaigns: Campaign[] = [
-                {
-                    id: "1",
-                    name: "Acme Product Launch",
-                    description: "Looking for creators to showcase our new SaaS product. Professional yet casual tone. Must demonstrate key features in an engaging way.",
-                    category: "SaaS & Software",
-                    platforms: ["TIKTOK", "INSTAGRAM"],
-                    videosRequested: 5,
-                    baseFeePerVideo: 50,
-                    maxViews: 150000,
-                    tone: "Professional yet casual",
-                    duration: 7,
-                    founderName: "Mike Johnson",
-                    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-                    applicationsCount: 12,
-                    hasApplied: false
+            const response = await fetch("/api/campaigns/available?role=creator", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
                 },
-                {
-                    id: "2",
-                    name: "Fitness App Promotion",
-                    description: "Seeking energetic creators to promote our fitness tracking app. Show workout routines and app features.",
-                    category: "Health & Fitness",
-                    platforms: ["TIKTOK"],
-                    videosRequested: 3,
-                    baseFeePerVideo: 75,
-                    maxViews: 100000,
-                    tone: "Energetic and motivational",
-                    duration: 7,
-                    founderName: "Sarah Williams",
-                    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-                    applicationsCount: 8,
-                    hasApplied: false
-                },
-                {
-                    id: "3",
-                    name: "E-commerce Store Launch",
-                    description: "Need creators to showcase our new online store. Focus on product quality and shopping experience.",
-                    category: "E-commerce",
-                    platforms: ["INSTAGRAM", "FACEBOOK"],
-                    videosRequested: 4,
-                    baseFeePerVideo: 60,
-                    maxViews: 120000,
-                    tone: "Casual and friendly",
-                    duration: 7,
-                    founderName: "David Chen",
-                    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-                    applicationsCount: 15,
-                    hasApplied: true
-                }
-            ];
+            });
 
-            setCampaigns(mockCampaigns);
-            setFilteredCampaigns(mockCampaigns);
+            if (response.ok) {
+                const result = await response.json();
+                // ApiResponse.success wraps data in { success: true, data: ... }
+                const data = result.data || result;
+                setCampaigns(data);
+                setFilteredCampaigns(data);
+            } else {
+                console.error("Failed to fetch campaigns");
+            }
         } catch (error) {
             console.error("Error fetching campaigns:", error);
         } finally {
@@ -113,22 +86,41 @@ export default function CreatorBriefsPage() {
     };
 
     const filterCampaigns = () => {
-        let filtered = campaigns;
+        let filtered = [...campaigns];
 
         if (searchTerm) {
             filtered = filtered.filter(c =>
-                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                c.description.toLowerCase().includes(searchTerm.toLowerCase())
+                c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.description?.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
         if (selectedCategory !== "All") {
-            filtered = filtered.filter(c => c.category === selectedCategory);
+            filtered = filtered.filter(c => c.category === selectedCategory || c.industry === selectedCategory);
         }
 
         if (selectedPlatform !== "All") {
             filtered = filtered.filter(c => c.platforms.includes(selectedPlatform));
         }
+
+        // Apply sorting
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case "urgency":
+                    if (a.isUrgent && !b.isUrgent) return -1;
+                    if (!a.isUrgent && b.isUrgent) return 1;
+                    if (a.isNew && !b.isNew) return -1;
+                    if (!a.isNew && b.isNew) return 1;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                case "latest":
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                case "budget":
+                    return b.baseFeePerVideo - a.baseFeePerVideo;
+                default:
+                    return 0;
+            }
+        });
 
         setFilteredCampaigns(filtered);
     };
@@ -140,21 +132,58 @@ export default function CreatorBriefsPage() {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
                 },
+                body: JSON.stringify({})
             });
 
             if (response.ok) {
                 alert("✅ Application submitted successfully!");
-                setCampaigns(campaigns.map(c =>
-                    c.id === campaignId ? { ...c, hasApplied: true, applicationsCount: c.applicationsCount + 1 } : c
-                ));
+                // Refresh campaigns to update status
+                fetchAvailableCampaigns();
             } else {
-                throw new Error("Failed to apply");
+                const data = await response.json();
+                alert(data.error || "Failed to submit application");
             }
         } catch (error) {
             console.error("Error applying:", error);
             alert("Failed to submit application. Please try again.");
         }
+    };
+
+    const getCampaignBorderClass = (campaign: Campaign) => {
+        if (campaign.isUrgent) return "border-l-4 border-l-red-500 bg-red-50/30";
+        if (campaign.hasApplied) return "border-l-4 border-l-green-500 bg-green-50/30";
+        if (campaign.isNew) return "border-l-4 border-l-blue-500 bg-blue-50/30";
+        return "";
+    };
+
+    const getCampaignBadge = (campaign: Campaign) => {
+        if (campaign.isUrgent) {
+            return (
+                <Badge className="bg-red-100 text-red-700 border-red-300">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    Urgent
+                </Badge>
+            );
+        }
+        if (campaign.hasApplied) {
+            return (
+                <Badge className="bg-green-100 text-green-700 border-green-300">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Applied
+                </Badge>
+            );
+        }
+        if (campaign.isNew) {
+            return (
+                <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    New
+                </Badge>
+            );
+        }
+        return null;
     };
 
     if (loading) {
@@ -184,7 +213,7 @@ export default function CreatorBriefsPage() {
                     {/* Filters */}
                     <Card className="mb-8">
                         <CardContent className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-900 mb-2">
                                         Search
@@ -226,6 +255,21 @@ export default function CreatorBriefsPage() {
                                         ))}
                                     </select>
                                 </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                                        Sort By
+                                    </label>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-DEFAULT focus:ring-offset-2"
+                                    >
+                                        <option value="urgency">Urgency</option>
+                                        <option value="latest">Latest</option>
+                                        <option value="budget">Budget</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="mt-4 flex items-center justify-between">
@@ -239,6 +283,7 @@ export default function CreatorBriefsPage() {
                                         setSearchTerm("");
                                         setSelectedCategory("All");
                                         setSelectedPlatform("All");
+                                        setSortBy("urgency");
                                     }}
                                 >
                                     Clear Filters
@@ -263,31 +308,37 @@ export default function CreatorBriefsPage() {
                     ) : (
                         <div className="grid grid-cols-1 gap-6">
                             {filteredCampaigns.map((campaign) => (
-                                <Card key={campaign.id} className="hover:shadow-xl transition-shadow">
+                                <Card key={campaign.id} className={`hover:shadow-xl transition-shadow ${getCampaignBorderClass(campaign)}`}>
                                     <CardContent className="p-6">
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <h3 className="text-xl font-bold text-gray-900">
-                                                        {campaign.name}
+                                                        {campaign.title || campaign.name}
                                                     </h3>
-                                                    {campaign.hasApplied && (
-                                                        <span className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-medium">
-                                                            Applied
-                                                        </span>
+                                                    {getCampaignBadge(campaign)}
+                                                    {campaign.isLimitedSlots && (
+                                                        <Badge variant="outline" className="text-orange-600 border-orange-300">
+                                                            {campaign.slotsRemaining} slots left
+                                                        </Badge>
                                                     )}
                                                 </div>
+                                                {campaign.hasApplied && campaign.appliedDate && (
+                                                    <p className="text-sm text-green-600 mb-2">
+                                                        ✓ You applied on {new Date(campaign.appliedDate).toLocaleDateString()}
+                                                    </p>
+                                                )}
                                                 <p className="text-gray-600 mb-4">{campaign.description}</p>
 
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                                     <div>
                                                         <p className="text-xs text-gray-500 mb-1">Category</p>
-                                                        <p className="text-sm font-medium text-gray-900">{campaign.category}</p>
+                                                        <p className="text-sm font-medium text-gray-900">{campaign.category || campaign.industry}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-gray-500 mb-1">Platforms</p>
                                                         <p className="text-sm font-medium text-gray-900">
-                                                            {campaign.platforms.join(", ")}
+                                                            {campaign.platforms.join(", ") || "Not specified"}
                                                         </p>
                                                     </div>
                                                     <div>
@@ -299,7 +350,7 @@ export default function CreatorBriefsPage() {
                                                     <div>
                                                         <p className="text-xs text-gray-500 mb-1">Videos Needed</p>
                                                         <p className="text-sm font-medium text-gray-900">
-                                                            {campaign.videosRequested}
+                                                            {campaign.slotsRemaining} of {campaign.videosRequested}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -311,16 +362,19 @@ export default function CreatorBriefsPage() {
                                                         </svg>
                                                         <span>{campaign.founderName}</span>
                                                     </div>
+                                                    {campaign.deadline && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock className="w-4 h-4" />
+                                                            <span className={campaign.isUrgent ? "text-red-600 font-semibold" : ""}>
+                                                                {campaign.daysUntilDeadline !== null && campaign.daysUntilDeadline > 0
+                                                                    ? `${campaign.daysUntilDeadline} days left`
+                                                                    : `Deadline: ${new Date(campaign.deadline).toLocaleDateString()}`
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex items-center gap-2">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span>Deadline: {new Date(campaign.deadline).toLocaleDateString()}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                                        </svg>
+                                                        <Users className="w-4 h-4" />
                                                         <span>{campaign.applicationsCount} applications</span>
                                                     </div>
                                                 </div>
@@ -353,7 +407,7 @@ export default function CreatorBriefsPage() {
                                                 <div className="text-right">
                                                     <p className="text-sm text-gray-600">Potential Earnings</p>
                                                     <p className="text-lg font-bold text-primary-DEFAULT">
-                                                        ${campaign.baseFeePerVideo} - ${campaign.baseFeePerVideo + (campaign.maxViews / campaign.videosRequested * 0.004).toFixed(0)}
+                                                        ${campaign.baseFeePerVideo} - ${campaign.baseFeePerVideo + Math.floor((campaign.maxViews / campaign.videosRequested) * 0.004)}
                                                     </p>
                                                 </div>
                                             </div>

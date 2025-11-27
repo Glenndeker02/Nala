@@ -1,0 +1,113 @@
+import { LucideIcon, TrendingUp, Users, Video, DollarSign, Calendar, Bell, Star, AlertCircle } from "lucide-react";
+
+export const mockDashboardData = {
+    stats: {
+        totalCampaigns: 12,
+        activeCampaigns: 4,
+        completedCampaigns: 8,
+        totalBudget: 45000,
+        budgetSpent: 32500,
+        totalViews: 1250000,
+        avgEngagementRate: 4.8,
+    },
+    performance: [
+        { name: "Mon", views: 4000, engagement: 2400 },
+        { name: "Tue", views: 3000, engagement: 1398 },
+        { name: "Wed", views: 2000, engagement: 9800 },
+        { name: "Thu", views: 2780, engagement: 3908 },
+        { name: "Fri", views: 1890, engagement: 4800 },
+        { name: "Sat", views: 2390, engagement: 3800 },
+        { name: "Sun", views: 3490, engagement: 4300 },
+    ],
+    campaigns: [
+        {
+            id: "1",
+            name: "Summer Launch 2025",
+            status: "ACTIVE",
+            budget: 15000,
+            spent: 8500,
+            videos: { completed: 12, total: 20 },
+            deadline: "2025-06-30",
+        },
+        {
+            id: "2",
+            name: "Back to School",
+            status: "DRAFT",
+            budget: 10000,
+            spent: 0,
+            videos: { completed: 0, total: 15 },
+            deadline: "2025-08-15",
+        },
+        {
+            id: "3",
+            name: "Holiday Special",
+            status: "COMPLETED",
+            budget: 20000,
+            spent: 20000,
+            videos: { completed: 25, total: 25 },
+            deadline: "2024-12-25",
+        },
+    ],
+    content: [
+        {
+            id: "1",
+            title: "Unboxing Video",
+            creator: "Sarah Jenkins",
+            thumbnail: "https://placehold.co/150x100/e2e8f0/1e293b?text=Video+1",
+            views: 12500,
+            status: "APPROVED",
+            date: "2024-10-24",
+        },
+        {
+            id: "2",
+            title: "Product Review",
+            creator: "Mike Chen",
+            thumbnail: "https://placehold.co/150x100/e2e8f0/1e293b?text=Video+2",
+            views: 8900,
+            status: "PENDING_REVIEW",
+            date: "2024-10-23",
+        },
+        {
+            id: "3",
+            title: "Lifestyle Vlog",
+            creator: "Emma Wilson",
+            thumbnail: "https://placehold.co/150x100/e2e8f0/1e293b?text=Video+3",
+            views: 15600,
+            status: "APPROVED",
+            date: "2024-10-22",
+        },
+        {
+            id: "4",
+            title: "Tutorial",
+            creator: "Alex Ross",
+            thumbnail: "https://placehold.co/150x100/e2e8f0/1e293b?text=Video+4",
+            views: 5400,
+            status: "REJECTED",
+            date: "2024-10-21",
+        },
+    ],
+    deadlines: [
+        { id: "1", task: "Approve 'Summer Launch' videos", date: "Today", priority: "high" },
+        { id: "2", task: "Review creator applications", date: "Tomorrow", priority: "medium" },
+        { id: "3", task: "Finalize 'Back to School' brief", date: "Oct 28", priority: "low" },
+    ],
+    notifications: [
+        { id: "1", message: "New application from @creative_lisa", time: "2h ago", type: "info" },
+        { id: "2", message: "Video submitted for 'Summer Launch'", time: "4h ago", type: "success" },
+        { id: "3", message: "Budget alert: 85% spent", time: "1d ago", type: "warning" },
+    ],
+    creatorActivity: [
+        { id: "1", creator: "Sarah Jenkins", action: "uploaded a video", time: "2h ago" },
+        { id: "2", creator: "Mike Chen", action: "commented on brief", time: "5h ago" },
+        { id: "3", creator: "Emma Wilson", action: "applied to campaign", time: "1d ago" },
+    ],
+    weeklySummary: {
+        totalSpent: 2450,
+        newVideos: 8,
+        activeCreators: 12,
+    },
+    suggestions: [
+        { id: "1", title: "Try 'Day in the Life' format", description: "Trending in your category" },
+        { id: "2", title: "Increase budget for 'Summer Launch'", description: "High ROI potential" },
+    ]
+};

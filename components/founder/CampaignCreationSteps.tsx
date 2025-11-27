@@ -308,16 +308,16 @@ export function Step3Schedule({ formData, onChange }: any) {
 
 // Step 4: Budget Configuration (Enhanced with Interactive Calculator)
 export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudget, maxViews, creatorEarnings, nalaEarnings }: any) {
-    const [guaranteedSpend, setGuaranteedSpend] = React.useState(false);
+    const [guaranteedSpend, setGuaranteedSpend] = React.useState(formData.guaranteedSpend || false);
     const [targetViews, setTargetViews] = React.useState(maxViews);
 
     // Constants
-    const MIN_BUDGET = 100;
+    const MIN_BUDGET = 100; // Changed from 500 to 100
     const FOUNDER_RATE_PER_1000_VIEWS = 5; // $5 per 1000 views
-    const BASE_VIDEO_COST_BULK = 20; // $20 per video for 5+ videos
-    const BASE_VIDEO_COST_SMALL = 25; // $25 per video for <5 videos
+    const BASE_VIDEO_COST_BULK = 20; // $20 per video for 6+ videos
+    const BASE_VIDEO_COST_SMALL = 25; // $25 per video for 1-5 videos
 
-    const getBaseFeePerVideo = (count: number) => count >= 5 ? BASE_VIDEO_COST_BULK : BASE_VIDEO_COST_SMALL;
+    const getBaseFeePerVideo = (count: number) => count >= 6 ? BASE_VIDEO_COST_BULK : BASE_VIDEO_COST_SMALL;
 
     // Calculate guaranteed views if guaranteed spend is enabled
     const guaranteedViews = Math.floor((performanceBudget / FOUNDER_RATE_PER_1000_VIEWS) * 1000);
@@ -398,7 +398,7 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                         </label>
                         <input
                             type="range"
-                            min="500"
+                            min="100"
                             max="50000"
                             step="100"
                             value={formData.totalBudget}
@@ -406,7 +406,7 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                             className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
                         />
                         <div className="flex justify-between text-xs text-gray-500">
-                            <span>$500</span>
+                            <span>$100</span>
                             <span>$50,000</span>
                         </div>
                     </div>
@@ -439,9 +439,9 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                             <span className="text-primary-600 font-bold">${formData.baseFeePerVideo}</span>
                         </div>
                         <p className="text-xs text-gray-500">
-                            {formData.videosRequested >= 5
-                                ? "Bulk rate applied ($20/video for 5+ videos)"
-                                : "Standard rate ($25/video). Order 5+ videos to save $5/video!"}
+                            {formData.videosRequested >= 6
+                                ? "Bulk rate applied ($20/video for 6+ videos)"
+                                : "Standard rate ($25/video). Order 6+ videos to save $5/video!"}
                         </p>
                     </div>
 
@@ -454,15 +454,15 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                         <input
                             type="range"
                             min="1000"
-                            max="500000"
-                            step="1000"
+                            max="10000000"
+                            step="10000"
                             value={targetViews}
                             onChange={(e) => handleViewsChange(Number(e.target.value))}
                             className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
                         />
                         <div className="flex justify-between text-xs text-gray-500">
                             <span>1K</span>
-                            <span>500K</span>
+                            <span>10M</span>
                         </div>
                     </div>
                 </div>
@@ -476,7 +476,11 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                             <input
                                 type="checkbox"
                                 checked={guaranteedSpend}
-                                onChange={(e) => setGuaranteedSpend(e.target.checked)}
+                                onChange={(e) => {
+                                    const newValue = e.target.checked;
+                                    setGuaranteedSpend(newValue);
+                                    onChange("guaranteedSpend", newValue);
+                                }}
                                 className="sr-only peer"
                             />
                             <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary-600"></div>
@@ -488,7 +492,7 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                         </h4>
                         <p className="text-sm text-gray-600 mb-3">
                             {guaranteedSpend
-                                ? "✅ All funds will be spent on views - no auto-refund. You're guaranteed to get views for your entire performance budget."
+                                ? "✅ Get guaranteed bonus views on top of your organic reach! Your entire performance budget will be used to boost your content with paid promotion."
                                 : "Auto-refund enabled. Unspent budget will be refunded after 7 days based on actual views achieved."
                             }
                         </p>
@@ -496,20 +500,27 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                         {guaranteedSpend && performanceBudget > 0 && (
                             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-green-900">Guaranteed Views:</span>
-                                    <span className="text-2xl font-bold text-green-600">{guaranteedViews.toLocaleString()}</span>
+                                    <span className="text-sm font-medium text-green-900">Bonus Views (Guaranteed):</span>
+                                    <span className="text-2xl font-bold text-green-600">+{guaranteedViews.toLocaleString()}</span>
                                 </div>
-                                <p className="text-xs text-green-700">
-                                    Your entire performance budget of ${performanceBudget.toFixed(2)} will be spent to deliver these views.
+                                <p className="text-xs text-green-700 mb-2">
+                                    These views will be added ON TOP of your organic reach through paid promotion.
                                 </p>
+                                <div className="p-2 bg-green-100 rounded text-xs text-green-800 mb-3">
+                                    💡 <strong>How it works:</strong> Your videos get natural organic views PLUS {guaranteedViews.toLocaleString()} guaranteed promoted views
+                                </div>
                                 <div className="mt-3 pt-3 border-t border-green-200">
                                     <div className="flex justify-between text-xs text-green-800">
+                                        <span>Promotion budget:</span>
+                                        <span className="font-semibold">${performanceBudget.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-green-800 mt-1">
                                         <span>Cost per 1K views:</span>
                                         <span className="font-semibold">${FOUNDER_RATE_PER_1000_VIEWS.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-green-800 mt-1">
-                                        <span>Total guaranteed views:</span>
-                                        <span className="font-semibold">{guaranteedViews.toLocaleString()} views</span>
+                                        <span>Total bonus views:</span>
+                                        <span className="font-semibold">+{guaranteedViews.toLocaleString()} views</span>
                                     </div>
                                 </div>
                             </div>
@@ -519,56 +530,58 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
             </div>
 
             {/* Budget Breakdown Card */}
-            <div className="p-6 bg-gradient-to-r from-primary-DEFAULT to-primary-600 rounded-xl text-white shadow-xl">
-                <h3 className="text-lg font-bold mb-4">💰 Budget Breakdown</h3>
+            <div className="p-6 bg-gradient-to-br from-primary-50 to-white rounded-2xl border-2 border-primary-100 relative z-10">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">💰</span> Budget Breakdown
+                </h3>
 
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                        <span className="opacity-90">Number of Videos:</span>
-                        <span className="font-bold">{formData.videosRequested}</span>
+                        <span className="text-gray-600">Number of Videos:</span>
+                        <span className="font-bold text-gray-900">{formData.videosRequested}</span>
                     </div>
 
                     <div className="flex justify-between items-center">
-                        <span className="opacity-90">Avg Creator Base Fee:</span>
-                        <span className="font-bold">${formData.baseFeePerVideo}/video</span>
+                        <span className="text-gray-600">Avg Creator Base Fee:</span>
+                        <span className="font-bold text-gray-900">${formData.baseFeePerVideo}/video</span>
                     </div>
-                    {formData.videosRequested >= 5 && (
-                        <div className="text-xs bg-white/20 p-1 rounded text-center">
-                            Bulk discount applied!
+                    {formData.videosRequested >= 6 && (
+                        <div className="text-xs bg-primary-100 text-primary-700 p-2 rounded text-center font-medium">
+                            🎉 Bulk discount applied!
                         </div>
                     )}
 
-                    <div className="h-px bg-white opacity-20 my-3"></div>
+                    <div className="h-px bg-gray-200 my-3"></div>
 
                     <div className="flex justify-between items-center">
-                        <span className="opacity-90">Fixed Budget (100% locked):</span>
-                        <span className="font-bold">${baseFeeTotal.toFixed(2)}</span>
+                        <span className="text-gray-600">Fixed Budget (100% locked):</span>
+                        <span className="font-bold text-gray-900">${baseFeeTotal.toFixed(2)}</span>
                     </div>
 
                     <div className="flex justify-between items-center">
-                        <span className="opacity-90">Performance Budget:</span>
-                        <span className="font-bold">${performanceBudget.toFixed(2)}</span>
+                        <span className="text-gray-600">Performance Budget:</span>
+                        <span className="font-bold text-gray-900">${performanceBudget.toFixed(2)}</span>
                     </div>
 
-                    <div className="h-px bg-white opacity-20 my-3"></div>
+                    <div className="h-px bg-gray-200 my-3"></div>
 
                     <div className="flex justify-between items-center text-lg">
-                        <span className="font-bold">TOTAL BUDGET:</span>
-                        <span className="font-bold">${formData.totalBudget.toFixed(2)}</span>
+                        <span className="font-bold text-gray-900">TOTAL BUDGET:</span>
+                        <span className="font-bold text-primary-600">${formData.totalBudget.toFixed(2)}</span>
                     </div>
                 </div>
 
-                <div className="mt-4 p-4 bg-white bg-opacity-10 rounded-lg">
-                    <p className="text-sm opacity-90 mb-2">
-                        {guaranteedSpend ? "Guaranteed Views:" : "Maximum Views Purchasable:"}
+                <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-100">
+                    <p className="text-sm text-gray-700 mb-2">
+                        {guaranteedSpend ? "Bonus Views (Guaranteed):" : "Maximum Views Purchasable:"}
                     </p>
-                    <p className="text-2xl font-bold">
-                        {guaranteedSpend ? guaranteedViews.toLocaleString() : maxViews.toLocaleString()} views
+                    <p className="text-2xl font-bold text-primary-600">
+                        {guaranteedSpend ? `+${guaranteedViews.toLocaleString()}` : maxViews.toLocaleString()} views
                     </p>
-                    <p className="text-xs opacity-75 mt-1">@ $5.00 per 1,000 views</p>
+                    <p className="text-xs text-gray-600 mt-1">@ $5.00 per 1,000 views</p>
                     {guaranteedSpend && (
-                        <p className="text-xs opacity-90 mt-2 bg-white bg-opacity-10 p-2 rounded">
-                            ✅ 100% of performance budget will be spent
+                        <p className="text-xs text-green-700 mt-2 bg-green-50 p-2 rounded border border-green-200">
+                            ✅ Added on top of organic views
                         </p>
                     )}
                 </div>

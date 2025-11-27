@@ -23,6 +23,14 @@ export const POST = requireRole(['CREATOR'], async (request: NextRequest, user, 
         // Check if campaign exists and is active
         const campaign = await db.campaign.findUnique({
             where: { id: campaignId },
+            include: {
+                founder: {
+                    select: {
+                        id: true,
+                        fullName: true
+                    }
+                }
+            }
         });
 
         if (!campaign) {
@@ -47,19 +55,48 @@ export const POST = requireRole(['CREATOR'], async (request: NextRequest, user, 
             return ApiResponse.error('You have already applied to this campaign', 400);
         }
 
-        // Create application
-        const application = await db.application.create({
-            data: {
-                campaignId,
-                creatorId: user.userId,
-                message,
-                portfolioLinks: portfolioLinks || [],
-                status: 'PENDING',
-            },
+        // Get creator details for notification
+        const creator = await db.user.findUnique({
+            where: { id: user.userId },
+            select: { fullName: true, email: true }
+        });
+
+        // Create application and notification in a transaction
+        const result = await db.$transaction(async (tx) => {
+            // Create application
+            const application = await tx.application.create({
+                data: {
+                    campaignId,
+                    creatorId: user.userId,
+                    message,
+                    portfolioLinks: portfolioLinks || [],
+                    status: 'PENDING',
+                },
+            });
+
+            // Create notification for founder
+            await tx.notification.create({
+                data: {
+                    userId: campaign.founderId,
+                    type: 'APPLICATION_RECEIVED',
+                    title: 'New Campaign Application',
+                    message: `${creator?.fullName || 'A creator'} applied to your campaign "${campaign.title || campaign.name}"`,
+                    metadata: {
+                        campaignId: campaign.id,
+                        campaignName: campaign.title || campaign.name,
+                        creatorId: user.userId,
+                        creatorName: creator?.fullName,
+                        applicationId: application.id
+                    },
+                    read: false
+                }
+            });
+
+            return application;
         });
 
         return ApiResponse.success({
-            application,
+            application: result,
             message: 'Application submitted successfully',
         });
     } catch (error) {

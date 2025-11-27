@@ -9,16 +9,10 @@ import { ApiResponse } from '@/lib/api-middleware';
  * that have exceeded their deadline and auto-approve them.
  * 
  * Setup with Vercel Cron:
- * Add to vercel.json:
- * {
- *   "crons": [{
- *     "path": "/api/cron/auto-approve",
- *     "schedule": "0 */4 * * * "
-    *   }]
- * }
+ * Add to vercel.json the schedule "0 0/4 * * *" (every 4 hours)
  * 
  * Runs every 4 hours
-    */
+ */
 
 export async function GET(request: NextRequest) {
     try {

@@ -97,6 +97,8 @@ export default function EnhancedCampaignCreation() {
     const [autoSaving, setAutoSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [showPreview, setShowPreview] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
 
     const [formData, setFormData] = useState<CampaignFormData>({
         // Step 1
@@ -143,9 +145,32 @@ export default function EnhancedCampaignCreation() {
         targetViews: undefined
     });
 
-    // Prefill from format library if formatId provided
+    // Prefill from content library or format library
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
+
+        // Handle content library parameters
+        const videoUrl = params.get('videoUrl');
+        const formatType = params.get('formatType');
+        const hookStyle = params.get('hookStyle');
+        const platform = params.get('platform');
+
+        if (videoUrl || formatType) {
+            setFormData(prev => ({
+                ...prev,
+                productLink: videoUrl || prev.productLink,
+                description: formatType ? `Campaign inspired by ${formatType} format` : prev.description,
+                productDescription: hookStyle ? `Using ${hookStyle} hook style` : prev.productDescription,
+                platforms: platform ? [platform.toUpperCase()] : prev.platforms,
+                tone: formatType === 'Review' ? 'Professional' :
+                    formatType === 'Skit' ? 'Humorous' :
+                        formatType === 'Tutorial' ? 'Educational' : prev.tone,
+                talkingPoints: hookStyle ? [`Start with ${hookStyle} hook`, '', ''] : prev.talkingPoints,
+            }));
+            return; // Don't try to fetch formatId if we have content library params
+        }
+
+        // Handle format library (existing logic)
         const formatId = params.get('formatId');
         if (formatId) {
             const token = localStorage.getItem('token');
@@ -369,8 +394,9 @@ export default function EnhancedCampaignCreation() {
             }
 
             console.log("Campaign created successfully:", data);
-            router.push("/founder/dashboard");
-            router.refresh();
+            setCreatedCampaignId(data.campaign?.id || data.id);
+            setShowSuccessModal(true);
+            // Don't redirect immediately - let user choose via modal
         } catch (error) {
             console.error("Error creating campaign:", error);
             alert(error instanceof Error ? error.message : "Something went wrong");
@@ -476,6 +502,118 @@ export default function EnhancedCampaignCreation() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in duration-300">
+                        {/* Success Icon */}
+                        <div className="flex justify-center mb-6">
+                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Success Message */}
+                        <h2 className="text-2xl font-bold text-gray-900 text-center mb-3">
+                            🎉 Campaign Created Successfully!
+                        </h2>
+                        <p className="text-gray-600 text-center mb-8">
+                            Your campaign <strong>"{formData.name}"</strong> has been created and is ready to go live.
+                        </p>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-3">
+                            {/* View Campaign */}
+                            {createdCampaignId && (
+                                <Button
+                                    onClick={() => router.push(`/founder/campaigns/${createdCampaignId}`)}
+                                    className="w-full bg-primary-DEFAULT hover:bg-primary-600 text-white font-semibold py-3 rounded-xl transition-all shadow-md hover:shadow-lg"
+                                    size="lg"
+                                >
+                                    📋 View Campaign Details
+                                </Button>
+                            )}
+
+                            {/* Go to Dashboard */}
+                            <Button
+                                onClick={() => router.push("/founder/dashboard")}
+                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-3 rounded-xl transition-all"
+                                size="lg"
+                                variant="secondary"
+                            >
+                                🏠 Go to Dashboard
+                            </Button>
+
+                            {/* Create Another Campaign */}
+                            <Button
+                                onClick={() => {
+                                    setShowSuccessModal(false);
+                                    setCreatedCampaignId(null);
+                                    setCurrentStep(0);
+                                    // Reset form data
+                                    setFormData({
+                                        name: "",
+                                        description: "",
+                                        productLink: "",
+                                        productCategory: "",
+                                        campaignDuration: 30,
+                                        primaryGoal: "Brand Awareness",
+                                        videosRequested: 5,
+                                        platforms: ["TIKTOK"],
+                                        tone: "Casual",
+                                        videoLength: "30s",
+                                        talkingPoints: [""],
+                                        mustHaves: [""],
+                                        dontWants: [""],
+                                        hashtags: "",
+                                        startDate: "",
+                                        postingFrequency: "daily",
+                                        preferredPostingTime: "09:00",
+                                        totalBudget: 1000,
+                                        baseFeePerVideo: 50,
+                                        minRating: 4.0,
+                                        minExperience: 0,
+                                        requiredPlatforms: [],
+                                        location: "",
+                                        industryExperience: [],
+                                        language: "English",
+                                        targetAudience: "",
+                                        productDescription: "",
+                                        guaranteedSpend: false,
+                                        targetViews: undefined,
+                                    });
+                                }}
+                                className="w-full border-2 border-primary-DEFAULT text-primary-DEFAULT hover:bg-primary-50 font-semibold py-3 rounded-xl transition-all"
+                                size="lg"
+                                variant="secondary"
+                            >
+                                ➕ Create Another Campaign
+                            </Button>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="mt-6 pt-6 border-t border-gray-200">
+                            <div className="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <p className="text-2xl font-bold text-primary-600">{formData.videosRequested}</p>
+                                    <p className="text-xs text-gray-600">Videos</p>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold text-primary-600">${formData.totalBudget.toLocaleString()}</p>
+                                    <p className="text-xs text-gray-600">Budget</p>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold text-primary-600">{formData.platforms.length}</p>
+                                    <p className="text-xs text-gray-600">Platforms</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
