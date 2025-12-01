@@ -72,59 +72,35 @@ export default function ContentReviewPage() {
     const fetchCampaignAndSubmissions = async () => {
         const token = localStorage.getItem("token");
         try {
-            // Fetch campaign details
+            // Fetch campaign details which includes videos and creators
             const campaignRes = await fetch(`/api/campaigns/${campaignId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const campaignData = await campaignRes.json();
-            setCampaign(campaignData.campaign || campaignData);
+            const responseData = await campaignRes.json();
 
-            // Fetch submissions (mocked for now - would come from API)
-            const mockCreators: Creator[] = [
-                {
-                    id: "1",
-                    name: "Mary Thompson",
-                    rating: 4.8,
-                    status: "PENDING",
-                    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "2",
-                    name: "John Davis",
-                    rating: 4.5,
-                    status: "APPROVED",
-                    submittedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "3",
-                    name: "Sarah Wilson",
-                    rating: 4.2,
-                    status: "REVISION",
-                    submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "4",
-                    name: "Lisa Chen",
-                    rating: 4.9,
-                    status: "POSTED",
-                    submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                    id: "5",
-                    name: "Tom Anderson",
-                    rating: 4.0,
-                    status: "OVERDUE",
-                    submittedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-                    deadline: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+            if (responseData.success) {
+                const campaignData = responseData.data.campaign;
+                setCampaign(campaignData);
+
+                // Map videos to creators/submissions format
+                if (campaignData.videos) {
+                    const mappedCreators: Creator[] = campaignData.videos.map((video: any) => ({
+                        id: video.creator.id,
+                        name: video.creator.fullName,
+                        rating: 5.0, // Placeholder as rating is not in video model yet
+                        status: video.status,
+                        videoUrl: video.draftVideoUrl || video.finalPostUrl,
+                        submittedAt: video.updatedAt,
+                        deadline: campaignData.deadline,
+                        // Store full video object for submission details
+                        _video: video
+                    }));
+                    setCreators(mappedCreators);
+
+                    if (mappedCreators.length > 0) {
+                        handleCreatorSelect(mappedCreators[0]);
+                    }
                 }
-            ];
-
-            setCreators(mockCreators);
-            if (mockCreators.length > 0) {
-                handleCreatorSelect(mockCreators[0]);
             }
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -136,35 +112,42 @@ export default function ContentReviewPage() {
     const handleCreatorSelect = (creator: Creator) => {
         setSelectedCreator(creator);
 
-        // Mock submission data
-        const mockSubmission: VideoSubmission = {
-            id: `sub-${creator.id}`,
-            creatorId: creator.id,
-            creatorName: creator.name,
-            videoUrl: creator.videoUrl || "",
-            duration: 45,
-            fileSize: 125,
-            format: "MP4 (H.264)",
-            submittedAt: creator.submittedAt || new Date().toISOString(),
-            status: creator.status,
-            revisionHistory: creator.status === "REVISION" ? [
-                {
-                    version: 1,
-                    submittedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                    feedback: "Add product demo at 0:20 mark",
-                    deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-                    status: "REVISION_REQUESTED"
-                },
-                {
-                    version: 2,
-                    submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-                    status: "RESUBMITTED"
-                }
-            ] : [],
-            currentDeadline: creator.deadline
-        };
+        // Use real video data if available (from our mapping above)
+        const video = (creator as any)._video;
 
-        setSubmission(mockSubmission);
+        if (video) {
+            const submissionData: VideoSubmission = {
+                id: video.id,
+                creatorId: creator.id,
+                creatorName: creator.name,
+                videoUrl: creator.videoUrl || "",
+                duration: 0, // Placeholder
+                fileSize: 0, // Placeholder
+                format: "MP4", // Placeholder
+                submittedAt: video.updatedAt || new Date().toISOString(),
+                status: video.status,
+                revisionHistory: [], // Would need a separate table/field for this
+                currentDeadline: creator.deadline
+            };
+            setSubmission(submissionData);
+        } else {
+            // Fallback for safety
+            const mockSubmission: VideoSubmission = {
+                id: `sub-${creator.id}`,
+                creatorId: creator.id,
+                creatorName: creator.name,
+                videoUrl: creator.videoUrl || "",
+                duration: 45,
+                fileSize: 125,
+                format: "MP4 (H.264)",
+                submittedAt: creator.submittedAt || new Date().toISOString(),
+                status: creator.status,
+                revisionHistory: [],
+                currentDeadline: creator.deadline
+            };
+            setSubmission(mockSubmission);
+        }
+
         setFeedback("");
         setIsPlaying(false);
     };
@@ -230,113 +213,6 @@ export default function ContentReviewPage() {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    const handleApprove = async () => {
-        if (!submission || !selectedCreator) return;
-
-        if (!confirm(`Are you sure you want to approve ${selectedCreator.name}'s video? This will trigger the base fee payment.`)) {
-            return;
-        }
-
-        setProcessing(true);
-        const token = localStorage.getItem("token");
-
-        try {
-            const response = await fetch(`/api/submissions/${submission.id}/approve`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (response.ok) {
-                alert(`✅ Video approved! Payment of $50 will be sent to ${selectedCreator.name}.`);
-                // Update local state
-                setCreators(creators.map(c =>
-                    c.id === selectedCreator.id ? { ...c, status: "APPROVED" as const } : c
-                ));
-                setSelectedCreator({ ...selectedCreator, status: "APPROVED" });
-            } else {
-                throw new Error("Failed to approve submission");
-            }
-        } catch (error) {
-            console.error("Error approving:", error);
-            alert("Failed to approve video. Please try again.");
-        } finally {
-            setProcessing(false);
-        }
-    };
-
-    const handleRequestRevision = async () => {
-        if (!submission || !selectedCreator) return;
-
-        if (!feedback.trim()) {
-            alert("Please provide feedback for the revision request.");
-            return;
-        }
-
-        if (feedback.length > 1000) {
-            alert("Feedback must be 1000 characters or less.");
-            return;
-        }
-
-        setProcessing(true);
-        const token = localStorage.getItem("token");
-
-        try {
-            const response = await fetch(`/api/submissions/${submission.id}/request-revision`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    feedback,
-                    deadlineDays: revisionDeadline,
-                    autoApprove
-                }),
-            });
-
-            if (response.ok) {
-                alert(`📝 Revision requested! ${selectedCreator.name} will be notified.`);
-                // Update local state
-                setCreators(creators.map(c =>
-                    c.id === selectedCreator.id ? { ...c, status: "REVISION" as const } : c
-                ));
-                setFeedback("");
-            } else {
-                throw new Error("Failed to request revision");
-            }
-        } catch (error) {
-            console.error("Error requesting revision:", error);
-            alert("Failed to request revision. Please try again.");
-        } finally {
-            setProcessing(false);
-        }
-    };
-
-    const getStatusBadge = (status: string) => {
-        const badges = {
-            PENDING: "bg-yellow-50 text-yellow-700 border-yellow-200",
-            APPROVED: "bg-green-50 text-green-700 border-green-200",
-            REVISION: "bg-orange-50 text-orange-700 border-orange-200",
-            POSTED: "bg-blue-50 text-blue-700 border-blue-200",
-            OVERDUE: "bg-red-50 text-red-700 border-red-200"
-        };
-        return badges[status as keyof typeof badges] || badges.PENDING;
-    };
-
-    const getStatusIcon = (status: string) => {
-        const icons = {
-            PENDING: "⏱",
-            APPROVED: "✓",
-            REVISION: "⚠",
-            POSTED: "✓",
-            OVERDUE: "⏱"
-        };
-        return icons[status as keyof typeof icons] || "•";
     };
 
     if (loading) {

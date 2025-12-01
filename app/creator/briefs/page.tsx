@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle, Sparkles, Clock, Users, DollarSign } from "lucide-react";
+import { QuickApplyModal } from "@/components/creator/QuickApplyModal";
 
 type Campaign = {
     id: string;
@@ -125,35 +126,22 @@ export default function CreatorBriefsPage() {
         setFilteredCampaigns(filtered);
     };
 
-    const handleApply = async (campaignId: string) => {
-        const token = localStorage.getItem("token");
-        try {
-            const response = await fetch(`/api/campaigns/${campaignId}/apply`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({})
-            });
+    const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+    const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
 
-            if (response.ok) {
-                alert("✅ Application submitted successfully!");
-                // Refresh campaigns to update status
-                fetchAvailableCampaigns();
-            } else {
-                const data = await response.json();
-                alert(data.error || "Failed to submit application");
-            }
-        } catch (error) {
-            console.error("Error applying:", error);
-            alert("Failed to submit application. Please try again.");
-        }
+    const handleApplyClick = (campaign: Campaign) => {
+        setSelectedCampaign(campaign);
+        setIsApplyModalOpen(true);
+    };
+
+    const handleApplySuccess = () => {
+        // Refresh campaigns to update status
+        fetchAvailableCampaigns();
     };
 
     const getCampaignBorderClass = (campaign: Campaign) => {
         if (campaign.isUrgent) return "border-l-4 border-l-red-500 bg-red-50/30";
-        if (campaign.hasApplied) return "border-l-4 border-l-green-500 bg-green-50/30";
+        if (campaign.hasApplied) return "border-l-4 border-l-green-50/30 bg-green-50/30";
         if (campaign.isNew) return "border-l-4 border-l-blue-500 bg-blue-50/30";
         return "";
     };
@@ -387,7 +375,7 @@ export default function CreatorBriefsPage() {
                                                     </Button>
                                                 </Link>
                                                 {!campaign.hasApplied && (
-                                                    <Button onClick={() => handleApply(campaign.id)}>
+                                                    <Button onClick={() => handleApplyClick(campaign)}>
                                                         Quick Apply
                                                     </Button>
                                                 )}
@@ -419,6 +407,13 @@ export default function CreatorBriefsPage() {
                     )}
                 </div>
             </main>
+
+            <QuickApplyModal
+                isOpen={isApplyModalOpen}
+                onClose={() => setIsApplyModalOpen(false)}
+                campaign={selectedCampaign}
+                onSuccess={handleApplySuccess}
+            />
         </div>
     );
 }

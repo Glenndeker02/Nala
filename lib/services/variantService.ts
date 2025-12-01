@@ -1,14 +1,26 @@
-import { prisma } from "@/lib/prisma";
+import db from "@/lib/db";
 import { VariantStatus } from "@prisma/client";
 
 export class VariantService {
-    static async createVariant(campaignId: string, creatorId: string, label: string) {
-        // Generate a unique tracking code/URL (mock implementation)
+    static async createVariant(
+        campaignId: string,
+        creatorId: string,
+        label: string,
+        details?: {
+            budget?: number;
+            baseFee?: number;
+            performanceBudget?: number;
+            expectedViews?: number;
+            deadline?: Date;
+            instructions?: string;
+        }
+    ) {
+        // Generate a unique tracking code/URL
         const trackingId = Math.random().toString(36).substring(2, 15);
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         const trackingUrl = `${baseUrl}/t/${trackingId}`;
 
-        return prisma.uGCVariant.create({
+        const variant = await db.uGCVariant.create({
             data: {
                 campaignId,
                 creatorId,
@@ -17,13 +29,43 @@ export class VariantService {
                 utmSource: 'nala_platform',
                 utmMedium: 'ugc_variant',
                 utmCampaign: campaignId,
-                status: 'DRAFT'
+                status: 'PENDING_UPLOAD',
+                // New fields
+                budget: details?.budget,
+                baseFee: details?.baseFee,
+                performanceBudget: details?.performanceBudget,
+                expectedViews: details?.expectedViews,
+                deadline: details?.deadline,
+                instructions: details?.instructions,
+                assignedAt: new Date(),
+                notificationSent: true
+            },
+            include: {
+                campaign: {
+                    include: {
+                        founder: true
+                    }
+                }
             }
         });
+
+        // Create notification for the creator
+        await db.notification.create({
+            data: {
+                userId: creatorId,
+                type: 'CAMPAIGN_INVITE',
+                title: 'New Variant Video Request',
+                message: `${variant.campaign.founder.fullName} has requested you to create a variant video "${label}" for the campaign "${variant.campaign.name}"`,
+                link: `/creator/variants/${variant.id}`,
+                isRead: false,
+            }
+        });
+
+        return variant;
     }
 
     static async getVariants(campaignId: string) {
-        return prisma.uGCVariant.findMany({
+        return db.uGCVariant.findMany({
             where: { campaignId },
             include: {
                 creator: {
@@ -47,7 +89,7 @@ export class VariantService {
     }
 
     static async updateVariant(variantId: string, data: { status?: VariantStatus; videoUrl?: string; label?: string }) {
-        return prisma.uGCVariant.update({
+        return db.uGCVariant.update({
             where: { id: variantId },
             data
         });
@@ -59,7 +101,7 @@ export class VariantService {
         today.setHours(0, 0, 0, 0);
 
         // Upsert logic manually since we need to increment
-        const metric = await prisma.variantMetric.findFirst({
+        const metric = await db.variantMetric.findFirst({
             where: {
                 variantId,
                 date: today
@@ -77,14 +119,14 @@ export class VariantService {
 
             // Recalculate derived metrics
             // Note: In a real high-scale system, this calculation would be async/batched
-            const updated = await prisma.variantMetric.update({
+            const updated = await db.variantMetric.update({
                 where: { id: metric.id },
                 data: updateData
             });
 
             return this.recalculateDerivedMetrics(updated.id);
         } else {
-            return prisma.variantMetric.create({
+            return db.variantMetric.create({
                 data: {
                     variantId,
                     date: today,
@@ -98,7 +140,7 @@ export class VariantService {
     }
 
     private static async recalculateDerivedMetrics(metricId: string) {
-        const metric = await prisma.variantMetric.findUnique({ where: { id: metricId } });
+        const metric = await db.variantMetric.findUnique({ where: { id: metricId } });
         if (!metric) return;
 
         const views = metric.views;
@@ -115,7 +157,7 @@ export class VariantService {
         // Weighted: 40% Conversion Rate, 30% ROI, 30% CTR
         const performanceScore = Math.min(100, (conversionRate * 2) + (roi * 0.1) + (ctr * 2));
 
-        return prisma.variantMetric.update({
+        return db.variantMetric.update({
             where: { id: metricId },
             data: {
                 ctr,

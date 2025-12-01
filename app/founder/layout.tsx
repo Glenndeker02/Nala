@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import NotificationBell from "@/components/ui/NotificationBell";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function FounderLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();

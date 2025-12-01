@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { VariantService } from "@/lib/services/variantService";
-import { withAuth } from "@/lib/api-middleware";
+import { requireAuth } from "@/lib/api-middleware";
 
-export const GET = withAuth(async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const GET = requireAuth(async (req: NextRequest, user: any, { params }: { params: { id: string } }) => {
     try {
         const variants = await VariantService.getVariants(params.id);
         return NextResponse.json(variants);
@@ -12,16 +12,37 @@ export const GET = withAuth(async (req: NextRequest, { params }: { params: { id:
     }
 });
 
-export const POST = withAuth(async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const POST = requireAuth(async (req: NextRequest, user: any, { params }: { params: { id: string } }) => {
     try {
         const body = await req.json();
-        const { creatorId, label } = body;
+        const {
+            creatorId,
+            label,
+            budget,
+            baseFee,
+            performanceBudget,
+            expectedViews,
+            deadline,
+            instructions
+        } = body;
 
         if (!creatorId || !label) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const variant = await VariantService.createVariant(params.id, creatorId, label);
+        const variant = await VariantService.createVariant(
+            params.id,
+            creatorId,
+            label,
+            {
+                budget,
+                baseFee,
+                performanceBudget,
+                expectedViews,
+                deadline: deadline ? new Date(deadline) : undefined,
+                instructions
+            }
+        );
         return NextResponse.json(variant);
     } catch (error) {
         console.error("Error creating variant:", error);

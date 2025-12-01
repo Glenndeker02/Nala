@@ -47,13 +47,13 @@ export async function GET(req: NextRequest) {
             where: { founderId: userId },
             _sum: {
                 totalBudget: true,
-                escrowBalance: true
+                // escrowBalance: true // TODO: Uncomment when added
             }
         });
 
         // Calculate total budget spent
         const totalBudget = Number(budgetStats._sum.totalBudget || 0);
-        const escrowBalance = Number(budgetStats._sum.escrowBalance || 0);
+        const escrowBalance = 0; // Number(budgetStats._sum.escrowBalance || 0); // TODO: Uncomment when added
         const budgetSpent = totalBudget - escrowBalance;
 
         // Calculate average engagement rate from posted videos

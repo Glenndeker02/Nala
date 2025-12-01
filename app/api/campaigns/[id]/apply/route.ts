@@ -5,20 +5,26 @@ import { requireRole, ApiResponse } from '@/lib/api-middleware';
 
 const applySchema = z.object({
     message: z.string().max(500).optional(),
-    portfolioLinks: z.array(z.string().url()).optional(),
+    portfolioLinks: z.array(z.string()).optional(),
 });
 
 export const POST = requireRole(['CREATOR'], async (request: NextRequest, user, { params }: { params: { id: string } }) => {
     try {
         const campaignId = params.id;
+        console.log('[Apply] Campaign ID:', campaignId);
+        console.log('[Apply] User:', user);
+
         const body = await request.json();
+        console.log('[Apply] Request body:', body);
 
         const validation = applySchema.safeParse(body);
         if (!validation.success) {
+            console.error('[Apply] Validation failed:', validation.error.errors);
             return ApiResponse.error('Validation failed', 400, validation.error.errors);
         }
 
         const { message, portfolioLinks } = validation.data;
+        console.log('[Apply] Validated data:', { message, portfolioLinks });
 
         // Check if campaign exists and is active
         const campaign = await db.campaign.findUnique({
@@ -33,11 +39,14 @@ export const POST = requireRole(['CREATOR'], async (request: NextRequest, user, 
             }
         });
 
+        console.log('[Apply] Campaign found:', campaign ? { id: campaign.id, status: campaign.status } : 'NOT FOUND');
+
         if (!campaign) {
             return ApiResponse.error('Campaign not found', 404);
         }
 
-        if (campaign.status !== 'ACTIVE') {
+        if (campaign.status !== 'ACTIVE' && campaign.status !== 'PENDING_CREATOR') {
+            console.error('[Apply] Campaign status not accepting applications:', campaign.status);
             return ApiResponse.error('Campaign is not accepting applications', 400);
         }
 
@@ -51,6 +60,8 @@ export const POST = requireRole(['CREATOR'], async (request: NextRequest, user, 
             },
         });
 
+        console.log('[Apply] Existing application:', existingApplication ? 'FOUND' : 'NONE');
+
         if (existingApplication) {
             return ApiResponse.error('You have already applied to this campaign', 400);
         }
@@ -60,6 +71,8 @@ export const POST = requireRole(['CREATOR'], async (request: NextRequest, user, 
             where: { id: user.userId },
             select: { fullName: true, email: true }
         });
+
+        console.log('[Apply] Creator details:', creator);
 
         // Create application and notification in a transaction
         const result = await db.$transaction(async (tx) => {
@@ -74,33 +87,34 @@ export const POST = requireRole(['CREATOR'], async (request: NextRequest, user, 
                 },
             });
 
+            console.log('[Apply] Application created:', application.id);
+
             // Create notification for founder
             await tx.notification.create({
                 data: {
                     userId: campaign.founderId,
-                    type: 'APPLICATION_RECEIVED',
+                    type: 'APPLICATION_UPDATE',
                     title: 'New Campaign Application',
-                    message: `${creator?.fullName || 'A creator'} applied to your campaign "${campaign.title || campaign.name}"`,
-                    metadata: {
-                        campaignId: campaign.id,
-                        campaignName: campaign.title || campaign.name,
-                        creatorId: user.userId,
-                        creatorName: creator?.fullName,
-                        applicationId: application.id
-                    },
-                    read: false
+                    message: `${creator?.fullName || 'A creator'} applied to your campaign "${campaign.name}"`,
+                    link: `/founder/campaigns/${campaign.id}/applications`,
+                    isRead: false
                 }
             });
 
+            console.log('[Apply] Notification created');
+
             return application;
         });
+
+        console.log('[Apply] Transaction completed successfully');
 
         return ApiResponse.success({
             application: result,
             message: 'Application submitted successfully',
         });
     } catch (error) {
-        console.error('Application error:', error);
+        console.error('[Apply] Error details:', error);
+        console.error('[Apply] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
         return ApiResponse.error('Failed to submit application', 500);
     }
 });

@@ -46,10 +46,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Update last login
-    await db.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
+    // TODO: Uncomment when lastLoginAt column is added to database
+    // await db.user.update({
+    //   where: { id: user.id },
+    //   data: { lastLoginAt: new Date() },
+    // });
 
     // Generate tokens
     const tokens = generateTokens({
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
-        emailVerified: user.emailVerified,
+        // emailVerified: user.emailVerified, // Field not in database yet
         ...(user.companyName && { companyName: user.companyName }),
         ...(user.creatorProfile && {
           creatorProfile: {

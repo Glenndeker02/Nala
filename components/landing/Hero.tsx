@@ -47,7 +47,7 @@ export default function Hero() {
                         <div className="space-y-4">
                             {/* Phrase 1: Animated */}
                             <motion.div
-                                className="text-3xl lg:text-5xl font-bold tracking-tight text-green-600 leading-[1.1]"
+                                className="text-4xl lg:text-6xl font-bold tracking-tight text-green-600 leading-[1.1]"
                                 variants={container}
                                 initial="hidden"
                                 animate="visible"

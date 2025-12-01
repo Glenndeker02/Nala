@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Briefcase, DollarSign, Calendar } from "lucide-react";
 import Link from "next/link";
 
@@ -89,7 +90,7 @@ export default function ActiveAssignmentsCard() {
                                         {assignment.status}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-4 text-xs text-gray-600">
+                                <div className="flex items-center gap-4 text-xs text-gray-600 mb-3">
                                     <div className="flex items-center gap-1">
                                         <Calendar className="w-3 h-3" />
                                         <span>{assignment.dueDate}</span>
@@ -98,6 +99,21 @@ export default function ActiveAssignmentsCard() {
                                         <DollarSign className="w-3 h-3" />
                                         <span>${assignment.paymentAmount}</span>
                                     </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <Link href={`/creator/campaigns/${assignment.campaignId}`} className="flex-1">
+                                        <Button variant="outline" size="sm" className="w-full text-xs h-8">
+                                            View Details
+                                        </Button>
+                                    </Link>
+                                    {assignment.status === 'PENDING' && (
+                                        <Link href={`/creator/campaigns/${assignment.campaignId}/upload`} className="flex-1">
+                                            <Button size="sm" className="w-full text-xs h-8">
+                                                Upload Draft
+                                            </Button>
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         ))}

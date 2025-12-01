@@ -1,0 +1,35 @@
+-- Add missing columns to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_account_id TEXT UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP(3);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP(3);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMP(3);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspension_reason TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_reason TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS founder_tier TEXT;
+
+-- Add missing columns to campaigns table
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS brand_name TEXT;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS posting_frequency TEXT;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS start_date TIMESTAMP(3);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS deadline TIMESTAMP(3);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS stripe_payment_intent_id TEXT;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS brief_data JSONB;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS final_views_total INTEGER;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS total_paid_to_creator DECIMAL(10, 2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS total_refunded_to_founder DECIMAL(10, 2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS platform_revenue DECIMAL(10, 2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS guaranteed_spend BOOLEAN DEFAULT false;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS target_views INTEGER;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP(3);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+
+-- Add missing budget columns to campaigns table
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS base_fee_budget DECIMAL(10, 2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS base_fee_per_video DECIMAL(10, 2) DEFAULT 0;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS performance_budget DECIMAL(10, 2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS escrow_balance DECIMAL(10, 2) DEFAULT 0;

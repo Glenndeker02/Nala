@@ -70,24 +70,28 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
             const slotsRemaining = campaign.videosRequested - campaign._count.videos;
             const isLimitedSlots = slotsRemaining <= 2 && slotsRemaining > 0;
 
+            // Parse brief data safely
+            const briefData = campaign.briefData as any || {};
+            const platforms = campaign.platform ? [campaign.platform] : (briefData.platforms || []);
+
             return {
                 id: campaign.id,
-                name: campaign.name || campaign.title,
-                title: campaign.title,
-                description: campaign.description,
-                industry: campaign.industry,
-                platforms: campaign.briefData?.platforms || [],
+                name: campaign.name,
+                title: campaign.name, // Map name to title for frontend compatibility
+                description: campaign.description || "",
+                industry: briefData.industry || "General",
+                platforms: platforms,
                 videosRequested: campaign.videosRequested,
                 videosCompleted: campaign._count.videos,
-                baseFeePerVideo: Number(campaign.baseFeePerVideo),
+                baseFeePerVideo: Number(campaign.baseFeePerVideo || 0),
                 totalBudget: Number(campaign.totalBudget),
-                maxViews: 150000, // Default, can be calculated from budget
-                tone: campaign.briefData?.tone || "Professional",
+                maxViews: campaign.targetViews || 150000,
+                tone: briefData.tone || "Professional",
                 founderName: campaign.founder.companyName || campaign.founder.fullName,
                 founderId: campaign.founder.id,
                 createdAt: campaign.createdAt,
                 startDate: campaign.startDate,
-                deadline: campaign.startDate, // Using startDate as deadline
+                deadline: campaign.deadline || campaign.startDate,
                 applicationsCount: campaign._count.applications,
                 hasApplied,
                 appliedDate: appliedDate?.toISOString(),
@@ -101,8 +105,8 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
                 slotsRemaining,
 
                 // Additional metadata
-                category: campaign.industry || "General",
-                briefData: campaign.briefData
+                category: briefData.industry || "General",
+                briefData: briefData
             };
         });
 

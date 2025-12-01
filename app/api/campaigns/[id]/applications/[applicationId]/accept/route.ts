@@ -50,42 +50,80 @@ export const POST = requireRole(
                 return ApiResponse.error('All video slots have been filled', 400);
             }
 
-            // Update application status
-            await db.application.update({
-                where: { id: applicationId },
-                data: { status: 'ACCEPTED' },
-            });
+            // Update application status and assign creator to campaign in transaction
+            const result = await db.$transaction(async (tx) => {
+                // Update application status
+                await tx.application.update({
+                    where: { id: applicationId },
+                    data: { status: 'ACCEPTED' },
+                });
 
-            // Create a video assignment for this creator
-            // Find the first unassigned video or create a new one
-            let video = campaign.videos.find(v => !v.creatorId);
-
-            if (!video) {
-                // Create a new video entry
-                video = await db.video.create({
+                // Assign creator to campaign
+                await tx.campaign.update({
+                    where: { id: campaignId },
                     data: {
-                        campaignId,
                         creatorId,
-                        status: 'PENDING',
+                        status: 'ACTIVE' // Update status to ACTIVE when creator is assigned
                     },
                 });
-            } else {
-                // Assign existing video to creator
-                await db.video.update({
-                    where: { id: video.id },
-                    data: { creatorId },
-                });
-            }
 
-            // TODO: Send notification to creator
-            // TODO: Send email to creator
+                // Create a video assignment for this creator
+                let video = campaign.videos.find(v => !v.creatorId);
+
+                if (!video) {
+                    // Create a new video entry
+                    video = await tx.video.create({
+                        data: {
+                            campaignId,
+                            creatorId,
+                            status: 'PENDING',
+                            platform: campaign.platform,
+                        },
+                    });
+                } else {
+                    // Assign existing video to creator
+                    await tx.video.update({
+                        where: { id: video.id },
+                        data: { creatorId },
+                    });
+                }
+
+                // Get creator details for notification
+                const creator = await tx.user.findUnique({
+                    where: { id: creatorId },
+                    select: { fullName: true, email: true }
+                });
+
+                // Create notification for creator
+                await tx.notification.create({
+                    data: {
+                        userId: creatorId,
+                        type: 'APPLICATION_UPDATE',
+                        title: 'Application Accepted! 🎉',
+                        message: `Congratulations! You have been accepted for the campaign "${campaign.name}". You can now start working on your content.`,
+                        link: `/creator/campaigns/${campaignId}`,
+                        metadata: {
+                            campaignId: campaign.id,
+                            campaignName: campaign.name,
+                            founderId: campaign.founderId,
+                            applicationId,
+                            videoId: video.id,
+                            briefData: campaign.briefData
+                        },
+                        isRead: false
+                    }
+                });
+
+                return { video, creator };
+            });
 
             return ApiResponse.success({
                 message: 'Application accepted successfully',
                 video: {
-                    id: video.id,
-                    creatorId: video.creatorId,
+                    id: result.video.id,
+                    creatorId: result.video.creatorId,
                 },
+                creator: result.creator
             });
         } catch (error) {
             console.error('Error accepting application:', error);

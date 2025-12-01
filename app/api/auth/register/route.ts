@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
-        emailVerified: user.emailVerified,
+        // emailVerified: user.emailVerified, // Field not in database yet
       },
       ...tokens,
       message: 'Registration successful. Please check your email to verify your account.',

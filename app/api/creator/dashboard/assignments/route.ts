@@ -1,108 +1,56 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import { formatDistanceToNow } from 'date-fns';
+import { NextRequest } from 'next/server';
+import db from '@/lib/db';
+import { requireRole, ApiResponse } from '@/lib/api-middleware';
 
-const prisma = new PrismaClient();
-
-export async function GET(req: NextRequest) {
+export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) => {
     try {
-        // Extract and verify JWT token
-        const authHeader = req.headers.get('authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
-            userId: string;
-            role: string;
-        };
-
-        if (decoded.role !== 'CREATOR') {
-            return NextResponse.json(
-                { success: false, error: 'Access denied. Creator role required.' },
-                { status: 403 }
-            );
-        }
-
-        const userId = decoded.userId;
-
-        // Get creator's assigned videos/campaigns
-        const assignments = await prisma.video.findMany({
+        // Fetch videos assigned to the creator
+        const videos = await db.video.findMany({
             where: {
-                creatorId: userId,
-                status: { in: ['PENDING', 'DRAFT_SUBMITTED', 'IN_REVIEW', 'REVISION_REQUESTED', 'APPROVED'] }
+                creatorId: user.userId,
+                status: {
+                    not: 'POSTED' // Show active assignments only
+                }
             },
             include: {
                 campaign: {
                     select: {
                         id: true,
                         name: true,
+                        brandName: true,
                         founder: {
                             select: {
                                 companyName: true,
                                 fullName: true
                             }
-                        }
+                        },
+                        baseFeePerVideo: true,
+                        deadline: true,
+                        startDate: true
                     }
                 }
             },
-            orderBy: { createdAt: 'desc' },
-            take: 10
-        });
-
-        // Format assignments
-        const formattedAssignments = assignments.map(video => {
-            let status: 'PENDING' | 'DRAFT' | 'REVIEW' | 'APPROVED' | 'POSTED' = 'PENDING';
-
-            if (video.status === 'DRAFT_SUBMITTED' || video.status === 'IN_REVIEW') {
-                status = 'REVIEW';
-            } else if (video.status === 'APPROVED') {
-                status = 'APPROVED';
-            } else if (video.status === 'POSTED' || video.status === 'LOCKED') {
-                status = 'POSTED';
-            } else if (video.status === 'REVISION_REQUESTED') {
-                status = 'DRAFT';
-            }
-
-            // Calculate payment amount (base fee from campaign)
-            const paymentAmount = 350; // Mock value, in production get from campaign/video
-
-            return {
-                id: video.id,
-                campaignName: video.campaign.name,
-                brandName: video.campaign.founder.companyName || video.campaign.founder.fullName,
-                status,
-                dueDate: video.createdAt ? formatDistanceToNow(video.createdAt, { addSuffix: true }) : 'No deadline',
-                deliverableType: 'UGC Video',
-                paymentAmount
-            };
-        });
-
-        return NextResponse.json({
-            success: true,
-            data: {
-                assignments: formattedAssignments
+            orderBy: {
+                createdAt: 'desc'
             }
         });
 
-    } catch (error: any) {
-        console.error('Error fetching creator assignments:', error);
+        // Transform data for frontend
+        const assignments = videos.map(video => ({
+            id: video.id,
+            campaignId: video.campaign.id,
+            campaignName: video.campaign.name,
+            brandName: video.campaign.brandName || video.campaign.founder.companyName || video.campaign.founder.fullName,
+            status: video.status,
+            dueDate: video.campaign.deadline ? new Date(video.campaign.deadline).toLocaleDateString() : 'No deadline',
+            deliverableType: 'Video', // Could be dynamic based on campaign type
+            paymentAmount: Number(video.campaign.baseFeePerVideo),
+            videoUrl: video.draftVideoUrl
+        }));
 
-        if (error.name === 'JsonWebTokenError') {
-            return NextResponse.json(
-                { success: false, error: 'Invalid token' },
-                { status: 401 }
-            );
-        }
-
-        return NextResponse.json(
-            { success: false, error: 'Internal server error' },
-            { status: 500 }
-        );
+        return ApiResponse.success({ assignments });
+    } catch (error) {
+        console.error('Error fetching assignments:', error);
+        return ApiResponse.error('Failed to fetch assignments', 500);
     }
-}
+});

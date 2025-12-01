@@ -1,22 +1,18 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 
-export default function VideoAnalyticsCard({ video }) {
-    const platform = (() => {
-        if (!video.finalPostUrl) return "Unknown";
-        const url = video.finalPostUrl.toLowerCase();
-        if (url.includes("instagram.com")) return "Instagram";
-        if (url.includes("tiktok.com")) return "TikTok";
-        if (url.includes("youtube.com")) return "YouTube";
-        return "Other";
-    })();
-
+export default function VideoAnalyticsCard({ video, platform }: { video: any, platform: string }) {
     return (
         <Card className="hover:shadow-xl transition-all duration-200 border-2 hover:border-primary-DEFAULT">
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                     <span>{video.title || "Untitled Video"}</span>
-                    <span className="text-sm font-medium bg-gray-100 text-gray-800 px-2 py-1 rounded">{platform}</span>
+                    <span className={`text-sm font-medium px-2 py-1 rounded ${video.status === 'DRAFT_SUBMITTED' ? 'bg-yellow-100 text-yellow-800' :
+                            video.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                                'bg-gray-100 text-gray-800'
+                        }`}>
+                        {video.status === 'DRAFT_SUBMITTED' ? 'Draft' : platform}
+                    </span>
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
@@ -26,7 +22,7 @@ export default function VideoAnalyticsCard({ video }) {
                     <div>Comments: {(video.comments || 0).toLocaleString()}</div>
                     <div>Shares: {(video.shares || 0).toLocaleString()}</div>
                 </div>
-                {video.finalPostUrl && (
+                {video.finalPostUrl ? (
                     <a
                         href={video.finalPostUrl}
                         target="_blank"
@@ -35,7 +31,14 @@ export default function VideoAnalyticsCard({ video }) {
                     >
                         View on {platform}
                     </a>
-                )}
+                ) : video.status === 'DRAFT_SUBMITTED' ? (
+                    <a
+                        href={`/founder/campaigns/${video.campaignId}/review`}
+                        className="text-primary-DEFAULT hover:text-primary-600 text-sm font-medium"
+                    >
+                        Review Draft
+                    </a>
+                ) : null}
             </CardContent>
         </Card>
     );

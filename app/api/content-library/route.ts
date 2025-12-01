@@ -30,19 +30,52 @@ export async function GET(req: NextRequest) {
         const industry = searchParams.get('industry');
         const platform = searchParams.get('platform');
 
-        // For now, use mock data with filtering
-        // In production, this would query a content_formats table
-        let formats = [...mockContentLibraryData];
+        // Query database for video formats
+        const where: any = {};
 
-        // Filter by industry if provided
+        // Filter by industry (checking categories or structure)
         if (industry) {
-            formats = formats.filter(f => f.industry === industry);
+            where.categories = { has: industry };
         }
 
-        // Filter by platform if provided
+        // Filter by platform
         if (platform) {
-            formats = formats.filter(f => f.platform === platform);
+            where.platforms = { has: platform };
         }
+
+        const dbFormats = await prisma.videoFormat.findMany({
+            where,
+            take: limit,
+            orderBy: {
+                avgViews: 'desc' // Default sort by popularity
+            }
+        });
+
+        // Map DB formats to frontend expected structure
+        // We assume 'structure' JSON field contains the UI-specific details like thumbnail, creator info, etc.
+        let formats = dbFormats.map(f => {
+            const uiData: any = f.structure || {};
+
+            return {
+                id: f.id,
+                thumbnailUrl: uiData.thumbnailUrl || '/placeholders/video-placeholder.jpg',
+                videoUrl: uiData.videoUrl || '',
+                platform: f.platforms[0] || 'TikTok',
+                formatType: f.name,
+                hookStyle: uiData.hookStyle || 'Visual',
+                creator: {
+                    name: uiData.creatorName || 'Nala Creator',
+                    handle: uiData.creatorHandle || '@nalacreator',
+                    avatarUrl: uiData.creatorAvatarUrl || ''
+                },
+                metrics: {
+                    views: f.avgViews,
+                    engagementRate: Number(f.avgEngagementRate) || 0
+                },
+                rankingScore: 0, // Will be calculated below
+                industry: f.categories[0] || 'General'
+            };
+        });
 
         // Calculate ranking scores based on metrics
         formats = formats.map(format => ({

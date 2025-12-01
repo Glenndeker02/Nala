@@ -39,14 +39,31 @@ export const POST = requireRole(
                 return ApiResponse.error('Application has already been processed', 400);
             }
 
-            // Update application status
-            await db.application.update({
-                where: { id: applicationId },
-                data: { status: 'REJECTED' },
-            });
+            // Update application status and create notification in transaction
+            await db.$transaction(async (tx) => {
+                await tx.application.update({
+                    where: { id: applicationId },
+                    data: { status: 'REJECTED' },
+                });
 
-            // TODO: Send notification to creator
-            // TODO: Send email to creator
+                // Create notification for creator
+                await tx.notification.create({
+                    data: {
+                        userId: application.creatorId,
+                        type: 'APPLICATION_UPDATE',
+                        title: 'Application Update',
+                        message: `Your application for "${campaign.name}" was not selected at this time.`,
+                        metadata: {
+                            campaignId: campaign.id,
+                            campaignName: campaign.name,
+                            founderId: campaign.founderId,
+                            applicationId,
+                            status: 'REJECTED'
+                        },
+                        isRead: false
+                    }
+                });
+            });
 
             return ApiResponse.success({
                 message: 'Application rejected',

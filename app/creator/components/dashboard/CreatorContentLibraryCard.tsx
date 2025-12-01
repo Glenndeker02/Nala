@@ -69,11 +69,11 @@ export default function CreatorContentLibraryCard() {
             </CardHeader>
             <CardContent>
                 {loading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                            <div key={i} className="flex flex-col rounded-md border border-gray-200 overflow-hidden animate-pulse">
-                                <div className="aspect-video bg-gray-200"></div>
-                                <div className="p-2 space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex flex-row items-center gap-3 p-2 rounded-md border border-gray-200 overflow-hidden animate-pulse">
+                                <div className="w-20 aspect-video bg-gray-200 rounded-md"></div>
+                                <div className="flex-1 space-y-2">
                                     <div className="h-3 bg-gray-200 rounded w-3/4"></div>
                                     <div className="h-2 bg-gray-200 rounded w-1/2"></div>
                                 </div>
@@ -85,32 +85,32 @@ export default function CreatorContentLibraryCard() {
                         <p className="text-sm">No content available</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {formats.map((format) => (
-                            <div key={format.id} className="group flex flex-col rounded-md border border-gray-200 overflow-hidden hover:shadow-md transition-all">
-                                <div className="relative aspect-video bg-gray-100">
+                            <div key={format.id} className="group flex flex-row items-center gap-3 rounded-md border border-gray-200 p-2 hover:shadow-md transition-all bg-white">
+                                <div className="relative w-20 aspect-video bg-gray-100 rounded-md overflow-hidden flex-shrink-0 group-hover:ring-1 ring-primary-100 transition-all">
                                     <img
                                         src={format.thumbnailUrl}
                                         alt={format.formatType}
                                         className="w-full h-full object-cover"
                                     />
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Play className="w-6 h-6 text-white fill-current" />
+                                        <Play className="w-4 h-4 text-white fill-current" />
                                     </div>
-                                    <div className="absolute top-1.5 left-1.5 bg-white/90 text-gray-900 text-[8px] font-semibold px-1 py-0.5 rounded shadow-sm">
+                                    <div className="absolute top-0.5 right-0.5 bg-white/90 text-gray-900 text-[6px] font-semibold px-0.5 rounded shadow-sm">
                                         {format.platform}
                                     </div>
                                 </div>
 
-                                <div className="p-2 flex flex-col flex-1">
-                                    <div className="flex items-start justify-between mb-1.5">
-                                        <div className="min-w-0">
+                                <div className="flex flex-col flex-1 min-w-0">
+                                    <div className="mb-1">
+                                        <div className="flex items-center gap-1.5">
                                             <h4 className="text-xs font-semibold text-gray-900 line-clamp-1">{format.formatType}</h4>
-                                            <p className="text-[10px] text-gray-500 truncate">{format.creator.name}</p>
+                                            {format.rankingScore && format.rankingScore > 70 && (
+                                                <TrendingUp className="w-2.5 h-2.5 text-green-600 flex-shrink-0" />
+                                            )}
                                         </div>
-                                        {format.rankingScore && format.rankingScore > 70 && (
-                                            <TrendingUp className="w-3 h-3 text-green-600 flex-shrink-0 ml-1" />
-                                        )}
+                                        <p className="text-[10px] text-gray-500 truncate">{format.creator.name}</p>
                                     </div>
 
                                     <div className="flex items-center gap-2 text-[10px] text-gray-500">

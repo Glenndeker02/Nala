@@ -97,15 +97,18 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
         description,
         status: 'ACTIVE', // TODO: Change back to DRAFT when payment flow is ready
         videosRequested,
+        videosRequested,
+        videosRequested,
         totalBudget,
-        baseFeeeBudget: baseFeebudget,
-        performanceBudget,
-        escrowBalance: 0,
-        postingFrequency,
-        ...(startDate && { startDate: new Date(startDate) }),
-        briefData: briefData || {},
-        guaranteedSpend: guaranteedSpend || false,
-        targetViews: targetViews || null,
+        // baseFeeBudget: baseFeebudget, // TODO: Add to database
+        // baseFeePerVideo, // TODO: Add to database
+        // performanceBudget, // TODO: Add to database
+        // escrowBalance: 0, // TODO: Add to database
+        postingFrequency: undefined, // postingFrequency, // TODO: Add to database
+        // ...(startDate && { startDate: new Date(startDate) }), // TODO: Add to database
+        // briefData: briefData || {}, // TODO: Add to database
+        // guaranteedSpend: guaranteedSpend || false, // TODO: Add to database
+        // targetViews: targetViews || null, // TODO: Add to database
       },
     });
 
@@ -122,12 +125,13 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
       );
 
       // Update campaign with payment intent ID
-      await db.campaign.update({
-        where: { id: campaign.id },
-        data: {
-          stripePaymentIntentId: paymentIntent.id,
-        },
-      });
+      // TODO: Uncomment when column is added
+      // await db.campaign.update({
+      //   where: { id: campaign.id },
+      //   data: {
+      //     stripePaymentIntentId: paymentIntent.id,
+      //   },
+      // });
 
       paymentData = {
         clientSecret: paymentIntent.client_secret,
@@ -146,8 +150,8 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
         name: campaign.name,
         status: campaign.status,
         totalBudget: campaign.totalBudget.toNumber(),
-        baseFeebudget: campaign.baseFeeeBudget.toNumber(),
-        performanceBudget: campaign.performanceBudget.toNumber(),
+        // baseFeebudget: campaign.baseFeeBudget.toNumber(), // TODO: Add to database
+        // performanceBudget: campaign.performanceBudget.toNumber(), // TODO: Add to database
         videosRequested: campaign.videosRequested,
       },
       ...(paymentData && { payment: paymentData }),

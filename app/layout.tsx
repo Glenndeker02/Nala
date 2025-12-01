@@ -9,14 +9,19 @@ export const metadata: Metadata = {
   description: "Connect SaaS Founders with content creators through performance-based payments",
 };
 
+import { Toaster } from "@/components/ui/toaster";
+
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.Node;
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className} suppressHydrationWarning>{children}</body>
+      <body className={inter.className} suppressHydrationWarning>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

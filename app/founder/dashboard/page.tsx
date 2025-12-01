@@ -10,7 +10,7 @@ import CampaignOverviewCard from "@/app/founder/components/dashboard/CampaignOve
 import PerformanceAnalyticsCard from "@/app/founder/components/dashboard/PerformanceAnalyticsCard";
 import ContentLibraryCard from "@/app/founder/components/dashboard/ContentLibraryCard";
 import UpcomingDeadlinesCard from "@/app/founder/components/dashboard/UpcomingDeadlinesCard";
-import NotificationsCard from "@/app/founder/components/dashboard/NotificationsCard";
+import PendingApplications from "@/app/founder/components/dashboard/PendingApplications";
 import CreatorActivityCard from "@/app/founder/components/dashboard/CreatorActivityCard";
 import WeeklySummaryCard from "@/app/founder/components/dashboard/WeeklySummaryCard";
 import SuggestionsCard from "@/app/founder/components/dashboard/SuggestionsCard";
@@ -22,7 +22,7 @@ type Campaign = {
   totalBudget: number;
   videosRequested: number;
   videosCompleted: number;
-  createdAt: string;
+  createdAt?: string;
   _count?: {
     videos: number;
   };
@@ -103,10 +103,10 @@ export default function FounderDashboard() {
           </div>
         </div>
 
-        {/* Second Row - Deadlines, Notifications, Creator Activity on same Y-axis */}
+        {/* Second Row - Deadlines, Pending Applications, Creator Activity on same Y-axis */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <UpcomingDeadlinesCard />
-          <NotificationsCard />
+          <PendingApplications />
           <CreatorActivityCard />
         </div>
 
@@ -115,11 +115,6 @@ export default function FounderDashboard() {
 
           {/* Performance and Active Campaigns Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-            {/* Performance Chart */}
-            <div className="h-full">
-              <PerformanceAnalyticsCard />
-            </div>
 
             {/* Active Campaigns List */}
             <Card className="h-full border-none shadow-sm flex flex-col">

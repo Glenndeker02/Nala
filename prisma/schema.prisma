@@ -76,6 +76,9 @@ model User {
   reviewedVersions      VideoVersion[]       @relation("ReviewedVersions")
   grantedLicenses       License[]            @relation("LicenseGrantee")
   assignedVariants      UGCVariant[]
+  
+  // Advanced Campaign System
+  founderVideos         FounderVideo[]       @relation("founder_videos")
 
   @@map("users")
 }
@@ -254,6 +257,9 @@ model Campaign {
   conversations         Conversation[]
   assets                Asset[]
   variants              UGCVariant[]
+  
+  // Advanced Campaign System
+  founderVideos         FounderVideo[]
 
   @@index([founderId, status])
   @@map("campaigns")
@@ -462,6 +468,9 @@ model License {
 
   licenseNumber   String    @unique @map("license_number")
   pdfUrl          String?   @map("pdf_url")
+
+  granteeId       String?   @map("grantee_id")
+  grantee         User?     @relation("LicenseGrantee", fields: [granteeId], references: [id])
 
   grantedAt       DateTime  @default(now()) @map("granted_at")
 
@@ -779,11 +788,43 @@ enum NotificationType {
   VIDEO_STATUS
   PAYMENT
   DISPUTE
+  FORMAT_ASSIGNED
+  AB_TEST_COMPLETED
+  GOAL_MILESTONE
+  FOUNDER_VIDEO_POSTED
+  PERFORMANCE_ALERT
 }
 
 // ============================================
-// ADMIN MANAGEMENT
+// ROI CALCULATOR
 // ============================================
+
+model CalculatorScenario {
+  id          String    @id @default(uuid())
+  ownerId     String    @map("owner_id")
+  // No relation to User to allow anonymous/demo usage if needed, 
+  // or strictly enforce it. Plan said "ownerId: String (User relation)".
+  // Let's make it optional for demo mode, or strictly relational if auth is required.
+  // The plan implies auth for saving. Let's make it a relation.
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  campaignId  String?   @map("campaign_id")
+  // Optional relation to Campaign
+  // campaign    Campaign? @relation(fields: [campaignId], references: [id]) 
+  // Keeping it loose for now to avoid circular dependency issues if not strictly needed, 
+  // but relation is better for integrity. Let's add it if Campaign model is available.
+  // Campaign model is available.
+  
+  name        String
+  inputs      Json      // Stores budget, videos, rates, etc.
+  results     Json      // Stores projections, summary stats
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([ownerId])
+  @@map("calculator_scenarios")
+}
 
 model AdminUser {
   id                      String         @id @default(uuid())
@@ -1162,4 +1203,81 @@ model VariantMetric {
 
   @@map("variant_metrics")
   @@index([variantId, date])
+}
+
+// ============================================
+// ADVANCED CAMPAIGN SYSTEM - FOUNDER VIDEOS
+// ============================================
+
+model FounderVideo {
+  id                String          @id @default(uuid())
+  campaignId        String          @map("campaign_id")
+  campaign          Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  founderId         String          @map("founder_id")
+  founder           User            @relation("founder_videos", fields: [founderId], references: [id])
+  
+  // Content
+  videoUrl          String          @map("video_url")
+  thumbnailUrl      String?         @map("thumbnail_url")
+  caption           String?
+  description       String?
+  platform          Platform
+  
+  // Status
+  status            FounderVideoStatus @default(DRAFT)
+  isDraft           Boolean         @default(true) @map("is_draft")
+  
+  // Posting
+  finalPostUrl      String?         @map("final_post_url")
+  platformVideoId   String?         @map("platform_video_id")
+  postedAt          DateTime?       @map("posted_at")
+  
+  // Tracking
+  currentViewCount  Int             @default(0) @map("current_view_count")
+  likes             Int             @default(0)
+  comments          Int             @default(0)
+  shares            Int             @default(0)
+  completionRate    Decimal?        @map("completion_rate") @db.Decimal(5, 2)
+  engagementRate    Decimal?        @map("engagement_rate") @db.Decimal(5, 2)
+  watchTime         Int?            @map("watch_time")
+  
+  // Cost tracking
+  costPerClick      Decimal?        @map("cost_per_click") @db.Decimal(10, 2)
+  costPerAcquisition Decimal?       @map("cost_per_acquisition") @db.Decimal(10, 2)
+  conversionRate    Decimal?        @map("conversion_rate") @db.Decimal(5, 2)
+  
+  // A/B Testing (Placeholder for Phase 1)
+  abTestId          String?         @map("ab_test_id")
+  variantLabel      String?         @map("variant_label")
+  
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  
+  viewSnapshots     FounderVideoSnapshot[]
+  
+  @@index([campaignId, status])
+  @@map("founder_videos")
+}
+
+enum FounderVideoStatus {
+  DRAFT
+  READY_TO_POST
+  POSTED
+  ARCHIVED
+}
+
+model FounderVideoSnapshot {
+  id          String        @id @default(uuid())
+  videoId     String        @map("video_id")
+  video       FounderVideo  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  viewCount   Int           @map("view_count")
+  likes       Int           @default(0)
+  comments    Int           @default(0)
+  shares      Int           @default(0)
+  snapshotAt  DateTime      @default(now()) @map("snapshot_at")
+  
+  @@index([videoId, snapshotAt])
+  @@map("founder_video_snapshots")
 }

@@ -69,7 +69,7 @@ export default function CreatorTasksPage() {
             POSTED: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", label: "Posted - Tracking" },
             COMPLETED: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", label: "Completed" }
         };
-        return badges[status];
+        return badges[status] || { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", label: status };
     };
 
     const getStatusIcon = (status: TaskStatus) => {

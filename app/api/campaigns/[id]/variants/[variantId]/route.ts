@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { VariantService } from "@/lib/services/variantService";
-import { withAuth } from "@/lib/api-middleware";
+import { requireAuth } from "@/lib/api-middleware";
 
-export const PATCH = withAuth(async (req: NextRequest, { params }: { params: { id: string; variantId: string } }) => {
+export const PATCH = requireAuth(async (req: NextRequest, user: any, { params }: { params: { id: string; variantId: string } }) => {
     try {
         const body = await req.json();
         const variant = await VariantService.updateVariant(params.variantId, body);
