@@ -116,6 +116,11 @@ export default function FounderDashboard() {
           {/* Performance and Active Campaigns Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
+            {/* Performance Chart */}
+            <div className="h-full">
+              <PerformanceAnalyticsCard />
+            </div>
+
             {/* Active Campaigns List */}
             <Card className="h-full border-none shadow-sm flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">

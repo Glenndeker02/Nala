@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { DollarSign, Video, Eye, RefreshCw, TrendingUp, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import RevenueCalculator from './RevenueCalculator';
 
 export default function RoiCalculator() {
     const [userType, setUserType] = useState<'founder' | 'creator'>('founder');
@@ -20,10 +21,11 @@ export default function RoiCalculator() {
 
     // Constants
     const MIN_BUDGET = 100; // Minimum budget $100
-    const FOUNDER_RATE_PER_1000_VIEWS = 5; // $5 per 1000 views
-    const BASE_VIDEO_COST_BULK = 20; // $20 per video for 5+ videos
-    const BASE_VIDEO_COST_SMALL = 25; // $25 per video for <5 videos
-    const CREATOR_RATE_PER_1000_VIEWS = 15; // Fixed $15 CPM for creators
+    const FOUNDER_RATE_PER_1000_VIEWS = 3; // $3 per 1000 views from founder
+    const CREATOR_RATE_PER_1000_VIEWS = 2; // $2 per 1000 views to creator
+    const PLATFORM_RATE_PER_1000_VIEWS = 1; // $1 per 1000 views to Nala
+    const BASE_VIDEO_COST_BULK = 10; // $10 per video for 5+ videos
+    const BASE_VIDEO_COST_SMALL = 15; // $15 per video for <5 videos
     const AVG_VIEWS_PER_VIDEO = 2500;
 
     // Dynamic base fee calculation
@@ -317,14 +319,14 @@ export default function RoiCalculator() {
                                                 <div className="mt-2 p-1.5 bg-green-50 rounded-lg border border-green-200">
                                                     <p className="text-[10px] text-green-700 flex items-center gap-1">
                                                         <TrendingUp className="w-3 h-3" />
-                                                        <span className="font-medium">Bulk discount applied!</span> $20/video for 5+ videos
+                                                        <span className="font-medium">Bulk discount applied!</span> $10/video for 5+ videos
                                                     </p>
                                                 </div>
                                             )}
                                             {founderVideoCount < 5 && (
                                                 <div className="mt-2 p-1.5 bg-blue-50 rounded-lg border border-blue-200">
                                                     <p className="text-[10px] text-blue-700">
-                                                        💡 Order 5+ videos to get $20/video (save $5 per video!)
+                                                        💡 Order 5+ videos to get $10/video (save $5 per video!)
                                                     </p>
                                                 </div>
                                             )}
@@ -387,6 +389,11 @@ export default function RoiCalculator() {
                         </div>
 
                     </div>
+
+                    {/* Revenue Projection Calculator - Only for Founders */}
+                    {userType === 'founder' && targetViews > 0 && (
+                        <RevenueCalculator targetViews={targetViews} />
+                    )}
                 </div>
             </div>
         </section>

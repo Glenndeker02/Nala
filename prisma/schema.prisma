@@ -796,35 +796,8 @@ enum NotificationType {
 }
 
 // ============================================
-// ROI CALCULATOR
+// ADMIN MANAGEMENT
 // ============================================
-
-model CalculatorScenario {
-  id          String    @id @default(uuid())
-  ownerId     String    @map("owner_id")
-  // No relation to User to allow anonymous/demo usage if needed, 
-  // or strictly enforce it. Plan said "ownerId: String (User relation)".
-  // Let's make it optional for demo mode, or strictly relational if auth is required.
-  // The plan implies auth for saving. Let's make it a relation.
-  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  campaignId  String?   @map("campaign_id")
-  // Optional relation to Campaign
-  // campaign    Campaign? @relation(fields: [campaignId], references: [id]) 
-  // Keeping it loose for now to avoid circular dependency issues if not strictly needed, 
-  // but relation is better for integrity. Let's add it if Campaign model is available.
-  // Campaign model is available.
-  
-  name        String
-  inputs      Json      // Stores budget, videos, rates, etc.
-  results     Json      // Stores projections, summary stats
-  
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  @@index([ownerId])
-  @@map("calculator_scenarios")
-}
 
 model AdminUser {
   id                      String         @id @default(uuid())

@@ -313,11 +313,11 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
 
     // Constants
     const MIN_BUDGET = 100; // Changed from 500 to 100
-    const FOUNDER_RATE_PER_1000_VIEWS = 5; // $5 per 1000 views
-    const BASE_VIDEO_COST_BULK = 20; // $20 per video for 6+ videos
-    const BASE_VIDEO_COST_SMALL = 25; // $25 per video for 1-5 videos
+    const FOUNDER_RATE_PER_1000_VIEWS = 3; // $3 per 1000 views from founder
+    const BASE_VIDEO_COST_BULK = 10; // $10 per video for 5+ videos
+    const BASE_VIDEO_COST_SMALL = 15; // $15 per video for <5 videos
 
-    const getBaseFeePerVideo = (count: number) => count >= 6 ? BASE_VIDEO_COST_BULK : BASE_VIDEO_COST_SMALL;
+    const getBaseFeePerVideo = (count: number) => count >= 5 ? BASE_VIDEO_COST_BULK : BASE_VIDEO_COST_SMALL;
 
     // Calculate guaranteed views if guaranteed spend is enabled
     const guaranteedViews = Math.floor((performanceBudget / FOUNDER_RATE_PER_1000_VIEWS) * 1000);
@@ -439,9 +439,9 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                             <span className="text-primary-600 font-bold">${formData.baseFeePerVideo}</span>
                         </div>
                         <p className="text-xs text-gray-500">
-                            {formData.videosRequested >= 6
-                                ? "Bulk rate applied ($20/video for 6+ videos)"
-                                : "Standard rate ($25/video). Order 6+ videos to save $5/video!"}
+                            {formData.videosRequested >= 5
+                                ? "Bulk rate applied ($10/video for 5+ videos)"
+                                : "Standard rate ($15/video). Order 5+ videos to save $5/video!"}
                         </p>
                     </div>
 
@@ -545,7 +545,7 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                         <span className="text-gray-600">Avg Creator Base Fee:</span>
                         <span className="font-bold text-gray-900">${formData.baseFeePerVideo}/video</span>
                     </div>
-                    {formData.videosRequested >= 6 && (
+                    {formData.videosRequested >= 5 && (
                         <div className="text-xs bg-primary-100 text-primary-700 p-2 rounded text-center font-medium">
                             🎉 Bulk discount applied!
                         </div>
@@ -578,7 +578,7 @@ export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudge
                     <p className="text-2xl font-bold text-primary-600">
                         {guaranteedSpend ? `+${guaranteedViews.toLocaleString()}` : maxViews.toLocaleString()} views
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">@ $5.00 per 1,000 views</p>
+                    <p className="text-xs text-gray-600 mt-1">@ $3.00 per 1,000 views</p>
                     {guaranteedSpend && (
                         <p className="text-xs text-green-700 mt-2 bg-green-50 p-2 rounded border border-green-200">
                             ✅ Added on top of organic views
