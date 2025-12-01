@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2, RefreshCw } from 'lucide-react';
-import { ABTestCreator } from './ABTestCreator';
+import { ABTestWizard } from './ABTestWizard';
 import { ABTestResults } from './ABTestResults';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -13,10 +13,10 @@ interface ABTestingManagementProps {
 export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
     const { toast } = useToast();
     const [tests, setTests] = useState<any[]>([]);
-    const [videos, setVideos] = useState<any[]>([]);
+    const [campaigns, setCampaigns] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
 
     const fetchTests = async () => {
         try {
@@ -43,29 +43,29 @@ export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
         }
     };
 
-    const fetchVideos = async () => {
+    const fetchCampaigns = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/api/campaigns/${campaignId}`, {
+            const response = await fetch(`/api/campaigns`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
 
             if (!response.ok) {
-                throw new Error('Failed to fetch campaign videos');
+                throw new Error('Failed to fetch campaigns');
             }
 
             const data = await response.json();
-            setVideos(data.data?.campaign?.videos || []);
+            setCampaigns(data.data?.campaigns || []);
         } catch (err: any) {
-            console.error('Error fetching videos:', err);
+            console.error('Error fetching campaigns:', err);
         }
     };
 
     useEffect(() => {
         fetchTests();
-        fetchVideos();
+        fetchCampaigns();
     }, [campaignId]);
 
     const handleCompleteTest = async (testId: string) => {
@@ -136,7 +136,7 @@ export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
                         Compare video performance and optimize your content strategy.
                     </p>
                 </div>
-                <Button onClick={() => setIsCreatorOpen(true)}>
+                <Button onClick={() => setIsWizardOpen(true)}>
                     <Plus className="w-4 h-4 mr-2" /> Create A/B Test
                 </Button>
             </div>
@@ -150,7 +150,7 @@ export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
                     <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                         Create your first A/B test to compare video performance and discover what works best.
                     </p>
-                    <Button onClick={() => setIsCreatorOpen(true)}>Create Your First A/B Test</Button>
+                    <Button onClick={() => setIsWizardOpen(true)}>Create Your First A/B Test</Button>
                 </div>
             ) : (
                 <div className="space-y-6">
@@ -186,12 +186,11 @@ export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
                 </div>
             )}
 
-            <ABTestCreator
-                isOpen={isCreatorOpen}
-                onClose={() => setIsCreatorOpen(false)}
+            <ABTestWizard
+                isOpen={isWizardOpen}
+                onClose={() => setIsWizardOpen(false)}
                 onCreated={fetchTests}
-                campaignId={campaignId}
-                availableVideos={videos}
+                founderCampaigns={campaigns}
             />
         </div>
     );

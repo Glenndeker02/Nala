@@ -38,15 +38,15 @@ export const GET = requireRole(['CREATOR', 'FOUNDER'], async (request: NextReque
                     select: { videos: true },
                 },
             },
-            // orderBy: { createdAt: 'desc' }, // TODO: Uncomment when createdAt is added
+            orderBy: { createdAt: 'desc' },
         });
 
         const formattedCampaigns = campaigns.map(campaign => ({
             ...campaign,
             totalBudget: campaign.totalBudget.toNumber(),
-            // baseFeeBudget: campaign.baseFeeBudget.toNumber(), // TODO: Uncomment when added
-            // performanceBudget: campaign.performanceBudget.toNumber(), // TODO: Uncomment when added
-            // escrowBalance: campaign.escrowBalance.toNumber(), // TODO: Uncomment when added
+            baseFeeBudget: campaign.baseFeeeBudget.toNumber(),
+            performanceBudget: campaign.performanceBudget.toNumber(),
+            escrowBalance: campaign.escrowBalance.toNumber(),
         }));
 
         return ApiResponse.success({

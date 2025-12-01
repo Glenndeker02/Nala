@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AcceptApplicationModal from "@/components/founder/AcceptApplicationModal";
 
 type Application = {
     id: string;
@@ -29,6 +30,9 @@ export default function ApplicationsPage({ params }: { params: { id: string } })
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
+    const [showAcceptModal, setShowAcceptModal] = useState(false);
+    const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+    const [campaignName, setCampaignName] = useState("");
 
     const fetchApplications = useCallback(async () => {
         const token = localStorage.getItem("token");
@@ -53,18 +57,24 @@ export default function ApplicationsPage({ params }: { params: { id: string } })
         fetchApplications();
     }, [fetchApplications]);
 
-    const handleAccept = async (applicationId: string, creatorId: string) => {
-        setProcessing(applicationId);
+    const handleAccept = async (instructions: string, deadline: string) => {
+        if (!selectedApplication) return;
+
+        setProcessing(selectedApplication.id);
         const token = localStorage.getItem("token");
 
         try {
-            const response = await fetch(`/api/campaigns/${params.id}/applications/${applicationId}/accept`, {
+            const response = await fetch(`/api/campaigns/${params.id}/applications/${selectedApplication.id}/accept`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ creatorId }),
+                body: JSON.stringify({
+                    creatorId: selectedApplication.creator.id,
+                    instructions,
+                    deadline
+                }),
             });
 
             const data = await response.json();
@@ -73,7 +83,9 @@ export default function ApplicationsPage({ params }: { params: { id: string } })
                 throw new Error(data.message || "Failed to accept application");
             }
 
-            alert("Application accepted! Creator has been assigned to the campaign.");
+            alert("Application accepted! Creator has been notified with instructions.");
+            setShowAcceptModal(false);
+            setSelectedApplication(null);
             fetchApplications(); // Refresh the list
         } catch (error) {
             console.error("Error accepting application:", error);
@@ -231,11 +243,14 @@ export default function ApplicationsPage({ params }: { params: { id: string } })
                                         {application.status === "PENDING" && (
                                             <div className="flex gap-2 ml-4">
                                                 <button
-                                                    onClick={() => handleAccept(application.id, application.creator.id)}
+                                                    onClick={() => {
+                                                        setSelectedApplication(application);
+                                                        setShowAcceptModal(true);
+                                                    }}
                                                     disabled={processing === application.id}
                                                     className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
                                                 >
-                                                    {processing === application.id ? "Processing..." : "Accept"}
+                                                    Accept
                                                 </button>
                                                 <button
                                                     onClick={() => handleReject(application.id)}
@@ -252,6 +267,21 @@ export default function ApplicationsPage({ params }: { params: { id: string } })
                         </div>
                     )}
                 </div>
+
+                {/* Accept Application Modal */}
+                {selectedApplication && (
+                    <AcceptApplicationModal
+                        isOpen={showAcceptModal}
+                        onClose={() => {
+                            setShowAcceptModal(false);
+                            setSelectedApplication(null);
+                        }}
+                        onAccept={handleAccept}
+                        creatorName={selectedApplication.creator.fullName}
+                        campaignName={campaignName || "this campaign"}
+                        processing={processing === selectedApplication.id}
+                    />
+                )}
             </div>
         </div>
     );

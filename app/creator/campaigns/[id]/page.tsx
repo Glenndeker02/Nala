@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, FileText } from "lucide-react";
+import CreatorInstructionsModal from "@/components/creator/CreatorInstructionsModal";
 
 type CampaignDetail = {
     id: string;
@@ -35,6 +36,7 @@ type CampaignDetail = {
     applicationsCount: number;
     hasApplied: boolean;
     applicationStatus?: "PENDING" | "ACCEPTED" | "REJECTED";
+    applicationId?: string;
     briefData: any;
 };
 
@@ -46,6 +48,8 @@ export default function CampaignDetailPage() {
     const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [applying, setApplying] = useState(false);
+    const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+    const [instructions, setInstructions] = useState<any>(null);
 
     useEffect(() => {
         if (campaignId) {
@@ -75,6 +79,7 @@ export default function CampaignDetailPage() {
 
                 let hasApplied = false;
                 let applicationStatus = undefined;
+                let applicationId = undefined;
 
                 if (applicationsResponse.ok) {
                     const applicationsData = await applicationsResponse.json();
@@ -82,6 +87,7 @@ export default function CampaignDetailPage() {
                     if (userApplication) {
                         hasApplied = true;
                         applicationStatus = userApplication.status;
+                        applicationId = userApplication.id;
                     }
                 }
 
@@ -117,6 +123,7 @@ export default function CampaignDetailPage() {
                     applicationsCount: campaignData._count?.applications || 0,
                     hasApplied,
                     applicationStatus,
+                    applicationId,
                     briefData
                 };
 
@@ -159,6 +166,30 @@ export default function CampaignDetailPage() {
             alert("Failed to submit application. Please try again.");
         } finally {
             setApplying(false);
+        }
+    };
+
+    const handleViewInstructions = async () => {
+        if (!campaign?.applicationId) return;
+
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch(`/api/applications/${campaign.applicationId}/instructions`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setInstructions(data.data);
+                setShowInstructionsModal(true);
+            } else {
+                alert("Failed to fetch instructions");
+            }
+        } catch (error) {
+            console.error("Error fetching instructions:", error);
+            alert("Failed to fetch instructions");
         }
     };
 
@@ -256,6 +287,16 @@ export default function CampaignDetailPage() {
                                     className="ml-6"
                                 >
                                     {applying ? "Submitting..." : "Apply for This Campaign"}
+                                </Button>
+                            )}
+                            {campaign.applicationStatus === "ACCEPTED" && (
+                                <Button
+                                    onClick={handleViewInstructions}
+                                    size="lg"
+                                    className="ml-6 bg-green-600 hover:bg-green-700"
+                                >
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    View Instructions
                                 </Button>
                             )}
                         </div>
@@ -542,6 +583,19 @@ export default function CampaignDetailPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Instructions Modal */}
+            {instructions && (
+                <CreatorInstructionsModal
+                    isOpen={showInstructionsModal}
+                    onClose={() => setShowInstructionsModal(false)}
+                    instructions={instructions.instructions}
+                    deadline={instructions.deadline}
+                    acceptedAt={instructions.acceptedAt}
+                    campaignName={campaign?.name || ""}
+                    campaignId={campaignId}
+                />
+            )}
         </div>
     );
 }

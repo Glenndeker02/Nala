@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, ExternalLink, MessageSquare } from "lucide-react";
 import Link from 'next/link';
+import AcceptApplicationModal from "@/components/founder/AcceptApplicationModal";
 
 type Application = {
     id: string;
@@ -24,6 +25,8 @@ export default function PendingApplications() {
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [showAcceptModal, setShowAcceptModal] = useState(false);
+    const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
 
     useEffect(() => {
         fetchApplications();
@@ -48,22 +51,30 @@ export default function PendingApplications() {
         }
     };
 
-    const handleAccept = async (app: Application) => {
-        setProcessingId(app.id);
+    const handleAccept = async (instructions: string, deadline: string) => {
+        if (!selectedApplication) return;
+
+        setProcessingId(selectedApplication.id);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`/api/campaigns/${app.campaignId}/applications/${app.id}/accept`, {
+            const response = await fetch(`/api/campaigns/${selectedApplication.campaignId}/applications/${selectedApplication.id}/accept`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ creatorId: app.creatorId })
+                body: JSON.stringify({
+                    creatorId: selectedApplication.creatorId,
+                    instructions,
+                    deadline
+                })
             });
 
             if (response.ok) {
                 // Remove from list
-                setApplications(prev => prev.filter(a => a.id !== app.id));
+                setApplications(prev => prev.filter(a => a.id !== selectedApplication.id));
+                setShowAcceptModal(false);
+                setSelectedApplication(null);
             } else {
                 alert('Failed to accept application');
             }
@@ -176,7 +187,10 @@ export default function PendingApplications() {
                                     <Button
                                         size="sm"
                                         className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                                        onClick={() => handleAccept(app)}
+                                        onClick={() => {
+                                            setSelectedApplication(app);
+                                            setShowAcceptModal(true);
+                                        }}
                                         disabled={!!processingId}
                                     >
                                         {processingId === app.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
@@ -198,6 +212,21 @@ export default function PendingApplications() {
                     ))}
                 </div>
             </CardContent>
+
+            {/* Accept Application Modal */}
+            {selectedApplication && (
+                <AcceptApplicationModal
+                    isOpen={showAcceptModal}
+                    onClose={() => {
+                        setShowAcceptModal(false);
+                        setSelectedApplication(null);
+                    }}
+                    onAccept={handleAccept}
+                    creatorName={selectedApplication.creatorName}
+                    campaignName={selectedApplication.campaignName}
+                    processing={processingId === selectedApplication.id}
+                />
+            )}
         </Card>
     );
 }

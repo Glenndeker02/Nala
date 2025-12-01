@@ -79,6 +79,7 @@ model User {
   
   // Advanced Campaign System
   founderVideos         FounderVideo[]       @relation("founder_videos")
+  abTestVariants        ABTestVariant[]
 
   @@map("users")
 }
@@ -260,9 +261,45 @@ model Campaign {
   
   // Advanced Campaign System
   founderVideos         FounderVideo[]
+  abTests               ABTest[]
+  goals                 CampaignGoal[]
 
   @@index([founderId, status])
   @@map("campaigns")
+}
+
+model CampaignGoal {
+  id            String    @id @default(uuid())
+  campaignId    String    @map("campaign_id")
+  campaign      Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  name          String
+  description   String?
+  type          GoalType
+  targetValue   Decimal   @map("target_value") @db.Decimal(10, 2)
+  currentValue  Decimal   @default(0) @map("current_value") @db.Decimal(10, 2)
+  deadline      DateTime?
+  status        GoalStatus @default(IN_PROGRESS)
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([campaignId])
+  @@map("campaign_goals")
+}
+
+enum GoalType {
+  VIEWS
+  VIDEOS_COMPLETED
+  ENGAGEMENT_RATE
+  CONVERSIONS
+  CLICKS
+}
+
+enum GoalStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
 }
 
 enum CampaignStatus {
@@ -324,6 +361,7 @@ model Video {
   versions              VideoVersion[]
   licenses              License[]
   disputes              Dispute[]
+  abTestVariant         ABTestVariant?
 
   @@index([campaignId, status])
   @@index([postedAt])
@@ -663,6 +701,11 @@ model Application {
   portfolioLinks String[] @map("portfolio_links")
   status      ApplicationStatus @default(PENDING)
 
+  // Acceptance details
+  acceptanceInstructions String?   @map("acceptance_instructions") @db.Text
+  acceptanceDeadline     DateTime? @map("acceptance_deadline")
+  acceptedAt             DateTime? @map("accepted_at")
+
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
@@ -774,6 +817,7 @@ model Notification {
   message     String
   link        String?
   isRead      Boolean   @default(false) @map("is_read")
+  metadata    Json?
   
   createdAt   DateTime  @default(now()) @map("created_at")
 
@@ -1254,3 +1298,117 @@ model FounderVideoSnapshot {
   @@index([videoId, snapshotAt])
   @@map("founder_video_snapshots")
 }
+
+// ============================================
+// A/B TESTING SYSTEM
+// ============================================
+
+model ABTest {
+  id                String        @id @default(uuid())
+  campaignId        String        @map("campaign_id")
+  campaign          Campaign      @relation(fields: [campaignId], references: [id])
+  
+  name              String
+  description       String?
+  
+  // Test Configuration
+  testGoal          TestGoal      // BEST_HOOK, BEST_CREATOR, BEST_FORMAT, BEST_CTA
+  successMetric     SuccessMetric // VIEW_THROUGH, CONVERSION_RATE, ENGAGEMENT, COST_PER_VIEW
+  
+  // Status
+  status            ABTestStatus  @default(DRAFT) // DRAFT, ACTIVE, COMPLETED, CANCELLED
+  
+  // Dates
+  startDate         DateTime?
+  endDate           DateTime?
+  completedAt       DateTime?
+  
+  // Results
+  winnerVariantId   String?
+  confidence        Decimal?      // Statistical confidence %
+  results           Json?         // Detailed results
+  
+  // Relations
+  variants          ABTestVariant[]
+  
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@map("ab_tests")
+  @@index([campaignId])
+}
+
+enum TestGoal {
+  BEST_HOOK
+  BEST_CREATOR
+  BEST_FORMAT
+  BEST_CTA
+  BEST_OVERALL
+}
+
+enum SuccessMetric {
+  VIEW_THROUGH_RATE
+  CONVERSION_RATE
+  ENGAGEMENT_RATE
+  COST_PER_VIEW
+  TOTAL_VIEWS
+}
+
+enum ABTestStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model ABTestVariant {
+  id              String    @id @default(uuid())
+  testId          String    @map("test_id")
+  test            ABTest    @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  variantName     String    // "Variant A", "Variant B", etc.
+  label           String    // User-friendly label
+  description     String?
+  
+  // Variant Configuration
+  variantType     VariantType // CREATOR, FORMAT, HOOK, SCRIPT, FOUNDER_VIDEO
+  
+  // Assignments
+  creatorId       String?   @map("creator_id")
+  creator         User?     @relation(fields: [creatorId], references: [id])
+  
+  formatId        String?   @map("format_id")
+  founderVideoId  String?   @map("founder_video_id")
+  
+  // Instructions for creator
+  instructions    String?
+  scriptTemplate  String?
+  hookTemplate    String?
+  
+  // Tracking
+  videoId         String?   @unique @map("video_id")
+  video           Video?    @relation(fields: [videoId], references: [id])
+  
+  // Metrics (calculated)
+  views           Int       @default(0)
+  conversions     Int       @default(0)
+  engagement      Int       @default(0)
+  costPerView     Decimal?  @map("cost_per_view") @db.Decimal(10, 2)
+  performanceScore Decimal? @default(0) @map("performance_score") @db.Decimal(5, 2)
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("ab_test_variants")
+  @@index([testId])
+}
+
+enum VariantType {
+  CREATOR
+  FORMAT
+  HOOK
+  SCRIPT
+  FOUNDER_VIDEO
+  CUSTOM
+}
+

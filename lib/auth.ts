@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Role } from '@prisma/client';
+import { NextRequest } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-this';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-change-this';
@@ -111,3 +112,27 @@ export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
+
+/**
+ * Verify user role from request
+ */
+export async function requireRole(req: NextRequest, allowedRoles: Role[]): Promise<JWTPayload | null> {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authHeader.split(' ')[1];
+  const payload = verifyAccessToken(token);
+
+  if (!payload) {
+    return null;
+  }
+
+  if (!allowedRoles.includes(payload.role)) {
+    return null;
+  }
+
+  return payload;
+}
+

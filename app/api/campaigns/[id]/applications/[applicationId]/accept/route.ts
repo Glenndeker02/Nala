@@ -13,7 +13,7 @@ export const POST = requireRole(
             const campaignId = params.id;
             const applicationId = params.applicationId;
             const body = await request.json();
-            const { creatorId } = body;
+            const { creatorId, instructions, deadline } = body;
 
             // Verify campaign ownership
             const campaign = await db.campaign.findUnique({
@@ -52,10 +52,15 @@ export const POST = requireRole(
 
             // Update application status and assign creator to campaign in transaction
             const result = await db.$transaction(async (tx) => {
-                // Update application status
+                // Update application status with instructions
                 await tx.application.update({
                     where: { id: applicationId },
-                    data: { status: 'ACCEPTED' },
+                    data: {
+                        status: 'ACCEPTED',
+                        acceptanceInstructions: instructions || null,
+                        acceptanceDeadline: deadline ? new Date(deadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                        acceptedAt: new Date()
+                    },
                 });
 
                 // Assign creator to campaign
@@ -94,22 +99,32 @@ export const POST = requireRole(
                     select: { fullName: true, email: true }
                 });
 
-                // Create notification for creator
+                // Calculate deadline
+                const acceptanceDeadline = deadline ? new Date(deadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                const deadlineStr = acceptanceDeadline.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                // Build notification message
+                let notificationMessage = `Congratulations! You have been accepted for the campaign "${campaign.name}".\n\n`;
+
+                if (instructions) {
+                    notificationMessage += `📋 INSTRUCTIONS FROM FOUNDER:\n${instructions}\n\n`;
+                }
+
+                notificationMessage += `📋 NEXT STEPS:\n1. Review the campaign brief and requirements\n2. Create your video content following the guidelines\n3. Submit your draft video for review\n\n⏰ DEADLINE: ${deadlineStr}\n\n⚠️ Important: Failure to submit by the deadline or comply with requirements may result in removal from the campaign.\n\nClick here to get started!`;
+
+                // Create notification for creator with detailed instructions
                 await tx.notification.create({
                     data: {
                         userId: creatorId,
                         type: 'APPLICATION_UPDATE',
                         title: 'Application Accepted! 🎉',
-                        message: `Congratulations! You have been accepted for the campaign "${campaign.name}". You can now start working on your content.`,
+                        message: notificationMessage,
                         link: `/creator/campaigns/${campaignId}`,
-                        metadata: {
-                            campaignId: campaign.id,
-                            campaignName: campaign.name,
-                            founderId: campaign.founderId,
-                            applicationId,
-                            videoId: video.id,
-                            briefData: campaign.briefData
-                        },
                         isRead: false
                     }
                 });

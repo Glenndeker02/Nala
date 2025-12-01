@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ApiResponse } from "@/utils/ApiResponse";
+import { ApiResponse } from "@/lib/api-response";
 
 export async function POST(
     req: NextRequest,

@@ -90,6 +90,7 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
     }
 
     // Create campaign in database (draft status)
+    // Create campaign in database (draft status)
     const campaign = await db.campaign.create({
       data: {
         founderId: user.userId,
@@ -97,18 +98,15 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
         description,
         status: 'ACTIVE', // TODO: Change back to DRAFT when payment flow is ready
         videosRequested,
-        videosRequested,
-        videosRequested,
         totalBudget,
-        // baseFeeBudget: baseFeebudget, // TODO: Add to database
-        // baseFeePerVideo, // TODO: Add to database
-        // performanceBudget, // TODO: Add to database
-        // escrowBalance: 0, // TODO: Add to database
-        postingFrequency: undefined, // postingFrequency, // TODO: Add to database
-        // ...(startDate && { startDate: new Date(startDate) }), // TODO: Add to database
-        // briefData: briefData || {}, // TODO: Add to database
-        // guaranteedSpend: guaranteedSpend || false, // TODO: Add to database
-        // targetViews: targetViews || null, // TODO: Add to database
+        baseFeeeBudget: baseFeebudget,
+        performanceBudget,
+        escrowBalance: 0,
+        postingFrequency,
+        ...(startDate && { startDate: new Date(startDate) }),
+        briefData: briefData || {},
+        guaranteedSpend: guaranteedSpend || false,
+        targetViews: targetViews || null,
       },
     });
 
@@ -125,13 +123,12 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
       );
 
       // Update campaign with payment intent ID
-      // TODO: Uncomment when column is added
-      // await db.campaign.update({
-      //   where: { id: campaign.id },
-      //   data: {
-      //     stripePaymentIntentId: paymentIntent.id,
-      //   },
-      // });
+      await db.campaign.update({
+        where: { id: campaign.id },
+        data: {
+          stripePaymentIntentId: paymentIntent.id,
+        },
+      });
 
       paymentData = {
         clientSecret: paymentIntent.client_secret,
