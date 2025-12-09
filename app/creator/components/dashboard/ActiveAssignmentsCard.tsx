@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/Button";
 import { Briefcase, DollarSign, Calendar } from "lucide-react";
 import Link from "next/link";
@@ -102,7 +102,7 @@ export default function ActiveAssignmentsCard() {
                                 </div>
 
                                 <div className="flex gap-2">
-                                    <Link href={`/creator/campaigns/${assignment.campaignId}`} className="flex-1">
+                                    <Link href="/creator/tasks" className="flex-1">
                                         <Button variant="outline" size="sm" className="w-full text-xs h-8">
                                             View Details
                                         </Button>
@@ -123,3 +123,4 @@ export default function ActiveAssignmentsCard() {
         </Card>
     );
 }
+

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { startOfMonth } from 'date-fns';
+import { startOfMonth, startOfWeek, startOfYear, subMonths, subWeeks, subYears } from 'date-fns';
 
 const prisma = new PrismaClient();
 
@@ -31,6 +31,35 @@ export async function GET(req: NextRequest) {
 
         const userId = decoded.userId;
 
+        // Get filter parameter
+        const { searchParams } = new URL(req.url);
+        const filter = searchParams.get('filter') || 'month'; // week, month, year
+
+        // Calculate date ranges
+        const now = new Date();
+        let periodStart: Date;
+        let previousPeriodStart: Date;
+        let previousPeriodEnd: Date;
+
+        switch (filter) {
+            case 'week':
+                periodStart = startOfWeek(now);
+                previousPeriodStart = startOfWeek(subWeeks(now, 1));
+                previousPeriodEnd = startOfWeek(now);
+                break;
+            case 'year':
+                periodStart = startOfYear(now);
+                previousPeriodStart = startOfYear(subYears(now, 1));
+                previousPeriodEnd = startOfYear(now);
+                break;
+            case 'month':
+            default:
+                periodStart = startOfMonth(now);
+                previousPeriodStart = startOfMonth(subMonths(now, 1));
+                previousPeriodEnd = startOfMonth(now);
+                break;
+        }
+
         // Get total earnings (all completed payments)
         const totalEarningsData = await prisma.payment.aggregate({
             where: {
@@ -43,19 +72,50 @@ export async function GET(req: NextRequest) {
 
         const totalEarnings = Number(totalEarningsData._sum.amount || 0);
 
-        // Get this month's earnings
-        const monthStart = startOfMonth(new Date());
-        const thisMonthData = await prisma.payment.aggregate({
+        // Get current period earnings
+        const currentPeriodData = await prisma.payment.aggregate({
             where: {
                 recipientId: userId,
                 type: { in: ['BASE_FEE', 'PERFORMANCE_BONUS'] },
                 status: 'COMPLETED',
-                createdAt: { gte: monthStart }
+                createdAt: { gte: periodStart }
+            },
+            _sum: { amount: true },
+            _count: { _all: true }
+        });
+
+        const currentPeriodEarnings = Number(currentPeriodData._sum.amount || 0);
+        const currentPeriodCampaigns = currentPeriodData._count._all;
+
+        // Get previous period earnings for trend calculation
+        const previousPeriodData = await prisma.payment.aggregate({
+            where: {
+                recipientId: userId,
+                type: { in: ['BASE_FEE', 'PERFORMANCE_BONUS'] },
+                status: 'COMPLETED',
+                createdAt: {
+                    gte: previousPeriodStart,
+                    lt: previousPeriodEnd
+                }
             },
             _sum: { amount: true }
         });
 
-        const thisMonth = Number(thisMonthData._sum.amount || 0);
+        const previousPeriodEarnings = Number(previousPeriodData._sum.amount || 0);
+
+        // Calculate trend
+        let trendPercentage = 0;
+        let trendDirection: 'up' | 'down' | 'neutral' = 'neutral';
+
+        if (previousPeriodEarnings > 0) {
+            trendPercentage = Math.round(
+                ((currentPeriodEarnings - previousPeriodEarnings) / previousPeriodEarnings) * 100
+            );
+            trendDirection = trendPercentage > 0 ? 'up' : trendPercentage < 0 ? 'down' : 'neutral';
+        } else if (currentPeriodEarnings > 0) {
+            trendPercentage = 100;
+            trendDirection = 'up';
+        }
 
         // Get pending payouts
         const pendingData = await prisma.payment.aggregate({
@@ -72,24 +132,33 @@ export async function GET(req: NextRequest) {
         // Calculate completed payouts (total - pending)
         const completedPayouts = totalEarnings;
 
+        // Calculate average per campaign
+        const avgPerCampaign = currentPeriodCampaigns > 0
+            ? Math.round(currentPeriodEarnings / currentPeriodCampaigns)
+            : 0;
+
         // Check Stripe Connect status
-        // In production, this would check actual Stripe account
-        // For now, use seed data as requested
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { stripeCustomerId: true }
+            select: { stripeAccountId: true }
         });
 
-        const stripeConnected = !!user?.stripeCustomerId;
+        const stripeConnected = !!user?.stripeAccountId;
 
         return NextResponse.json({
             success: true,
             data: {
                 totalEarnings,
-                thisMonth,
+                thisMonth: currentPeriodEarnings,
                 pendingPayouts,
                 completedPayouts,
-                stripeConnected
+                stripeConnected,
+                avgPerCampaign,
+                trend: {
+                    percentage: Math.abs(trendPercentage),
+                    direction: trendDirection
+                },
+                filter
             }
         });
 

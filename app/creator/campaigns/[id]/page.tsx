@@ -38,6 +38,11 @@ type CampaignDetail = {
     applicationStatus?: "PENDING" | "ACCEPTED" | "REJECTED";
     applicationId?: string;
     briefData: any;
+    // Attribution fields
+    enableCreatorCodes?: boolean;
+    conversionCommission?: number;
+    codeDiscountType?: string;
+    codeDiscountValue?: number;
 };
 
 export default function CampaignDetailPage() {
@@ -50,25 +55,51 @@ export default function CampaignDetailPage() {
     const [applying, setApplying] = useState(false);
     const [showInstructionsModal, setShowInstructionsModal] = useState(false);
     const [instructions, setInstructions] = useState<any>(null);
+    const [certificationStatus, setCertificationStatus] = useState<string | null>(null);
 
     useEffect(() => {
         if (campaignId) {
             fetchCampaignDetails();
+            fetchUserProfile();
         }
     }, [campaignId]);
 
+    const fetchUserProfile = async () => {
+        try {
+            const res = await fetch('/api/creator/profile');
+            if (res.ok) {
+                const data = await res.json();
+                setCertificationStatus(data.certificationStatus);
+            }
+        } catch (error) {
+            console.error("Error fetching profile:", error);
+        }
+    };
+
     const fetchCampaignDetails = async () => {
         const token = localStorage.getItem("token");
+        console.log('=== Fetching Campaign Details (Creator Frontend) ===');
+        console.log('Campaign ID:', campaignId);
+        console.log('Token exists:', !!token);
+
         try {
-            const response = await fetch(`/api/campaigns/${campaignId}`, {
+            const url = `/api/campaigns/${campaignId}`;
+            console.log('Fetching URL:', url);
+
+            const response = await fetch(url, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+
             if (response.ok) {
                 const data = await response.json();
+                console.log('Response data:', data);
                 const campaignData = data.campaign || data;
+                console.log('Campaign data extracted:', campaignData);
 
                 // Check if user has applied
                 const applicationsResponse = await fetch(`/api/campaigns/${campaignId}/applications`, {
@@ -101,7 +132,7 @@ export default function CampaignDetailPage() {
                     name: campaignData.name || campaignData.title,
                     title: campaignData.title || campaignData.name,
                     description: campaignData.description || "No description provided",
-                    industry: campaignData.industry || "General",
+                    industry: briefData.industry || campaignData.founder?.companyIndustry || "General",
                     platforms: briefData.platforms || [],
                     videosRequested: campaignData.videosRequested || 1,
                     videosCompleted: campaignData.videosCompleted || 0,
@@ -124,12 +155,19 @@ export default function CampaignDetailPage() {
                     hasApplied,
                     applicationStatus,
                     applicationId,
-                    briefData
+                    briefData,
+                    // Attribution fields
+                    enableCreatorCodes: campaignData.enableCreatorCodes || false,
+                    conversionCommission: Number(campaignData.conversionCommission) || 0,
+                    codeDiscountType: campaignData.codeDiscountType || 'PERCENTAGE',
+                    codeDiscountValue: Number(campaignData.codeDiscountValue) || 0
                 };
 
                 setCampaign(enrichedCampaign);
             } else {
-                console.error("Failed to fetch campaign");
+                const errorData = await response.json();
+                console.error('❌ API request failed:', errorData);
+                console.error('Failed to fetch campaign - Status:', response.status);
             }
         } catch (error) {
             console.error("Error fetching campaign:", error);
@@ -280,14 +318,31 @@ export default function CampaignDetailPage() {
                                 </p>
                             </div>
                             {!campaign.hasApplied && (
-                                <Button
-                                    onClick={handleApply}
-                                    disabled={applying}
-                                    size="lg"
-                                    className="ml-6"
-                                >
-                                    {applying ? "Submitting..." : "Apply for This Campaign"}
-                                </Button>
+                                <>
+                                    {certificationStatus !== 'CERTIFIED' ? (
+                                        <div className="ml-6 flex flex-col items-end">
+                                            <Button disabled size="lg" className="opacity-50 cursor-not-allowed">
+                                                Apply for This Campaign
+                                            </Button>
+                                            <p className="text-xs text-red-500 mt-2 flex items-center">
+                                                <AlertCircle className="w-3 h-3 mr-1" />
+                                                Certification Required
+                                            </p>
+                                            <Link href="/creator/certification" className="text-xs text-primary-DEFAULT hover:underline mt-1">
+                                                Take Exam →
+                                            </Link>
+                                        </div>
+                                    ) : (
+                                        <Button
+                                            onClick={handleApply}
+                                            disabled={applying}
+                                            size="lg"
+                                            className="ml-6"
+                                        >
+                                            {applying ? "Submitting..." : "Apply for This Campaign"}
+                                        </Button>
+                                    )}
+                                </>
                             )}
                             {campaign.applicationStatus === "ACCEPTED" && (
                                 <Button
@@ -540,6 +595,44 @@ export default function CampaignDetailPage() {
                                     )}
                                 </CardContent>
                             </Card>
+
+                            {/* Attribution Bonus Card (shown if campaign has codes enabled) */}
+                            {campaign.enableCreatorCodes && (
+                                <Card className="border-2 border-purple-300 bg-purple-50">
+                                    <CardHeader>
+                                        <CardTitle>🏷️ Attribution Bonus</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="p-3 bg-white rounded-lg border border-purple-200">
+                                            <p className="text-sm text-gray-600 mb-1">Commission per Conversion</p>
+                                            <p className="text-2xl font-bold text-purple-600">
+                                                ${campaign.conversionCommission}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">Paid for each verified sale using your code</p>
+                                        </div>
+
+                                        <div className="p-3 bg-white rounded-lg border border-purple-200">
+                                            <p className="text-sm text-gray-600 mb-1">Discount You Can Offer</p>
+                                            <p className="text-xl font-bold text-purple-600">
+                                                {campaign.codeDiscountType === 'PERCENTAGE'
+                                                    ? `${campaign.codeDiscountValue}% OFF`
+                                                    : campaign.codeDiscountType === 'FREE_TRIAL'
+                                                        ? `${campaign.codeDiscountValue} Days Free`
+                                                        : `$${campaign.codeDiscountValue} OFF`
+                                                }
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">Users get this discount with your code</p>
+                                        </div>
+
+                                        <div className="p-3 bg-purple-100 rounded-lg border border-purple-300">
+                                            <p className="text-sm text-purple-800">
+                                                <strong>💡 How it works:</strong> When accepted, you'll receive unique promo codes.
+                                                Share them in your videos and earn ${campaign.conversionCommission} for each sale!
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
 
                             {/* Campaign Info */}
                             <Card>

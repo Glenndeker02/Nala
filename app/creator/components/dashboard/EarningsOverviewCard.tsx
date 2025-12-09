@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DollarSign, TrendingUp, Clock, CheckCircle, CreditCard } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DollarSign, TrendingUp, Clock, CheckCircle, CreditCard, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface EarningsData {
@@ -11,35 +11,44 @@ interface EarningsData {
     pendingPayouts: number;
     completedPayouts: number;
     stripeConnected: boolean;
+    avgPerCampaign?: number;
+    trend?: {
+        percentage: number;
+        direction: 'up' | 'down' | 'neutral';
+    };
 }
+
+type FilterType = 'week' | 'month' | 'year';
 
 export default function EarningsOverviewCard() {
     const [data, setData] = useState<EarningsData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<FilterType>('month');
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) return;
+        fetchData(filter);
+    }, [filter]);
 
-                const response = await fetch("/api/creator/dashboard/earnings", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+    const fetchData = async (selectedFilter: FilterType) => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem("token");
+            if (!token) return;
 
-                const result = await response.json();
-                if (result.success) {
-                    setData(result.data);
-                }
-            } catch (err) {
-                console.error("Error fetching earnings:", err);
-            } finally {
-                setLoading(false);
+            const response = await fetch(`/api/creator/dashboard/earnings?filter=${selectedFilter}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                setData(result.data);
             }
-        };
-
-        fetchData();
-    }, []);
+        } catch (err) {
+            console.error("Error fetching earnings:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -77,6 +86,21 @@ export default function EarningsOverviewCard() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg font-semibold text-gray-800">Earnings Overview</CardTitle>
                 <div className="flex items-center gap-2">
+                    {/* Filter Toggles */}
+                    <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                        {(['week', 'month', 'year'] as FilterType[]).map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${filter === f
+                                        ? 'bg-white text-primary-600 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                    }`}
+                            >
+                                {f.charAt(0).toUpperCase() + f.slice(1)}
+                            </button>
+                        ))}
+                    </div>
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${data.stripeConnected ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                         {data.stripeConnected ? 'Stripe Connected' : 'Connect Stripe'}
                     </span>
@@ -95,14 +119,27 @@ export default function EarningsOverviewCard() {
                         </div>
                     </div>
 
-                    {/* This Month */}
+                    {/* This Period */}
                     <div className="p-4 bg-green-50 rounded-xl border border-green-100">
                         <div className="flex items-center gap-2 mb-2 text-green-600">
                             <TrendingUp className="w-4 h-4" />
-                            <span className="text-sm font-medium">This Month</span>
+                            <span className="text-sm font-medium">This {filter}</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">
-                            ${data.thisMonth.toLocaleString()}
+                        <div className="flex items-center gap-2">
+                            <div className="text-2xl font-bold text-gray-900">
+                                ${data.thisMonth.toLocaleString()}
+                            </div>
+                            {data.trend && data.trend.direction !== 'neutral' && (
+                                <div className={`flex items-center gap-1 text-xs font-medium ${data.trend.direction === 'up' ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                    {data.trend.direction === 'up' ? (
+                                        <TrendingUp className="w-3 h-3" />
+                                    ) : (
+                                        <TrendingDown className="w-3 h-3" />
+                                    )}
+                                    {data.trend.percentage}%
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -141,3 +178,4 @@ export default function EarningsOverviewCard() {
         </Card>
     );
 }
+

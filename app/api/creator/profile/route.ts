@@ -23,6 +23,7 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
                         responseTime: true,
                         isOnboardingComplete: true,
                         portfolioVideos: true,
+                        certificationStatus: true,
                     }
                 },
                 socialAccounts: {
@@ -63,6 +64,7 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
                 INSTAGRAM: profile.creatorProfile?.baseFeeInstagram,
                 FACEBOOK: profile.creatorProfile?.baseFeeFacebook,
             },
+            certificationStatus: profile.creatorProfile?.certificationStatus || 'NONE',
             stripe_account_id: null // Not in schema yet or mocked
         };
 

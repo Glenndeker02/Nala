@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/Button";
 import { Play, Eye, Heart, Share2, TrendingUp, Bookmark } from "lucide-react";
 import { ContentFormat } from "@/data/mockContentLibraryData";
@@ -129,3 +129,4 @@ function ClockIcon({ duration }: { duration: string }) {
         </svg>
     );
 }
+

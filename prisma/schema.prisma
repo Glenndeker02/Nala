@@ -1,5 +1,3 @@
-// Nala Platform Database Schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,120 +8,1230 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ============================================
-// USER MANAGEMENT
-// ============================================
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String   // Hashed with bcrypt
-  role      Role     @default(CREATOR)
-  fullName  String   @map("full_name")
-
-  // Founder specific
-  companyName       String?   @map("company_name")
-  stripeCustomerId  String?   @unique @map("stripe_customer_id")
-
-  // Creator specific
-  stripeAccountId   String?   @unique @map("stripe_account_id")
-  creatorProfile    CreatorProfile?
-
-  // Common fields
-  emailVerified     Boolean   @default(false) @map("email_verified")
-  emailVerifiedAt   DateTime? @map("email_verified_at")
-  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
-  twoFactorSecret   String?   @map("two_factor_secret")
-
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  lastLoginAt       DateTime? @map("last_login_at")
-
-  // Admin management fields
-  suspendedUntil    DateTime? @map("suspended_until")
-  suspensionReason  String?   @map("suspension_reason")
-  bannedReason      String?   @map("banned_reason")
-  founderTier       String?   @map("founder_tier") // SILVER, GOLD, PLATINUM
-
-
-  // Relations
-  campaigns         Campaign[]       @relation("founder_campaigns")
-  creatorCampaigns  Campaign[]       @relation("creator_campaigns")
-  payments          Payment[]
-  licenses          License[]        @relation("founder_licenses")
-  creatorLicenses   License[]        @relation("creator_licenses")
-  socialAccounts    SocialAccount[]
-  socialConnections SocialConnection[] @relation("social_connections")
-  applications      Application[]    @relation("creator_applications")
-  assignedVideos    Video[]          @relation("creator_videos")
-  notifications     Notification[]
-  initiatedDisputes Dispute[]        @relation("dispute_initiator")
-  respondentDisputes Dispute[]       @relation("dispute_respondent")
-  disputeMessages   DisputeMessage[]
-  disputeEvidence   DisputeEvidence[]
-  adminUser         AdminUser?
-
-  // Trending Formats
-  savedFormats      CreatorFormatLibrary[]
-  formatRecommendations FormatRecommendation[]
-
-  // Phase 4-6 Relations
+  id                       String                    @id @default(uuid())
+  email                    String                    @unique
+  password                 String
+  role                     Role                      @default(CREATOR)
+  fullName                 String                    @map("full_name")
+  companyName              String?                   @map("company_name")
+  stripeCustomerId         String?                   @unique @map("stripe_customer_id")
+  stripeAccountId          String?                   @unique @map("stripe_account_id")
+  emailVerified            Boolean                   @default(false) @map("email_verified")
+  emailVerifiedAt          DateTime?                 @map("email_verified_at")
+  twoFactorEnabled         Boolean                   @default(false) @map("two_factor_enabled")
+  twoFactorSecret          String?                   @map("two_factor_secret")
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+  lastLoginAt              DateTime?                 @map("last_login_at")
+  suspendedUntil           DateTime?                 @map("suspended_until")
+  suspensionReason         String?                   @map("suspension_reason")
+  bannedReason             String?                   @map("banned_reason")
+  founderTier              String?                   @map("founder_tier")
+  companyIndustry          String?                   @map("company_industry")
+  companyLogo              String?                   @map("company_logo")
+  companySize              String?                   @map("company_size")
+  companyWebsite           String?                   @map("company_website")
+  language                 String?                   @default("en")
+  phoneNumber              String?                   @map("phone_number")
+  profilePictureUrl        String?                   @map("profile_picture_url")
+  timezone                 String?                   @default("UTC")
+  abTestVariants           ABTestVariant[]
+  activities               Activity[]
+  adminUser                AdminUser?
+  applications             Application[]             @relation("creator_applications")
+  assets                   Asset[]
+  creatorCampaigns         Campaign[]                @relation("creator_campaigns")
+  campaigns                Campaign[]                @relation("founder_campaigns")
   conversationParticipants ConversationParticipant[]
-  sentMessages          Message[]
-  activities            Activity[]
-  assets                Asset[]
-  submittedVersions     VideoVersion[]       @relation("SubmittedVersions")
-  reviewedVersions      VideoVersion[]       @relation("ReviewedVersions")
-  grantedLicenses       License[]            @relation("LicenseGrantee")
-  assignedVariants      UGCVariant[]
-  
-  // Advanced Campaign System
-  founderVideos         FounderVideo[]       @relation("founder_videos")
-  abTestVariants        ABTestVariant[]
+  savedFormats             CreatorFormatLibrary[]
+  creatorProfile           CreatorProfile?
+  disputeEvidence          DisputeEvidence[]
+  disputeMessages          DisputeMessage[]
+  initiatedDisputes        Dispute[]                 @relation("dispute_initiator")
+  respondentDisputes       Dispute[]                 @relation("dispute_respondent")
+  formatRecommendations    FormatRecommendation[]
+  founderVideos            FounderVideo[]            @relation("founder_videos")
+  instructionAudits        InstructionAudit[]        @relation("instruction_audit_actor")
+  instructionTemplates     InstructionTemplate[]
+  authoredInstructions     Instruction[]             @relation("instruction_author")
+  creatorLicenses          License[]                 @relation("creator_licenses")
+  licenses                 License[]                 @relation("founder_licenses")
+  grantedLicenses          License[]                 @relation("LicenseGrantee")
+  sentMessages             Message[]
+  notificationPreferences  NotificationPreferences?
+  notifications            Notification[]
+  payments                 Payment[]
+  socialAccounts           SocialAccount[]
+  socialConnections        SocialConnection[]        @relation("social_connections")
+  assignedVariants         UGCVariant[]
+  reviewedVersions         VideoVersion[]            @relation("ReviewedVersions")
+  submittedVersions        VideoVersion[]            @relation("SubmittedVersions")
+
+  assignedVideos           Video[]                   @relation("creator_videos")
+  creatorAssignments       CreatorCampaignAssignment[] @relation("creator_assignments")
+  attributionCodes         AttributionCode[]         @relation("creator_attribution_codes")
+  codeRedemptions          CodeRedemption[]          @relation("creator_redemptions")
+  viewPayments             ViewPayment[]             @relation("creator_view_payments")
+  payouts                  Payout[]                  @relation("creator_payouts")
+  subscriptionEvents       SubscriptionEvent[]       @relation("creator_subscriptions")
+  auditLogs                AuditLog[]
 
   @@map("users")
 }
+
+model CreatorProfile {
+  id                        String             @id @default(uuid())
+  userId                    String             @unique @map("user_id")
+  bio                       String?
+  categories                String[]
+  baseFeeTiktok             Decimal            @default(75.00) @map("base_fee_tiktok") @db.Decimal(10, 2)
+  baseFeeInstagram          Decimal            @default(75.00) @map("base_fee_instagram") @db.Decimal(10, 2)
+  baseFeeFacebook           Decimal            @default(75.00) @map("base_fee_facebook") @db.Decimal(10, 2)
+  portfolioVideos           Json?              @map("portfolio_videos")
+  verificationStatus        VerificationStatus @default(PENDING) @map("verification_status")
+  availabilityStatus        String?            @map("availability_status")
+  responseTime              String?            @map("response_time")
+  isOnboardingComplete      Boolean            @default(false) @map("is_onboarding_complete")
+  createdAt                 DateTime           @default(now()) @map("created_at")
+  updatedAt                 DateTime           @updatedAt @map("updated_at")
+  adminNotes                String?            @map("admin_notes")
+  avgRating                 Decimal            @default(0) @map("avg_rating") @db.Decimal(3, 2)
+  avgResponseTimeHours      Int                @default(0) @map("avg_response_time_hours")
+  campaignParticipationRate Decimal            @default(0) @map("campaign_participation_rate") @db.Decimal(5, 2)
+  conversionRate            Decimal            @default(0) @map("conversion_rate") @db.Decimal(5, 2)
+  disputeCount              Int                @default(0) @map("dispute_count")
+  lastRankingUpdate         DateTime?          @map("last_ranking_update")
+  rankingHistory            Json?              @map("ranking_history")
+  rankingScore              Int                @default(50) @map("ranking_score")
+  selectionRate             Decimal            @default(0) @map("selection_rate") @db.Decimal(5, 2)
+  totalReviews              Int                @default(0) @map("total_reviews")
+  videoQualityScore         Decimal            @default(0) @map("video_quality_score") @db.Decimal(5, 2)
+  codePrefix                String?            @map("code_prefix")
+  externalIdentifier        String?            @map("external_identifier")
+  user                      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("creator_profiles")
+}
+
+model SocialAccount {
+  id             String    @id @default(uuid())
+  creatorId      String    @map("creator_id")
+  platform       Platform
+  platformUserId String    @map("platform_user_id")
+  username       String
+  followerCount  Int?      @map("follower_count")
+  accessToken    String?   @map("access_token")
+  refreshToken   String?   @map("refresh_token")
+  tokenExpiresAt DateTime? @map("token_expires_at")
+  verifiedAt     DateTime? @map("verified_at")
+  lastSyncedAt   DateTime? @map("last_synced_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  creator        User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, platform])
+  @@map("social_accounts")
+}
+
+model SocialConnection {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  platform       Platform
+  platformUserId String?   @map("platform_user_id")
+  accessToken    String    @map("access_token")
+  refreshToken   String?   @map("refresh_token")
+  expiresAt      DateTime  @map("expires_at")
+  scope          String?
+  isActive       Boolean   @default(true) @map("is_active")
+  connectedAt    DateTime  @default(now()) @map("connected_at")
+  disconnectedAt DateTime? @map("disconnected_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  user           User      @relation("social_connections", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@map("social_connections")
+}
+
+model Campaign {
+  id                     String                      @id @default(uuid())
+  founderId              String                      @map("founder_id")
+  creatorId              String?                     @map("creator_id")
+  name                   String
+  brandName              String?                     @map("brand_name")
+  description            String?
+  status                 CampaignStatus              @default(DRAFT)
+  platform               Platform?
+  totalBudget            Decimal                     @map("total_budget") @db.Decimal(10, 2)
+  baseFeeBudget          Decimal                     @map("base_fee_budget") @db.Decimal(10, 2)
+  performanceBudget      Decimal                     @map("performance_budget") @db.Decimal(10, 2)
+  escrowBalance          Decimal                     @default(0) @map("escrow_balance") @db.Decimal(10, 2)
+  videosRequested        Int                         @map("videos_requested")
+  videosCompleted        Int                         @default(0) @map("videos_completed")
+  postingFrequency       String?                     @map("posting_frequency")
+  startDate              DateTime?                   @map("start_date")
+  deadline               DateTime?
+  stripePaymentIntentId  String?                     @map("stripe_payment_intent_id")
+  briefData              Json?                       @map("brief_data")
+  finalViewsTotal        Int?                        @map("final_views_total")
+  totalPaidToCreator     Decimal?                    @map("total_paid_to_creator") @db.Decimal(10, 2)
+  totalRefundedToFounder Decimal?                    @map("total_refunded_to_founder") @db.Decimal(10, 2)
+  platformRevenue        Decimal?                    @map("platform_revenue") @db.Decimal(10, 2)
+  guaranteedSpend        Boolean                     @default(false) @map("guaranteed_spend")
+  targetViews            Int                         @default(0) @map("target_views")
+  createdAt              DateTime                    @default(now()) @map("created_at")
+  updatedAt              DateTime                    @updatedAt @map("updated_at")
+  completedAt            DateTime?                   @map("completed_at")
+  acceptedCreatorsCount  Int                         @default(0) @map("accepted_creators_count")
+  eligibilityRules       Json?                       @map("eligibility_rules")
+  notificationsSent      Boolean                     @default(false) @map("notifications_sent")
+  baseFeePerVideo        Decimal                     @default(0) @map("base_fee_per_video") @db.Decimal(10, 2)
+  performanceRate        Decimal                     @default(4.00) @map("performance_rate") @db.Decimal(10, 2)
+  enableCreatorCodes     Boolean                     @default(false) @map("enable_creator_codes")
+  creatorSubscriptionShare Decimal?                  @map("creator_subscription_share") @db.Decimal(5, 2)
+  budgetReserved         Decimal                     @default(0) @map("budget_reserved") @db.Decimal(10, 2)
+  webhookSecret          String?                     @map("webhook_secret")
+  
+  abTests                ABTest[]
+  applications           Application[]
+  assets                 Asset[]
+  goals                  CampaignGoal[]
+  creator                User?                       @relation("creator_campaigns", fields: [creatorId], references: [id])
+  founder                User                        @relation("founder_campaigns", fields: [founderId], references: [id], onDelete: Cascade)
+  conversations          Conversation[]
+  disputes               Dispute[]
+  founderVideos          FounderVideo[]
+  instructions           Instruction[]
+  licenses               License[]
+  payments               Payment[]
+  variants               UGCVariant[]
+  videos                 Video[]
+  assignments            CreatorCampaignAssignment[]
+  attributionCodes       AttributionCode[]
+  codeRedemptions        CodeRedemption[]
+  viewPayments           ViewPayment[]
+  payouts                Payout[]
+  subscriptionEvents     SubscriptionEvent[]
+
+  @@index([founderId, status])
+  @@map("campaigns")
+}
+
+model CampaignGoal {
+  id           String     @id @default(uuid())
+  campaignId   String     @map("campaign_id")
+  name         String
+  description  String?
+  type         GoalType
+  targetValue  Decimal    @map("target_value") @db.Decimal(10, 2)
+  currentValue Decimal    @default(0) @map("current_value") @db.Decimal(10, 2)
+  deadline     DateTime?
+  status       GoalStatus @default(IN_PROGRESS)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("campaign_goals")
+}
+
+model Video {
+  id                     String            @id @default(uuid())
+  campaignId             String            @map("campaign_id")
+  creatorId              String?           @map("creator_id")
+  draftVideoUrl          String?           @map("draft_video_url")
+  finalPostUrl           String?           @map("final_post_url")
+  platform               Platform?
+  platformVideoId        String?           @map("platform_video_id")
+  status                 VideoStatus       @default(PENDING)
+  submittedAt            DateTime?         @map("submitted_at")
+  approvedAt             DateTime?         @map("approved_at")
+  postedAt               DateTime?         @map("posted_at")
+  lockedAt               DateTime?         @map("locked_at")
+  currentViewCount       Int               @default(0) @map("current_view_count")
+  lockedViewCount        Int?              @map("locked_view_count")
+  lastViewUpdate         DateTime?         @map("last_view_update")
+  baseFeePaid            Boolean           @default(false) @map("base_fee_paid")
+  baseFeeAmount          Decimal?          @map("base_fee_amount") @db.Decimal(10, 2)
+  performanceBonusPaid   Boolean           @default(false) @map("performance_bonus_paid")
+  performanceBonusAmount Decimal?          @map("performance_bonus_amount") @db.Decimal(10, 2)
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+  deadline               DateTime?
+  founderComments        String?           @map("founder_comments")
+  lastReviewedAt         DateTime?         @map("last_reviewed_at")
+  performanceMetrics     Json?             @map("performance_metrics")
+  revisionCount          Int               @default(0) @map("revision_count")
+  revisionDeadline       DateTime?         @map("revision_deadline")
+  title                  String?
+  videoNumber            Int?              @map("video_number")
+  abTestVariant          ABTestVariant?
+  disputes               Dispute[]
+  draftSubmissions       DraftSubmission[]
+  licenses               License[]
+  payments               Payment[]
+  revisions              Revision[]
+  versions               VideoVersion[]
+  campaign               Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator                User?             @relation("creator_videos", fields: [creatorId], references: [id])
+  viewSnapshots          ViewSnapshot[]
+
+  @@index([campaignId, status])
+  @@index([postedAt])
+  @@map("videos")
+}
+
+model DraftSubmission {
+  id                      String      @id @default(uuid())
+  videoId                 String      @map("video_id")
+  draftUrl                String      @map("draft_url")
+  version                 Int         @default(1)
+  status                  DraftStatus @default(PENDING_REVIEW)
+  submittedAt             DateTime    @default(now()) @map("submitted_at")
+  reviewedAt              DateTime?   @map("reviewed_at")
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @updatedAt @map("updated_at")
+  instructionLinks        Json?       @map("instruction_links")
+  instructionLibraryItems Json?       @map("instruction_library_items")
+  video                   Video       @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@map("draft_submissions")
+}
+
+model InstructionTemplate {
+  id                   String          @id @default(uuid())
+  founderId            String          @map("founder_id")
+  name                 String
+  content              String
+  type                 InstructionType @default(GLOBAL)
+  attachedLinks        Json?           @map("attached_links")
+  attachedLibraryItems Json?           @map("attached_library_items")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+  founder              User            @relation(fields: [founderId], references: [id], onDelete: Cascade)
+
+  @@index([founderId])
+  @@map("instruction_templates")
+}
+
+model ViewSnapshot {
+  id         String   @id @default(uuid())
+  videoId    String   @map("video_id")
+  viewCount  Int      @map("view_count")
+  dataSource String   @map("data_source")
+  snapshotAt DateTime @default(now()) @map("snapshot_at")
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, snapshotAt])
+  @@map("view_snapshots")
+}
+
+model Revision {
+  id              String    @id @default(uuid())
+  videoId         String    @map("video_id")
+  requestedBy     String    @map("requested_by")
+  feedback        String
+  priority        String?
+  deadline        DateTime?
+  iterationNumber Int       @default(1) @map("iteration_number")
+  resolvedAt      DateTime? @map("resolved_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  video           Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@map("revisions")
+}
+
+model Payment {
+  id               String        @id @default(uuid())
+  campaignId       String?       @map("campaign_id")
+  videoId          String?       @map("video_id")
+  recipientId      String        @map("recipient_id")
+  amount           Decimal       @db.Decimal(10, 2)
+  type             PaymentType
+  status           PaymentStatus @default(PENDING)
+  description      String?
+  stripeTransferId String?       @map("stripe_transfer_id")
+  stripeRefundId   String?       @map("stripe_refund_id")
+  metadata         Json?
+  failureReason    String?       @map("failure_reason")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  processedAt      DateTime?     @map("processed_at")
+  campaign         Campaign?     @relation(fields: [campaignId], references: [id])
+  recipient        User          @relation(fields: [recipientId], references: [id])
+  video            Video?        @relation(fields: [videoId], references: [id])
+
+  @@index([campaignId, type, status])
+  @@map("payments")
+}
+
+model Settlement {
+  id                      String   @id @default(uuid())
+  videoId                 String   @unique @map("video_id")
+  campaignId              String   @map("campaign_id")
+  lockedViews             Int      @map("locked_views")
+  creatorPerformanceBonus Decimal  @map("creator_performance_bonus") @db.Decimal(10, 2)
+  nalaRevenue             Decimal  @map("nala_revenue") @db.Decimal(10, 2)
+  founderRefund           Decimal  @map("founder_refund") @db.Decimal(10, 2)
+  settledAt               DateTime @default(now()) @map("settled_at")
+
+  @@map("settlements")
+}
+
+model License {
+  id            String   @id @default(uuid())
+  campaignId    String   @map("campaign_id")
+  videoId       String   @map("video_id")
+  creatorId     String   @map("creator_id")
+  founderId     String   @map("founder_id")
+  licenseNumber String   @unique @map("license_number")
+  pdfUrl        String?  @map("pdf_url")
+  granteeId     String?  @map("grantee_id")
+  grantedAt     DateTime @default(now()) @map("granted_at")
+  campaign      Campaign @relation(fields: [campaignId], references: [id])
+  creator       User     @relation("creator_licenses", fields: [creatorId], references: [id])
+  founder       User     @relation("founder_licenses", fields: [founderId], references: [id])
+  grantee       User?    @relation("LicenseGrantee", fields: [granteeId], references: [id])
+  video         Video    @relation(fields: [videoId], references: [id])
+
+  @@map("licenses")
+}
+
+model Revenue {
+  id         String   @id @default(uuid())
+  campaignId String   @map("campaign_id")
+  videoId    String?  @map("video_id")
+  amount     Decimal  @db.Decimal(10, 2)
+  type       String
+  viewsCount Int?     @map("views_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([campaignId])
+  @@map("revenue")
+}
+
+model VerificationToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("verification_tokens")
+}
+
+model ScheduledPost {
+  id              String              @id @default(uuid())
+  videoId         String              @map("video_id")
+  creatorId       String              @map("creator_id")
+  campaignId      String              @map("campaign_id")
+  platform        Platform
+  scheduledFor    DateTime            @map("scheduled_for")
+  timezone        String              @default("America/New_York")
+  caption         String?
+  hashtags        String?
+  videoUrl        String              @map("video_url")
+  thumbnailUrl    String?             @map("thumbnail_url")
+  status          ScheduledPostStatus @default(PENDING)
+  publishedAt     DateTime?           @map("published_at")
+  platformPostId  String?             @map("platform_post_id")
+  platformPostUrl String?             @map("platform_post_url")
+  attempts        Int                 @default(0)
+  lastAttemptAt   DateTime?           @map("last_attempt_at")
+  errorMessage    String?             @map("error_message")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  @@index([scheduledFor, status])
+  @@index([creatorId, status])
+  @@map("scheduled_posts")
+}
+
+model VideoSubmission {
+  id               String           @id @default(uuid())
+  videoId          String           @map("video_id")
+  campaignId       String           @map("campaign_id")
+  creatorId        String           @map("creator_id")
+  originalUrl      String           @map("original_url")
+  originalFilename String           @map("original_filename")
+  fileSize         Int              @map("file_size")
+  duration         Int?
+  resolution       String?
+  watermarkedUrl   String           @map("watermarked_url")
+  watermarkText    String           @default("NALA - PENDING APPROVAL") @map("watermark_text")
+  thumbnailUrl     String?          @map("thumbnail_url")
+  processingStatus ProcessingStatus @default(PENDING) @map("processing_status")
+  processingError  String?          @map("processing_error")
+  submissionNotes  String?          @map("submission_notes")
+  version          Int              @default(1)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@index([videoId])
+  @@index([creatorId])
+  @@map("video_submissions")
+}
+
+model AIBrief {
+  id                 String   @id @default(uuid())
+  campaignId         String?  @map("campaign_id")
+  founderId          String   @map("founder_id")
+  productName        String   @map("product_name")
+  productDescription String   @map("product_description")
+  targetAudience     String   @map("target_audience")
+  videoStyle         String?  @map("video_style")
+  keyFeatures        String[] @map("key_features")
+  tone               String?
+  generatedScript    String?  @map("generated_script")
+  talkingPoints      String[] @map("talking_points")
+  hookIdeas          String[] @map("hook_ideas")
+  hashtagSuggestions String[] @map("hashtag_suggestions")
+  callToAction       String?  @map("call_to_action")
+  model              String   @default("gpt-4")
+  tokensUsed         Int?     @map("tokens_used")
+  used               Boolean  @default(false)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([founderId])
+  @@map("ai_briefs")
+}
+
+model Application {
+  id                      String            @id @default(uuid())
+  campaignId              String            @map("campaign_id")
+  creatorId               String            @map("creator_id")
+  message                 String?
+  portfolioLinks          String[]          @map("portfolio_links")
+  status                  ApplicationStatus @default(PENDING)
+  createdAt               DateTime          @default(now()) @map("created_at")
+  updatedAt               DateTime          @updatedAt @map("updated_at")
+  acceptanceDeadline      DateTime?         @map("acceptance_deadline")
+  acceptanceInstructions  String?           @map("acceptance_instructions")
+  acceptedAt              DateTime?         @map("accepted_at")
+  assignedAt              DateTime?         @map("assigned_at")
+  instructionDeadlines    Json?             @map("instruction_deadlines")
+  instructionLibraryItems Json?             @map("instruction_library_items")
+  instructionLinks        Json?             @map("instruction_links")
+  overallInstructions     String?           @map("overall_instructions")
+  rejectedAt              DateTime?         @map("rejected_at")
+  rejectionReason         String?           @map("rejection_reason")
+  videoInstructions       Json?             @map("video_instructions")
+  campaign                Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator                 User              @relation("creator_applications", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, creatorId])
+  @@map("applications")
+}
+
+model Instruction {
+  id                    String             @id @default(uuid())
+  campaignId            String             @map("campaign_id")
+  text                  String
+  attachedLibraryItemId String?            @map("attached_library_item_id")
+  authorId              String             @map("author_id")
+  appliesTo             String             @map("applies_to")
+  status                InstructionStatus  @default(OPEN)
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+  auditLogs             InstructionAudit[]
+  author                User               @relation("instruction_author", fields: [authorId], references: [id])
+  campaign              Campaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, status])
+  @@map("instructions")
+}
+
+model InstructionAudit {
+  id            String      @id @default(uuid())
+  instructionId String      @map("instruction_id")
+  action        String
+  actorId       String      @map("actor_id")
+  changes       Json
+  timestamp     DateTime    @default(now())
+  actor         User        @relation("instruction_audit_actor", fields: [actorId], references: [id])
+  instruction   Instruction @relation(fields: [instructionId], references: [id], onDelete: Cascade)
+
+  @@index([instructionId, timestamp])
+  @@map("instruction_audits")
+}
+
+model Dispute {
+  id           String            @id @default(uuid())
+  campaignId   String            @map("campaign_id")
+  videoId      String?           @map("video_id")
+  initiatorId  String            @map("initiator_id")
+  respondentId String            @map("respondent_id")
+  category     DisputeCategory
+  description  String
+  status       DisputeStatus     @default(PENDING)
+  resolution   String?
+  resolvedAt   DateTime?         @map("resolved_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  evidence     DisputeEvidence[]
+  messages     DisputeMessage[]
+  campaign     Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  initiator    User              @relation("dispute_initiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  respondent   User              @relation("dispute_respondent", fields: [respondentId], references: [id], onDelete: Cascade)
+  video        Video?            @relation(fields: [videoId], references: [id])
+
+  @@map("disputes")
+}
+
+model DisputeMessage {
+  id         String   @id @default(uuid())
+  disputeId  String   @map("dispute_id")
+  senderId   String   @map("sender_id")
+  content    String
+  isInternal Boolean  @default(false) @map("is_internal")
+  createdAt  DateTime @default(now()) @map("created_at")
+  dispute    Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  sender     User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+  @@map("dispute_messages")
+}
+
+model DisputeEvidence {
+  id          String   @id @default(uuid())
+  disputeId   String   @map("dispute_id")
+  uploaderId  String   @map("uploader_id")
+  fileUrl     String   @map("file_url")
+  fileType    String   @map("file_type")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  dispute     Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  uploader    User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+  @@map("dispute_evidence")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+  metadata  Json?
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model NotificationPreferences {
+  id                    String   @id @default(uuid())
+  userId                String   @unique @map("user_id")
+  emailCampaignUpdates  Boolean  @default(true) @map("email_campaign_updates")
+  emailPayments         Boolean  @default(true) @map("email_payments")
+  emailDeadlines        Boolean  @default(true) @map("email_deadlines")
+  emailNewMessages      Boolean  @default(true) @map("email_new_messages")
+  emailApplications     Boolean  @default(true) @map("email_applications")
+  pushNotifications     Boolean  @default(true) @map("push_notifications")
+  smsNotifications      Boolean  @default(false) @map("sms_notifications")
+  notificationFrequency String   @default("realtime") @map("notification_frequency")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model AdminUser {
+  id                      String           @id @default(uuid())
+  userId                  String           @unique @map("user_id")
+  adminLevel              AdminLevel       @default(JUNIOR) @map("admin_level")
+  permissions             Json
+  assignedQueue           AdminQueue?      @map("assigned_queue")
+  maxManualOverrideAmount Decimal?         @map("max_manual_override_amount") @db.Decimal(12, 2)
+  active                  Boolean          @default(true)
+  twoFactorEnabled        Boolean          @default(false) @map("two_factor_enabled")
+  twoFactorSecret         String?          @map("two_factor_secret")
+  createdAt               DateTime         @default(now()) @map("created_at")
+  updatedAt               DateTime         @updatedAt @map("updated_at")
+  auditLogs               AdminAuditLog[]
+  user                    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailBroadcasts         EmailBroadcast[]
+
+  @@index([adminLevel])
+  @@index([assignedQueue])
+  @@map("admin_users")
+}
+
+model AdminAuditLog {
+  id           String    @id @default(uuid())
+  adminId      String    @map("admin_id")
+  actionType   String    @map("action_type")
+  resourceType String?   @map("resource_type")
+  resourceId   String?   @map("resource_id")
+  details      Json?
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  admin        AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([actionType])
+  @@index([resourceType])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
+}
+
+model AdminDashboardMetric {
+  id           String    @id @default(uuid())
+  metricType   String    @map("metric_type")
+  metricValue  Json      @map("metric_value")
+  dateRange    String    @default("TODAY") @map("date_range")
+  calculatedAt DateTime  @default(now()) @map("calculated_at")
+  expiresAt    DateTime? @map("expires_at")
+
+  @@unique([metricType, dateRange])
+  @@index([metricType])
+  @@index([expiresAt])
+  @@map("admin_dashboard_metrics")
+}
+
+model EmailBroadcast {
+  id            String    @id @default(uuid())
+  adminId       String    @map("admin_id")
+  recipientType String    @map("recipient_type")
+  recipientIds  String[]  @map("recipient_ids")
+  subject       String
+  bodyHtml      String    @map("body_html")
+  scheduledFor  DateTime? @map("scheduled_for")
+  status        String    @default("PENDING")
+  sentCount     Int       @default(0) @map("sent_count")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  sentAt        DateTime? @map("sent_at")
+  admin         AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("email_broadcasts")
+}
+
+model VideoFormat {
+  id                   String                 @id @default(uuid())
+  name                 String                 @map("format_name")
+  description          String
+  platforms            Platform[]
+  optimalLengthMin     Int                    @map("optimal_length_min")
+  optimalLengthMax     Int                    @map("optimal_length_max")
+  tone                 String
+  categories           String[]
+  structure            Json
+  bestPractices        String[]               @map("best_practices")
+  firstUsedDate        DateTime               @map("first_used_date")
+  totalAdopters        Int                    @default(0) @map("total_adopters")
+  adoptionTrend        String                 @default("STABLE") @map("adoption_trend")
+  avgViews             Int                    @default(0) @map("avg_views")
+  viewRange            Json?                  @map("view_range")
+  avgEngagementRate    Decimal?               @map("avg_engagement_rate") @db.Decimal(5, 2)
+  successRate50k       Decimal?               @map("success_rate_50k_views") @db.Decimal(5, 2)
+  estimatedAvgEarnings Decimal?               @map("estimated_avg_earnings") @db.Decimal(10, 2)
+  trendMomentum        Decimal?               @map("trend_momentum") @db.Decimal(5, 2)
+  isTrending           Boolean                @default(false) @map("is_trending")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  savedByCreators      CreatorFormatLibrary[]
+  recommendations      FormatRecommendation[]
+
+  @@map("video_formats")
+}
+
+model CreatorFormatLibrary {
+  id          String      @id @default(uuid())
+  creatorId   String      @map("creator_id")
+  formatId    String      @map("format_id")
+  savedAt     DateTime    @default(now()) @map("saved_at")
+  customNotes String?     @map("custom_notes")
+  usageCount  Int         @default(0) @map("usage_count")
+  creator     User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  format      VideoFormat @relation(fields: [formatId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, formatId])
+  @@map("creator_format_library")
+}
+
+model FormatRecommendation {
+  id                 String      @id @default(uuid())
+  creatorId          String      @map("creator_id")
+  formatId           String      @map("format_id")
+  compatibilityScore Decimal     @map("compatibility_score") @db.Decimal(5, 2)
+  reason             String?
+  estEarningsImpact  Decimal?    @map("estimated_earnings_impact") @db.Decimal(10, 2)
+  createdAt          DateTime    @default(now()) @map("created_at")
+  dismissed          Boolean     @default(false)
+  creator            User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  format             VideoFormat @relation(fields: [formatId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@map("format_recommendations")
+}
+
+model CreatorPerformanceMetric {
+  id              String    @id @default(uuid())
+  creatorId       String    @map("creator_id")
+  platform        Platform?
+  totalViews      Int       @default(0) @map("total_views")
+  totalEngagement Int       @default(0) @map("total_engagement")
+  avgWatchTime    Decimal?  @map("avg_watch_time") @db.Decimal(5, 2)
+  videosPosted    Int       @default(0) @map("videos_posted")
+  periodStart     DateTime  @map("period_start")
+  periodEnd       DateTime  @map("period_end")
+  periodType      String    @default("WEEK")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([creatorId, platform, periodStart])
+  @@map("creator_performance_metrics")
+}
+
+model Conversation {
+  id            String                    @id @default(uuid())
+  campaignId    String?                   @map("campaign_id")
+  lastMessageAt DateTime?                 @map("last_message_at")
+  createdAt     DateTime                  @default(now()) @map("created_at")
+  participants  ConversationParticipant[]
+  campaign      Campaign?                 @relation(fields: [campaignId], references: [id])
+  messages      Message[]
+
+  @@index([campaignId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  userId         String       @map("user_id")
+  lastReadAt     DateTime?    @map("last_read_at")
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  senderId       String       @map("sender_id")
+  content        String
+  attachments    Json?
+  readBy         String[]     @default([]) @map("read_by")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+model Activity {
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  type        ActivityType
+  entityType  String       @map("entity_type")
+  entityId    String       @map("entity_id")
+  title       String
+  description String?
+  metadata    Json?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@map("activities")
+}
+
+model Asset {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  type         AssetType
+  name         String
+  url          String
+  thumbnailUrl String?   @map("thumbnail_url")
+  fileSize     Int       @map("file_size")
+  mimeType     String    @map("mime_type")
+  metadata     Json?
+  tags         String[]
+  campaignId   String?   @map("campaign_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  campaign     Campaign? @relation(fields: [campaignId], references: [id])
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([campaignId])
+  @@map("assets")
+}
+
+model VideoVersion {
+  id           String        @id @default(uuid())
+  videoId      String        @map("video_id")
+  version      Int
+  submittedBy  String        @map("submitted_by")
+  videoUrl     String        @map("video_url")
+  thumbnailUrl String?       @map("thumbnail_url")
+  notes        String?
+  status       VersionStatus
+  reviewedBy   String?       @map("reviewed_by")
+  reviewNotes  String?       @map("review_notes")
+  submittedAt  DateTime      @default(now()) @map("submitted_at")
+  reviewedAt   DateTime?     @map("reviewed_at")
+  reviewer     User?         @relation("ReviewedVersions", fields: [reviewedBy], references: [id])
+  submitter    User          @relation("SubmittedVersions", fields: [submittedBy], references: [id])
+  video        Video         @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, version])
+  @@index([status])
+  @@map("video_versions")
+}
+
+model UGCVariant {
+  id          String          @id @default(uuid())
+  campaignId  String          @map("campaign_id")
+  creatorId   String          @map("creator_id")
+  label       String
+  videoUrl    String?         @map("video_url")
+  status      VariantStatus   @default(DRAFT)
+  utmSource   String?         @map("utm_source")
+  utmMedium   String?         @map("utm_medium")
+  utmCampaign String?         @map("utm_campaign")
+  trackingUrl String?         @map("tracking_url")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  campaign    Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator     User            @relation(fields: [creatorId], references: [id])
+  metrics     VariantMetric[]
+
+  @@index([campaignId])
+  @@index([creatorId])
+  @@map("ugc_variants")
+}
+
+model VariantMetric {
+  id               String     @id @default(uuid())
+  variantId        String     @map("variant_id")
+  date             DateTime   @default(now())
+  views            Int        @default(0)
+  clicks           Int        @default(0)
+  conversions      Int        @default(0)
+  spend            Decimal    @default(0) @db.Decimal(10, 2)
+  revenue          Decimal    @default(0) @db.Decimal(10, 2)
+  ctr              Decimal    @default(0) @db.Decimal(5, 2)
+  conversionRate   Decimal    @default(0) @map("conversion_rate") @db.Decimal(5, 2)
+  roi              Decimal    @default(0) @db.Decimal(10, 2)
+  performanceScore Decimal    @default(0) @map("performance_score") @db.Decimal(5, 2)
+  variant          UGCVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId, date])
+  @@map("variant_metrics")
+}
+
+model FounderVideo {
+  id                 String                 @id @default(uuid())
+  campaignId         String                 @map("campaign_id")
+  founderId          String                 @map("founder_id")
+  videoUrl           String                 @map("video_url")
+  thumbnailUrl       String?                @map("thumbnail_url")
+  caption            String?
+  description        String?
+  platform           Platform
+  status             FounderVideoStatus     @default(DRAFT)
+  isDraft            Boolean                @default(true) @map("is_draft")
+  finalPostUrl       String?                @map("final_post_url")
+  platformVideoId    String?                @map("platform_video_id")
+  postedAt           DateTime?              @map("posted_at")
+  currentViewCount   Int                    @default(0) @map("current_view_count")
+  likes              Int                    @default(0)
+  comments           Int                    @default(0)
+  shares             Int                    @default(0)
+  completionRate     Decimal?               @map("completion_rate") @db.Decimal(5, 2)
+  engagementRate     Decimal?               @map("engagement_rate") @db.Decimal(5, 2)
+  watchTime          Int?                   @map("watch_time")
+  costPerClick       Decimal?               @map("cost_per_click") @db.Decimal(10, 2)
+  costPerAcquisition Decimal?               @map("cost_per_acquisition") @db.Decimal(10, 2)
+  conversionRate     Decimal?               @map("conversion_rate") @db.Decimal(5, 2)
+  abTestId           String?                @map("ab_test_id")
+  variantLabel       String?                @map("variant_label")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+  viewSnapshots      FounderVideoSnapshot[]
+  campaign           Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  founder            User                   @relation("founder_videos", fields: [founderId], references: [id])
+
+  @@index([campaignId, status])
+  @@map("founder_videos")
+}
+
+model FounderVideoSnapshot {
+  id         String       @id @default(uuid())
+  videoId    String       @map("video_id")
+  viewCount  Int          @map("view_count")
+  likes      Int          @default(0)
+  comments   Int          @default(0)
+  shares     Int          @default(0)
+  snapshotAt DateTime     @default(now()) @map("snapshot_at")
+  video      FounderVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, snapshotAt])
+  @@map("founder_video_snapshots")
+}
+
+model ABTest {
+  id                   String                      @id @default(uuid())
+  campaignId           String                      @map("campaign_id")
+  name                 String
+  description          String?
+  testGoal             TestGoal
+  successMetric        SuccessMetric
+  status               ABTestStatus                @default(DRAFT)
+  startDate            DateTime?
+  endDate              DateTime?
+  confidence           Decimal?                    @db.Decimal(5, 2)
+  results              Json?
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+  adoptAction          String?                     @map("adopt_action")
+  adoptedVariantId     String?                     @map("adopted_variant_id")
+  assignedCreatorIds   String[]                    @default([]) @map("assigned_creator_ids")
+  completedAt          DateTime?                   @map("completed_at")
+  conclusionNotes      String?                     @map("conclusion_notes")
+  deployedAt           DateTime?                   @map("deployed_at")
+  hypothesis           String?
+  testVariables        Json?                       @map("test_variables")
+  trackingMetrics      Json?                       @map("tracking_metrics")
+  winnerVariantId      String?                     @map("winner_variant_id")
+  performanceSnapshots ABTestPerformanceSnapshot[]
+  variants             ABTestVariant[]
+  campaign             Campaign                    @relation(fields: [campaignId], references: [id])
+
+  @@index([campaignId])
+  @@index([status])
+  @@map("ab_tests")
+}
+
+model ABTestVariant {
+  id                   String                      @id @default(uuid())
+  testId               String                      @map("test_id")
+  variantName          String
+  label                String
+  description          String?
+  variantType          VariantType
+  creatorId            String?                     @map("creator_id")
+  formatId             String?                     @map("format_id")
+  founderVideoId       String?                     @map("founder_video_id")
+  instructions         String?
+  scriptTemplate       String?
+  hookTemplate         String?
+  videoId              String?                     @unique @map("video_id")
+  views                Int                         @default(0)
+  conversions          Int                         @default(0)
+  engagement           Int                         @default(0)
+  costPerView          Decimal?                    @map("cost_per_view") @db.Decimal(10, 2)
+  performanceScore     Decimal?                    @default(0) @map("performance_score") @db.Decimal(5, 2)
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+  approvalStatus       VariantApprovalStatus       @default(PENDING_UPLOAD) @map("approval_status")
+  approvedAt           DateTime?                   @map("approved_at")
+  deployedAt           DateTime?                   @map("deployed_at")
+  founderFeedback      String?                     @map("founder_feedback")
+  revisionDeadline     DateTime?                   @map("revision_deadline")
+  uploadedAt           DateTime?                   @map("uploaded_at")
+  variantInstructions  Json?                       @map("variant_instructions")
+  videoUploadUrl       String?                     @map("video_upload_url")
+  performanceSnapshots ABTestPerformanceSnapshot[]
+  creator              User?                       @relation(fields: [creatorId], references: [id])
+  test                 ABTest                      @relation(fields: [testId], references: [id], onDelete: Cascade)
+  video                Video?                      @relation(fields: [videoId], references: [id])
+
+  @@index([testId])
+  @@index([creatorId])
+  @@index([approvalStatus])
+  @@map("ab_test_variants")
+}
+
+model ABTestPerformanceSnapshot {
+  id             String        @id @default(uuid())
+  variantId      String        @map("variant_id")
+  testId         String        @map("test_id")
+  views          Int           @default(0)
+  clicks         Int           @default(0)
+  conversions    Int           @default(0)
+  watchTime      Int           @default(0)
+  engagementRate Decimal       @default(0) @map("engagement_rate") @db.Decimal(5, 2)
+  ctr            Decimal       @default(0) @db.Decimal(5, 2)
+  conversionRate Decimal       @default(0) @map("conversion_rate") @db.Decimal(5, 2)
+  snapshotAt     DateTime      @default(now()) @map("snapshot_at")
+  test           ABTest        @relation(fields: [testId], references: [id], onDelete: Cascade)
+  variant        ABTestVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId, snapshotAt])
+  @@index([testId, snapshotAt])
+  @@map("ab_test_performance_snapshots")
+}
+
+// --- Attribution & Payout System ---
+
+model CreatorCampaignAssignment {
+  id             String            @id @default(uuid())
+  campaignId     String            @map("campaign_id")
+  creatorId      String            @map("creator_id")
+  status         AssignmentStatus  @default(INVITED)
+  assignedAt     DateTime          @default(now()) @map("assigned_at")
+  acceptedAt     DateTime?         @map("accepted_at")
+  rejectedAt     DateTime?         @map("rejected_at")
+  baseFee        Decimal?          @map("base_fee") @db.Decimal(10, 2)
+  videosAssigned Int               @default(0) @map("videos_assigned")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  campaign       Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator        User              @relation("creator_assignments", fields: [creatorId], references: [id], onDelete: Cascade)
+  codes          AttributionCode[]
+  payouts        Payout[]
+
+  @@unique([campaignId, creatorId])
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("creator_campaign_assignments")
+}
+
+model AttributionCode {
+  id           String                    @id @default(uuid())
+  campaignId   String                    @map("campaign_id")
+  creatorId    String                    @map("creator_id")
+  assignmentId String                    @map("assignment_id")
+  platform     Platform
+  code         String                    @unique
+  generatedBy  String                    @map("generated_by")
+  generatedAt  DateTime                  @default(now()) @map("generated_at")
+  active       Boolean                   @default(true)
+  expiryDate   DateTime?                 @map("expiry_date")
+  assignment   CreatorCampaignAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  campaign     Campaign                  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator      User                      @relation("creator_attribution_codes", fields: [creatorId], references: [id], onDelete: Cascade)
+  redemptions  CodeRedemption[]
+
+  @@unique([campaignId, creatorId, platform])
+  @@index([code])
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([active])
+  @@map("attribution_codes")
+}
+
+model CodeRedemption {
+  id                    String              @id @default(uuid())
+  codeId                String              @map("code_id")
+  campaignId            String              @map("campaign_id")
+  creatorId             String              @map("creator_id")
+  platform              String
+  externalEventId       String              @unique @map("external_event_id")
+  externalUserId        String?             @map("external_user_id")
+  eventType             RedemptionEventType @map("event_type")
+  eventValue            Json?               @map("event_value")
+  receivedAt            DateTime            @default(now()) @map("received_at")
+  verified              Boolean             @default(false)
+  verifiedAt            DateTime?           @map("verified_at")
+  verificationReference String?             @map("verification_reference")
+  campaign              Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  code                  AttributionCode     @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  creator               User                @relation("creator_redemptions", fields: [creatorId], references: [id], onDelete: Cascade)
+  subscriptionEvents    SubscriptionEvent[]
+
+  @@index([codeId])
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([verified])
+  @@index([eventType])
+  @@map("code_redemptions")
+}
+
+model ViewPayment {
+  id                   String            @id @default(uuid())
+  campaignId           String            @map("campaign_id")
+  creatorId            String?           @map("creator_id")
+  periodStart          DateTime          @map("period_start")
+  periodEnd            DateTime          @map("period_end")
+  viewsCount           Int               @map("views_count")
+  amountDueCreator     Decimal           @map("amount_due_creator") @db.Decimal(10, 2)
+  amountChargedFounder Decimal           @map("amount_charged_founder") @db.Decimal(10, 2)
+  status               ViewPaymentStatus @default(PENDING)
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+  campaign             Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator              User?             @relation("creator_view_payments", fields: [creatorId], references: [id])
+
+  @@index([campaignId, creatorId, periodStart])
+  @@index([status])
+  @@map("view_payments")
+}
+
+model Payout {
+  id           String                     @id @default(uuid())
+  assignmentId String?                    @map("assignment_id")
+  creatorId    String                     @map("creator_id")
+  campaignId   String                     @map("campaign_id")
+  type         PayoutType
+  amount       Decimal                    @db.Decimal(10, 2)
+  currency     String                     @default("USD")
+  status       PayoutStatus               @default(PENDING)
+  reference    String?
+  metadata     Json?
+  createdAt    DateTime                   @default(now()) @map("created_at")
+  paidAt       DateTime?                  @map("paid_at")
+  assignment   CreatorCampaignAssignment? @relation(fields: [assignmentId], references: [id])
+  campaign     Campaign                   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator      User                       @relation("creator_payouts", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([type])
+  @@map("payouts")
+}
+
+model SubscriptionEvent {
+  id                 String         @id @default(uuid())
+  campaignId         String         @map("campaign_id")
+  creatorId          String         @map("creator_id")
+  redemptionId       String         @map("redemption_id")
+  externalCustomerId String         @map("external_customer_id")
+  planPrice          Decimal        @map("plan_price") @db.Decimal(10, 2)
+  creatorBonus       Decimal        @map("creator_bonus") @db.Decimal(10, 2)
+  platformFee        Decimal        @map("platform_fee") @db.Decimal(10, 2)
+  paidAt             DateTime       @map("paid_at")
+  platformReceipt    Json?          @map("platform_receipt")
+  reconciled         Boolean        @default(false)
+  createdAt          DateTime       @default(now()) @map("created_at")
+  campaign           Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator            User           @relation("creator_subscriptions", fields: [creatorId], references: [id], onDelete: Cascade)
+  redemption         CodeRedemption @relation(fields: [redemptionId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([reconciled])
+  @@map("subscription_events")
+}
+
+
+
+// --- Original Enums ---
 
 enum Role {
   FOUNDER
   CREATOR
   ADMIN
-}
-
-// ============================================
-// CREATOR PROFILE
-// ============================================
-
-model CreatorProfile {
-  id                  String    @id @default(uuid())
-  userId              String    @unique @map("user_id")
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  bio                 String?
-  categories          String[]  // e.g., ["SaaS", "B2B", "Tech"]
-
-  // Platform-specific base fees
-  baseFeeTiktok       Decimal   @default(75.00) @map("base_fee_tiktok") @db.Decimal(10, 2)
-  baseFeeInstagram    Decimal   @default(75.00) @map("base_fee_instagram") @db.Decimal(10, 2)
-  baseFeeFacebook     Decimal   @default(75.00) @map("base_fee_facebook") @db.Decimal(10, 2)
-
-  // Portfolio
-  portfolioVideos     Json?     @map("portfolio_videos") // Array of {url, thumbnail, platform, title}
-
-  // Status
-  verificationStatus  VerificationStatus @default(PENDING) @map("verification_status")
-  availabilityStatus  String?   @map("availability_status")
-  responseTime        String?   @map("response_time") // e.g., "< 24 hours"
-  isOnboardingComplete Boolean  @default(false) @map("is_onboarding_complete")
-
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-
-  // Admin management
-  adminNotes          String?   @map("admin_notes")
-
-
-  @@map("creator_profiles")
 }
 
 enum VerificationStatus {
@@ -133,159 +1241,10 @@ enum VerificationStatus {
   SUSPENDED
 }
 
-// ============================================
-// SOCIAL MEDIA ACCOUNTS
-// ============================================
-
-model SocialAccount {
-  id                String     @id @default(uuid())
-  creatorId         String     @map("creator_id")
-  creator           User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-
-  platform          Platform
-  platformUserId    String     @map("platform_user_id")
-  username          String
-  followerCount     Int?       @map("follower_count")
-
-  // OAuth tokens (encrypted at application level)
-  accessToken       String?    @map("access_token")
-  refreshToken      String?    @map("refresh_token")
-  tokenExpiresAt    DateTime?  @map("token_expires_at")
-
-  verifiedAt        DateTime?  @map("verified_at")
-  lastSyncedAt      DateTime?  @map("last_synced_at")
-
-  createdAt         DateTime   @default(now()) @map("created_at")
-  updatedAt         DateTime   @updatedAt @map("updated_at")
-
-  @@unique([creatorId, platform])
-  @@map("social_accounts")
-}
-
 enum Platform {
   TIKTOK
   INSTAGRAM
   FACEBOOK
-}
-
-// OAuth Connection Management
-model SocialConnection {
-  id                String    @id @default(uuid())
-  userId            String    @map("user_id")
-  user              User      @relation("social_connections", fields: [userId], references: [id], onDelete: Cascade)
-
-  platform          Platform
-  platformUserId    String?   @map("platform_user_id")
-
-  // OAuth tokens
-  accessToken       String    @map("access_token")
-  refreshToken      String?   @map("refresh_token")
-  expiresAt         DateTime  @map("expires_at")
-  scope             String?
-
-  isActive          Boolean   @default(true) @map("is_active")
-  connectedAt       DateTime  @default(now()) @map("connected_at")
-  disconnectedAt    DateTime? @map("disconnected_at")
-
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-
-  @@unique([userId, platform])
-  @@map("social_connections")
-}
-
-
-// ============================================
-// CAMPAIGNS
-// ============================================
-
-model Campaign {
-  id                    String          @id @default(uuid())
-  founderId             String          @map("founder_id")
-  founder               User            @relation("founder_campaigns", fields: [founderId], references: [id], onDelete: Cascade)
-
-  creatorId             String?         @map("creator_id")
-  creator               User?           @relation("creator_campaigns", fields: [creatorId], references: [id])
-
-  name                  String
-  brandName             String?         @map("brand_name")
-  description           String?
-  status                CampaignStatus  @default(DRAFT)
-  platform              Platform?
-
-  // Budget
-  totalBudget           Decimal         @map("total_budget") @db.Decimal(10, 2)
-  baseFeeeBudget        Decimal         @map("base_fee_budget") @db.Decimal(10, 2)
-  performanceBudget     Decimal         @map("performance_budget") @db.Decimal(10, 2)
-  escrowBalance         Decimal         @default(0) @map("escrow_balance") @db.Decimal(10, 2)
-
-  // Videos
-  videosRequested       Int             @map("videos_requested")
-  videosCompleted       Int             @default(0) @map("videos_completed")
-
-  // Posting schedule
-  postingFrequency      String?         @map("posting_frequency") // 'daily', 'every_other_day', etc.
-  startDate             DateTime?       @map("start_date")
-  deadline              DateTime?
-
-  // Stripe
-  stripePaymentIntentId String?         @map("stripe_payment_intent_id")
-
-  // Brief data (stored as JSON for flexibility)
-  briefData             Json?           @map("brief_data")
-
-  // Final stats (populated after completion)
-  finalViewsTotal       Int?            @map("final_views_total")
-  totalPaidToCreator    Decimal?        @map("total_paid_to_creator") @db.Decimal(10, 2)
-  totalRefundedToFounder Decimal?       @map("total_refunded_to_founder") @db.Decimal(10, 2)
-  platformRevenue       Decimal?        @map("platform_revenue") @db.Decimal(10, 2)
-
-  // Budget calculator options
-  guaranteedSpend       Boolean         @default(false) @map("guaranteed_spend")
-  targetViews           Int?            @map("target_views")
-
-  createdAt             DateTime        @default(now()) @map("created_at")
-  updatedAt             DateTime        @updatedAt @map("updated_at")
-  completedAt           DateTime?       @map("completed_at")
-
-  // Relations
-  videos                Video[]
-  payments              Payment[]
-  licenses              License[]
-  disputes              Dispute[]
-  applications          Application[]
-
-  conversations         Conversation[]
-  assets                Asset[]
-  variants              UGCVariant[]
-  
-  // Advanced Campaign System
-  founderVideos         FounderVideo[]
-  abTests               ABTest[]
-  goals                 CampaignGoal[]
-
-  @@index([founderId, status])
-  @@map("campaigns")
-}
-
-model CampaignGoal {
-  id            String    @id @default(uuid())
-  campaignId    String    @map("campaign_id")
-  campaign      Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  
-  name          String
-  description   String?
-  type          GoalType
-  targetValue   Decimal   @map("target_value") @db.Decimal(10, 2)
-  currentValue  Decimal   @default(0) @map("current_value") @db.Decimal(10, 2)
-  deadline      DateTime?
-  status        GoalStatus @default(IN_PROGRESS)
-  
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-
-  @@index([campaignId])
-  @@map("campaign_goals")
 }
 
 enum GoalType {
@@ -311,61 +1270,7 @@ enum CampaignStatus {
   PAUSED
   COMPLETED
   CANCELLED
-}
-
-// ============================================
-// VIDEOS
-// ============================================
-
-model Video {
-  id                    String          @id @default(uuid())
-  campaignId            String          @map("campaign_id")
-  campaign              Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  creatorId             String?         @map("creator_id")
-  creator               User?           @relation("creator_videos", fields: [creatorId], references: [id])
-
-  // Content
-  draftVideoUrl         String?         @map("draft_video_url")
-  finalPostUrl          String?         @map("final_post_url")
-  platform              Platform?
-  platformVideoId       String?         @map("platform_video_id") // Extracted from URL
-
-  // Status
-  status                VideoStatus     @default(PENDING)
-
-  // Dates
-  submittedAt           DateTime?       @map("submitted_at")
-  approvedAt            DateTime?       @map("approved_at")
-  postedAt              DateTime?       @map("posted_at")
-  lockedAt              DateTime?       @map("locked_at")
-
-  // View tracking
-  currentViewCount      Int             @default(0) @map("current_view_count")
-  lockedViewCount       Int?            @map("locked_view_count")
-  lastViewUpdate        DateTime?       @map("last_view_update")
-
-  // Payments
-  baseFeePaid           Boolean         @default(false) @map("base_fee_paid")
-  baseFeeAmount         Decimal?        @map("base_fee_amount") @db.Decimal(10, 2)
-  performanceBonusPaid  Boolean         @default(false) @map("performance_bonus_paid")
-  performanceBonusAmount Decimal?       @map("performance_bonus_amount") @db.Decimal(10, 2)
-
-  createdAt             DateTime        @default(now()) @map("created_at")
-  updatedAt             DateTime        @updatedAt @map("updated_at")
-
-  // Relations
-  viewSnapshots         ViewSnapshot[]
-  payments              Payment[]
-  revisions             Revision[]
-  versions              VideoVersion[]
-  licenses              License[]
-  disputes              Dispute[]
-  abTestVariant         ABTestVariant?
-
-  @@index([campaignId, status])
-  @@index([postedAt])
-  @@map("videos")
+  ACTIVE_ACCEPTING_APPLICATIONS
 }
 
 enum VideoStatus {
@@ -378,77 +1283,15 @@ enum VideoStatus {
   LOCKED
 }
 
-// ============================================
-// VIEW TRACKING
-// ============================================
-
-model ViewSnapshot {
-  id          String    @id @default(uuid())
-  videoId     String    @map("video_id")
-  video       Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
-
-  viewCount   Int       @map("view_count")
-  dataSource  String    @map("data_source") // 'tiktok_api', 'meta_api', 'manual'
-  snapshotAt  DateTime  @default(now()) @map("snapshot_at")
-
-  @@index([videoId, snapshotAt])
-  @@map("view_snapshots")
+enum DraftStatus {
+  PENDING_REVIEW
+  APPROVED
+  REVISION_REQUESTED
 }
 
-// ============================================
-// CONTENT REVISIONS
-// ============================================
-
-model Revision {
-  id              String    @id @default(uuid())
-  videoId         String    @map("video_id")
-  video           Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
-
-  requestedBy     String    @map("requested_by") // User ID
-  feedback        String
-  priority        String?   // 'minor', 'significant', 'major'
-  deadline        DateTime?
-  iterationNumber Int       @default(1) @map("iteration_number")
-
-  resolvedAt      DateTime? @map("resolved_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-
-  @@map("revisions")
-}
-
-// ============================================
-// PAYMENTS
-// ============================================
-
-model Payment {
-  id              String        @id @default(uuid())
-  campaignId      String?       @map("campaign_id")
-  campaign        Campaign?     @relation(fields: [campaignId], references: [id])
-
-  videoId         String?       @map("video_id")
-  video           Video?        @relation(fields: [videoId], references: [id])
-
-  recipientId     String        @map("recipient_id")
-  recipient       User          @relation(fields: [recipientId], references: [id])
-
-  amount          Decimal       @db.Decimal(10, 2)
-  type            PaymentType
-  status          PaymentStatus @default(PENDING)
-  description     String?
-
-  // Stripe references
-  stripeTransferId  String?     @map("stripe_transfer_id")
-  stripeRefundId    String?     @map("stripe_refund_id")
-
-  // Additional metadata
-  metadata        Json?
-  failureReason   String?       @map("failure_reason")
-
-  createdAt       DateTime      @default(now()) @map("created_at")
-  processedAt     DateTime?     @map("processed_at")
-
-  @@index([campaignId, type, status])
-  @@map("payments")
+enum InstructionType {
+  GLOBAL
+  VIDEO_SPECIFIC
 }
 
 enum PaymentType {
@@ -467,130 +1310,9 @@ enum PaymentStatus {
   CANCELLED
 }
 
-// ============================================
-// SETTLEMENTS
-// ============================================
-
-model Settlement {
-  id                      String    @id @default(uuid())
-  videoId                 String    @unique @map("video_id")
-  campaignId              String    @map("campaign_id")
-
-  lockedViews             Int       @map("locked_views")
-  creatorPerformanceBonus Decimal   @map("creator_performance_bonus") @db.Decimal(10, 2)
-  nalaRevenue             Decimal   @map("nala_revenue") @db.Decimal(10, 2)
-  founderRefund           Decimal   @map("founder_refund") @db.Decimal(10, 2)
-
-  settledAt               DateTime  @default(now()) @map("settled_at")
-
-  @@map("settlements")
-}
-
-// ============================================
-// LICENSES
-// ============================================
-
-model License {
-  id              String    @id @default(uuid())
-  campaignId      String    @map("campaign_id")
-  campaign        Campaign  @relation(fields: [campaignId], references: [id])
-
-  videoId         String    @map("video_id")
-  video           Video     @relation(fields: [videoId], references: [id])
-
-  creatorId       String    @map("creator_id")
-  creator         User      @relation("creator_licenses", fields: [creatorId], references: [id])
-
-  founderId       String    @map("founder_id")
-  founder         User      @relation("founder_licenses", fields: [founderId], references: [id])
-
-  licenseNumber   String    @unique @map("license_number")
-  pdfUrl          String?   @map("pdf_url")
-
-  granteeId       String?   @map("grantee_id")
-  grantee         User?     @relation("LicenseGrantee", fields: [granteeId], references: [id])
-
-  grantedAt       DateTime  @default(now()) @map("granted_at")
-
-  @@map("licenses")
-}
-
-// ============================================
-// REVENUE TRACKING
-// ============================================
-
-model Revenue {
-  id          String    @id @default(uuid())
-  campaignId  String    @map("campaign_id")
-  videoId     String?   @map("video_id")
-
-  amount      Decimal   @db.Decimal(10, 2)
-  type        String    // 'markup', 'subscription', etc.
-  viewsCount  Int?      @map("views_count")
-
-  createdAt   DateTime  @default(now()) @map("created_at")
-
-  @@index([campaignId])
-  @@map("revenue")
-}
-
-// ============================================
-// EMAIL VERIFICATION TOKENS
-// ============================================
-
-model VerificationToken {
-  id        String    @id @default(uuid())
-  userId    String    @map("user_id")
-  token     String    @unique
-  type      TokenType // 'email_verification', 'password_reset'
-  expiresAt DateTime  @map("expires_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  @@map("verification_tokens")
-}
-
 enum TokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
-}
-
-// ============================================
-// SCHEDULED POSTS
-// ============================================
-
-model ScheduledPost {
-  id                String           @id @default(uuid())
-  videoId           String           @map("video_id")
-  creatorId         String           @map("creator_id")
-  campaignId        String           @map("campaign_id")
-
-  platform          Platform
-  scheduledFor      DateTime         @map("scheduled_for")
-  timezone          String           @default("America/New_York")
-
-  // Content
-  caption           String?
-  hashtags          String?
-  videoUrl          String           @map("video_url")
-  thumbnailUrl      String?          @map("thumbnail_url")
-
-  // Status
-  status            ScheduledPostStatus @default(PENDING)
-  publishedAt       DateTime?        @map("published_at")
-  platformPostId    String?          @map("platform_post_id") // ID from social platform
-  platformPostUrl   String?          @map("platform_post_url")
-
-  // Error tracking
-  attempts          Int              @default(0)
-  lastAttemptAt     DateTime?        @map("last_attempt_at")
-  errorMessage      String?          @map("error_message")
-
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
-
-  @@index([scheduledFor, status])
-  @@index([creatorId, status])
-  @@map("scheduled_posts")
 }
 
 enum ScheduledPostStatus {
@@ -601,116 +1323,11 @@ enum ScheduledPostStatus {
   CANCELLED
 }
 
-// ============================================
-// VIDEO SUBMISSIONS (Watermarked)
-// ============================================
-
-model VideoSubmission {
-  id                  String    @id @default(uuid())
-  videoId             String    @map("video_id")
-  campaignId          String    @map("campaign_id")
-  creatorId           String    @map("creator_id")
-
-  // Original file
-  originalUrl         String    @map("original_url")
-  originalFilename    String    @map("original_filename")
-  fileSize            Int       @map("file_size") // in bytes
-  duration            Int?      // in seconds
-  resolution          String?   // e.g., "1920x1080"
-
-  // Watermarked version (for preview)
-  watermarkedUrl      String    @map("watermarked_url")
-  watermarkText       String    @default("NALA - PENDING APPROVAL") @map("watermark_text")
-
-  // Thumbnail
-  thumbnailUrl        String?   @map("thumbnail_url")
-
-  // Processing status
-  processingStatus    ProcessingStatus @default(PENDING) @map("processing_status")
-  processingError     String?   @map("processing_error")
-
-  // Submission metadata
-  submissionNotes     String?   @map("submission_notes")
-  version             Int       @default(1) // For revision tracking
-
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-
-  @@index([videoId])
-  @@index([creatorId])
-  @@map("video_submissions")
-}
-
 enum ProcessingStatus {
   PENDING
   PROCESSING
   COMPLETED
   FAILED
-}
-
-// ============================================
-// AI GENERATED BRIEFS
-// ============================================
-
-model AIBrief {
-  id              String    @id @default(uuid())
-  campaignId      String?   @map("campaign_id")
-  founderId       String    @map("founder_id")
-
-  // Input parameters
-  productName     String    @map("product_name")
-  productDescription String @map("product_description")
-  targetAudience  String    @map("target_audience")
-  videoStyle      String?   @map("video_style") // 'tutorial', 'testimonial', 'unboxing', etc.
-  keyFeatures     String[]  @map("key_features")
-  tone            String?   // 'professional', 'casual', 'energetic', etc.
-
-  // AI Generated content
-  generatedScript String?   @map("generated_script")
-  talkingPoints   String[]  @map("talking_points")
-  hookIdeas       String[]  @map("hook_ideas")
-  hashtagSuggestions String[] @map("hashtag_suggestions")
-  callToAction    String?   @map("call_to_action")
-
-  // Metadata
-  model           String    @default("gpt-4") // AI model used
-  tokensUsed      Int?      @map("tokens_used")
-
-  // Status
-  used            Boolean   @default(false) // Whether it was used in a campaign
-
-  createdAt       DateTime  @default(now()) @map("created_at")
-
-  @@index([founderId])
-  @@map("ai_briefs")
-}
-
-// ============================================
-// APPLICATIONS
-// ============================================
-
-model Application {
-  id          String    @id @default(uuid())
-  campaignId  String    @map("campaign_id")
-  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  creatorId   String    @map("creator_id")
-  creator     User      @relation("creator_applications", fields: [creatorId], references: [id], onDelete: Cascade)
-
-  message     String?
-  portfolioLinks String[] @map("portfolio_links")
-  status      ApplicationStatus @default(PENDING)
-
-  // Acceptance details
-  acceptanceInstructions String?   @map("acceptance_instructions") @db.Text
-  acceptanceDeadline     DateTime? @map("acceptance_deadline")
-  acceptedAt             DateTime? @map("accepted_at")
-
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  @@unique([campaignId, creatorId])
-  @@map("applications")
 }
 
 enum ApplicationStatus {
@@ -719,73 +1336,10 @@ enum ApplicationStatus {
   REJECTED
 }
 
-// ============================================
-// DISPUTES
-// ============================================
-
-model Dispute {
-  id          String    @id @default(uuid())
-  campaignId  String    @map("campaign_id")
-  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  
-  videoId     String?   @map("video_id")
-  video       Video?    @relation(fields: [videoId], references: [id], onDelete: SetNull)
-  
-  initiatorId String    @map("initiator_id") // Who started the dispute
-  initiator   User      @relation("dispute_initiator", fields: [initiatorId], references: [id], onDelete: Cascade)
-  
-  respondentId String   @map("respondent_id") // Who is being disputed against
-  respondent   User     @relation("dispute_respondent", fields: [respondentId], references: [id], onDelete: Cascade)
-  
-  category    DisputeCategory
-  description String
-  status      DisputeStatus @default(PENDING)
-  resolution  String?   // Admin notes on resolution
-  resolvedAt  DateTime? @map("resolved_at")
-  
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  messages    DisputeMessage[]
-  evidence    DisputeEvidence[]
-
-  @@map("disputes")
-}
-
-model DisputeMessage {
-  id          String    @id @default(uuid())
-  disputeId   String    @map("dispute_id")
-  dispute     Dispute   @relation(fields: [disputeId], references: [id], onDelete: Cascade)
-  
-  senderId    String    @map("sender_id")
-  sender      User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  
-  content     String
-  isInternal  Boolean   @default(false) @map("is_internal") // If true, only visible to admins
-  
-  createdAt   DateTime  @default(now()) @map("created_at")
-  
-  @@index([disputeId])
-  @@map("dispute_messages")
-}
-
-model DisputeEvidence {
-  id          String    @id @default(uuid())
-  disputeId   String    @map("dispute_id")
-  dispute     Dispute   @relation(fields: [disputeId], references: [id], onDelete: Cascade)
-  
-  uploaderId  String    @map("uploader_id")
-  uploader    User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
-  
-  fileUrl     String    @map("file_url")
-  fileType    String    @map("file_type") // IMAGE, VIDEO, PDF
-  description String?
-  
-  createdAt   DateTime  @default(now()) @map("created_at")
-  
-  @@index([disputeId])
-  @@map("dispute_evidence")
+enum InstructionStatus {
+  OPEN
+  UPDATED
+  CLOSED
 }
 
 enum DisputeCategory {
@@ -803,28 +1357,6 @@ enum DisputeStatus {
   CLOSED
 }
 
-// ============================================
-// NOTIFICATIONS
-// ============================================
-
-model Notification {
-  id          String    @id @default(uuid())
-  userId      String    @map("user_id")
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  type        NotificationType
-  title       String
-  message     String
-  link        String?
-  isRead      Boolean   @default(false) @map("is_read")
-  metadata    Json?
-  
-  createdAt   DateTime  @default(now()) @map("created_at")
-
-  @@index([userId, isRead])
-  @@map("notifications")
-}
-
 enum NotificationType {
   SYSTEM
   CAMPAIGN_INVITE
@@ -837,36 +1369,6 @@ enum NotificationType {
   GOAL_MILESTONE
   FOUNDER_VIDEO_POSTED
   PERFORMANCE_ALERT
-}
-
-// ============================================
-// ADMIN MANAGEMENT
-// ============================================
-
-model AdminUser {
-  id                      String         @id @default(uuid())
-  userId                  String         @unique @map("user_id")
-  user                    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  adminLevel              AdminLevel     @default(JUNIOR) @map("admin_level")
-  permissions             Json           // {creator_verify, dispute_resolve, payment_override, etc}
-  assignedQueue           AdminQueue?    @map("assigned_queue")
-  maxManualOverrideAmount Decimal?       @map("max_manual_override_amount") @db.Decimal(12, 2)
-  
-  active                  Boolean        @default(true)
-  twoFactorEnabled        Boolean        @default(false) @map("two_factor_enabled")
-  twoFactorSecret         String?        @map("two_factor_secret")
-  
-  createdAt               DateTime       @default(now()) @map("created_at")
-  updatedAt               DateTime       @updatedAt @map("updated_at")
-  
-  // Relations
-  auditLogs               AdminAuditLog[]
-  emailBroadcasts         EmailBroadcast[]
-  
-  @@index([adminLevel])
-  @@index([assignedQueue])
-  @@map("admin_users")
 }
 
 enum AdminLevel {
@@ -884,212 +1386,6 @@ enum AdminQueue {
   COMPLIANCE
 }
 
-model AdminAuditLog {
-  id           String    @id @default(uuid())
-  adminId      String    @map("admin_id")
-  admin        AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  
-  actionType   String    @map("action_type") // CREATOR_VERIFY, CREATOR_BAN, etc
-  resourceType String?   @map("resource_type") // CREATOR, FOUNDER, CAMPAIGN, DISPUTE
-  resourceId   String?   @map("resource_id")
-  
-  details      Json?     // {reason, amount, before_state, after_state, etc}
-  ipAddress    String?   @map("ip_address")
-  userAgent    String?   @map("user_agent")
-  
-  createdAt    DateTime  @default(now()) @map("created_at")
-  
-  @@index([adminId])
-  @@index([actionType])
-  @@index([resourceType])
-  @@index([createdAt])
-  @@map("admin_audit_logs")
-}
-
-model AdminDashboardMetric {
-  id           String    @id @default(uuid())
-  metricType   String    @map("metric_type") // gmv, revenue, payouts, etc
-  metricValue  Json      @map("metric_value")
-  dateRange    String    @default("TODAY") @map("date_range") // TODAY, WEEK, MONTH, YEAR
-  
-  calculatedAt DateTime  @default(now()) @map("calculated_at")
-  expiresAt    DateTime? @map("expires_at") // Cache expiry
-  
-  @@unique([metricType, dateRange])
-  @@index([metricType])
-  @@index([expiresAt])
-  @@map("admin_dashboard_metrics")
-}
-
-model EmailBroadcast {
-  id             String    @id @default(uuid())
-  adminId        String    @map("admin_id")
-  admin          AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  
-  recipientType  String    @map("recipient_type") // ALL_CREATORS, ALL_FOUNDERS, CUSTOM_LIST
-  recipientIds   String[]  @map("recipient_ids") // For CUSTOM_LIST
-  
-  subject        String
-  bodyHtml       String    @map("body_html")
-  
-  scheduledFor   DateTime? @map("scheduled_for")
-  status         String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
-  sentCount      Int       @default(0) @map("sent_count")
-  
-  createdAt      DateTime  @default(now()) @map("created_at")
-  sentAt         DateTime? @map("sent_at")
-  
-  @@index([adminId])
-  @@index([status])
-  @@index([scheduledFor])
-  @@map("email_broadcasts")
-}
-
-
-// ============================================
-// TRENDING VIDEO FORMATS
-// ============================================
-
-model VideoFormat {
-  id                  String    @id @default(uuid())
-  name                String    @map("format_name")
-  description         String
-  platforms           Platform[]
-  
-  // Structure & Content
-  optimalLengthMin    Int       @map("optimal_length_min")
-  optimalLengthMax    Int       @map("optimal_length_max")
-  tone                String    // CASUAL, PROFESSIONAL, etc.
-  categories          String[]  // PRODUCT_DEMO, TUTORIAL, etc.
-  structure           Json      // {phase_1, phase_2...}
-  bestPractices       String[]  @map("best_practices")
-  
-  // Stats
-  firstUsedDate       DateTime  @map("first_used_date")
-  totalAdopters       Int       @default(0) @map("total_adopters")
-  adoptionTrend       String    @default("STABLE") @map("adoption_trend") // VIRAL, GROWING, STABLE, DECLINING
-  avgViews            Int       @default(0) @map("avg_views")
-  viewRange           Json?     @map("view_range") // {min, max, median}
-  avgEngagementRate   Decimal?  @map("avg_engagement_rate") @db.Decimal(5, 2)
-  successRate50k      Decimal?  @map("success_rate_50k_views") @db.Decimal(5, 2)
-  estimatedAvgEarnings Decimal? @map("estimated_avg_earnings") @db.Decimal(10, 2)
-  trendMomentum       Decimal?  @map("trend_momentum") @db.Decimal(5, 2)
-  
-  isTrending          Boolean   @default(false) @map("is_trending")
-  
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  savedByCreators     CreatorFormatLibrary[]
-  recommendations     FormatRecommendation[]
-
-  @@map("video_formats")
-}
-
-model CreatorFormatLibrary {
-  id                  String    @id @default(uuid())
-  creatorId           String    @map("creator_id")
-  creator             User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  
-  formatId            String    @map("format_id")
-  format              VideoFormat @relation(fields: [formatId], references: [id], onDelete: Cascade)
-  
-  savedAt             DateTime  @default(now()) @map("saved_at")
-  customNotes         String?   @map("custom_notes")
-  usageCount          Int       @default(0) @map("usage_count")
-  
-  @@unique([creatorId, formatId])
-  @@map("creator_format_library")
-}
-
-model FormatRecommendation {
-  id                  String    @id @default(uuid())
-  creatorId           String    @map("creator_id")
-  creator             User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  
-  formatId            String    @map("format_id")
-  format              VideoFormat @relation(fields: [formatId], references: [id], onDelete: Cascade)
-  
-  compatibilityScore  Decimal   @map("compatibility_score") @db.Decimal(5, 2)
-  reason              String?
-  estEarningsImpact   Decimal?  @map("estimated_earnings_impact") @db.Decimal(10, 2)
-  
-  createdAt           DateTime  @default(now()) @map("created_at")
-  dismissed           Boolean   @default(false)
-
-  @@index([creatorId])
-  @@map("format_recommendations")
-}
-
-// ============================================
-// MESSAGING & CONVERSATIONS (Phase 4)
-// ============================================
-
-model Conversation {
-  id            String                    @id @default(uuid())
-  campaignId    String?                   @map("campaign_id")
-  campaign      Campaign?                 @relation(fields: [campaignId], references: [id])
-  participants  ConversationParticipant[]
-  messages      Message[]
-  lastMessageAt DateTime?                 @map("last_message_at")
-  createdAt     DateTime                  @default(now()) @map("created_at")
-  
-  @@index([campaignId])
-  @@map("conversations")
-}
-
-model ConversationParticipant {
-  id             String       @id @default(uuid())
-  conversationId String       @map("conversation_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  userId         String       @map("user_id")
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lastReadAt     DateTime?    @map("last_read_at")
-  joinedAt       DateTime     @default(now()) @map("joined_at")
-  
-  @@unique([conversationId, userId])
-  @@index([userId])
-  @@map("conversation_participants")
-}
-
-model Message {
-  id             String       @id @default(uuid())
-  conversationId String       @map("conversation_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  senderId       String       @map("sender_id")
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  content        String       @db.Text
-  attachments    Json?
-  readBy         String[]     @default([]) @map("read_by")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  
-  @@index([conversationId, createdAt])
-  @@index([senderId])
-  @@map("messages")
-}
-
-// ============================================
-// ACTIVITY FEEDS (Phase 4)
-// ============================================
-
-model Activity {
-  id          String       @id @default(uuid())
-  userId      String       @map("user_id")
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        ActivityType
-  entityType  String       @map("entity_type")
-  entityId    String       @map("entity_id")
-  title       String
-  description String?
-  metadata    Json?
-  createdAt   DateTime     @default(now()) @map("created_at")
-  
-  @@index([userId, createdAt])
-  @@index([entityType, entityId])
-  @@map("activities")
-}
-
 enum ActivityType {
   CAMPAIGN_CREATED
   VIDEO_SUBMITTED
@@ -1097,31 +1393,6 @@ enum ActivityType {
   PAYMENT_SENT
   APPLICATION_SUBMITTED
   MILESTONE_REACHED
-}
-
-// ============================================
-// ASSET MANAGEMENT (Phase 5)
-// ============================================
-
-model Asset {
-  id           String     @id @default(uuid())
-  userId       String     @map("user_id")
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type         AssetType
-  name         String
-  url          String
-  thumbnailUrl String?    @map("thumbnail_url")
-  fileSize     Int        @map("file_size")
-  mimeType     String     @map("mime_type")
-  metadata     Json?
-  tags         String[]
-  campaignId   String?    @map("campaign_id")
-  campaign     Campaign?  @relation(fields: [campaignId], references: [id])
-  createdAt    DateTime   @default(now()) @map("created_at")
-  
-  @@index([userId, type])
-  @@index([campaignId])
-  @@map("assets")
 }
 
 enum AssetType {
@@ -1132,63 +1403,10 @@ enum AssetType {
   OTHER
 }
 
-model VideoVersion {
-  id          String         @id @default(uuid())
-  videoId     String         @map("video_id")
-  video       Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  version     Int
-  submittedBy String         @map("submitted_by")
-  submitter   User           @relation("SubmittedVersions", fields: [submittedBy], references: [id])
-  videoUrl    String         @map("video_url")
-  thumbnailUrl String?       @map("thumbnail_url")
-  notes       String?        @db.Text
-  status      VersionStatus
-  reviewedBy  String?        @map("reviewed_by")
-  reviewer    User?          @relation("ReviewedVersions", fields: [reviewedBy], references: [id])
-  reviewNotes String?        @map("review_notes") @db.Text
-  submittedAt DateTime       @default(now()) @map("submitted_at")
-  reviewedAt  DateTime?      @map("reviewed_at")
-  
-  @@index([videoId, version])
-  @@index([status])
-  @@map("video_versions")
-}
-
 enum VersionStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-// ============================================
-// A/B TESTING & CONVERSION TRACKING
-// ============================================
-
-model UGCVariant {
-  id          String   @id @default(uuid())
-  campaignId  String   @map("campaign_id")
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  creatorId   String   @map("creator_id")
-  creator     User     @relation(fields: [creatorId], references: [id])
-  
-  label       String   // e.g. "Hook 1", "Testimonial"
-  videoUrl    String?  @map("video_url")
-  status      VariantStatus @default(DRAFT)
-  
-  // Tracking
-  utmSource   String?  @map("utm_source")
-  utmMedium   String?  @map("utm_medium")
-  utmCampaign String?  @map("utm_campaign")
-  trackingUrl String?  @map("tracking_url") // The unique link for this variant
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  metrics     VariantMetric[]
-
-  @@map("ugc_variants")
-  @@index([campaignId])
-  @@index([creatorId])
 }
 
 enum VariantStatus {
@@ -1199,143 +1417,11 @@ enum VariantStatus {
   COMPLETED
 }
 
-model VariantMetric {
-  id          String     @id @default(uuid())
-  variantId   String     @map("variant_id")
-  variant     UGCVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  
-  date        DateTime   @default(now()) // Daily snapshot
-  
-  views       Int        @default(0)
-  clicks      Int        @default(0)
-  conversions Int        @default(0)
-  spend       Decimal    @default(0) @db.Decimal(10, 2)
-  revenue     Decimal    @default(0) @db.Decimal(10, 2)
-  
-  ctr         Decimal    @default(0) @db.Decimal(5, 2) // Calculated
-  conversionRate Decimal @default(0) @map("conversion_rate") @db.Decimal(5, 2) // Calculated
-  roi         Decimal    @default(0) @db.Decimal(10, 2) // Calculated
-  
-  performanceScore Decimal @default(0) @map("performance_score") @db.Decimal(5, 2)
-
-  @@map("variant_metrics")
-  @@index([variantId, date])
-}
-
-// ============================================
-// ADVANCED CAMPAIGN SYSTEM - FOUNDER VIDEOS
-// ============================================
-
-model FounderVideo {
-  id                String          @id @default(uuid())
-  campaignId        String          @map("campaign_id")
-  campaign          Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  
-  founderId         String          @map("founder_id")
-  founder           User            @relation("founder_videos", fields: [founderId], references: [id])
-  
-  // Content
-  videoUrl          String          @map("video_url")
-  thumbnailUrl      String?         @map("thumbnail_url")
-  caption           String?
-  description       String?
-  platform          Platform
-  
-  // Status
-  status            FounderVideoStatus @default(DRAFT)
-  isDraft           Boolean         @default(true) @map("is_draft")
-  
-  // Posting
-  finalPostUrl      String?         @map("final_post_url")
-  platformVideoId   String?         @map("platform_video_id")
-  postedAt          DateTime?       @map("posted_at")
-  
-  // Tracking
-  currentViewCount  Int             @default(0) @map("current_view_count")
-  likes             Int             @default(0)
-  comments          Int             @default(0)
-  shares            Int             @default(0)
-  completionRate    Decimal?        @map("completion_rate") @db.Decimal(5, 2)
-  engagementRate    Decimal?        @map("engagement_rate") @db.Decimal(5, 2)
-  watchTime         Int?            @map("watch_time")
-  
-  // Cost tracking
-  costPerClick      Decimal?        @map("cost_per_click") @db.Decimal(10, 2)
-  costPerAcquisition Decimal?       @map("cost_per_acquisition") @db.Decimal(10, 2)
-  conversionRate    Decimal?        @map("conversion_rate") @db.Decimal(5, 2)
-  
-  // A/B Testing (Placeholder for Phase 1)
-  abTestId          String?         @map("ab_test_id")
-  variantLabel      String?         @map("variant_label")
-  
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
-  
-  viewSnapshots     FounderVideoSnapshot[]
-  
-  @@index([campaignId, status])
-  @@map("founder_videos")
-}
-
 enum FounderVideoStatus {
   DRAFT
   READY_TO_POST
   POSTED
   ARCHIVED
-}
-
-model FounderVideoSnapshot {
-  id          String        @id @default(uuid())
-  videoId     String        @map("video_id")
-  video       FounderVideo  @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  
-  viewCount   Int           @map("view_count")
-  likes       Int           @default(0)
-  comments    Int           @default(0)
-  shares      Int           @default(0)
-  snapshotAt  DateTime      @default(now()) @map("snapshot_at")
-  
-  @@index([videoId, snapshotAt])
-  @@map("founder_video_snapshots")
-}
-
-// ============================================
-// A/B TESTING SYSTEM
-// ============================================
-
-model ABTest {
-  id                String        @id @default(uuid())
-  campaignId        String        @map("campaign_id")
-  campaign          Campaign      @relation(fields: [campaignId], references: [id])
-  
-  name              String
-  description       String?
-  
-  // Test Configuration
-  testGoal          TestGoal      // BEST_HOOK, BEST_CREATOR, BEST_FORMAT, BEST_CTA
-  successMetric     SuccessMetric // VIEW_THROUGH, CONVERSION_RATE, ENGAGEMENT, COST_PER_VIEW
-  
-  // Status
-  status            ABTestStatus  @default(DRAFT) // DRAFT, ACTIVE, COMPLETED, CANCELLED
-  
-  // Dates
-  startDate         DateTime?
-  endDate           DateTime?
-  completedAt       DateTime?
-  
-  // Results
-  winnerVariantId   String?
-  confidence        Decimal?      // Statistical confidence %
-  results           Json?         // Detailed results
-  
-  // Relations
-  variants          ABTestVariant[]
-  
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
-
-  @@map("ab_tests")
-  @@index([campaignId])
 }
 
 enum TestGoal {
@@ -1359,48 +1445,8 @@ enum ABTestStatus {
   ACTIVE
   COMPLETED
   CANCELLED
-}
-
-model ABTestVariant {
-  id              String    @id @default(uuid())
-  testId          String    @map("test_id")
-  test            ABTest    @relation(fields: [testId], references: [id], onDelete: Cascade)
-  
-  variantName     String    // "Variant A", "Variant B", etc.
-  label           String    // User-friendly label
-  description     String?
-  
-  // Variant Configuration
-  variantType     VariantType // CREATOR, FORMAT, HOOK, SCRIPT, FOUNDER_VIDEO
-  
-  // Assignments
-  creatorId       String?   @map("creator_id")
-  creator         User?     @relation(fields: [creatorId], references: [id])
-  
-  formatId        String?   @map("format_id")
-  founderVideoId  String?   @map("founder_video_id")
-  
-  // Instructions for creator
-  instructions    String?
-  scriptTemplate  String?
-  hookTemplate    String?
-  
-  // Tracking
-  videoId         String?   @unique @map("video_id")
-  video           Video?    @relation(fields: [videoId], references: [id])
-  
-  // Metrics (calculated)
-  views           Int       @default(0)
-  conversions     Int       @default(0)
-  engagement      Int       @default(0)
-  costPerView     Decimal?  @map("cost_per_view") @db.Decimal(10, 2)
-  performanceScore Decimal? @default(0) @map("performance_score") @db.Decimal(5, 2)
-  
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  @@map("ab_test_variants")
-  @@index([testId])
+  PENDING_CONTENT
+  IN_REVIEW
 }
 
 enum VariantType {
@@ -1412,3 +1458,60 @@ enum VariantType {
   CUSTOM
 }
 
+enum VariantApprovalStatus {
+  PENDING_UPLOAD
+  PENDING_REVIEW
+  REVISION_REQUESTED
+  APPROVED
+  DEPLOYED
+}
+
+enum AssignmentStatus {
+  INVITED
+  APPLIED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum RedemptionEventType {
+  SIGNUP
+  PAID
+  DOWNLOAD
+}
+
+enum ViewPaymentStatus {
+  PENDING
+  PAID
+  DISPUTED
+}
+
+enum PayoutType {
+  BASE_FEE
+  VIEW_PAY
+  SUBSCRIPTION_BONUS
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REVERSED
+}
+
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  details   Json?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@map("audit_logs")
+}

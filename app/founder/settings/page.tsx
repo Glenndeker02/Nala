@@ -187,7 +187,7 @@ export default function FounderSettingsPage() {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-gray-600">
-                                Your Nala Score reflects your reputation based on payment history, communication, and campaign success rates.
+                                Your Tupstory Score reflects your reputation based on payment history, communication, and campaign success rates.
                                 Higher scores unlock premium creator tiers and lower platform fees.
                             </p>
                         </CardContent>

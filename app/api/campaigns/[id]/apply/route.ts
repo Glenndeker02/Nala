@@ -45,7 +45,8 @@ export const POST = requireRole(['CREATOR'], async (request: NextRequest, user, 
             return ApiResponse.error('Campaign not found', 404);
         }
 
-        if (campaign.status !== 'ACTIVE' && campaign.status !== 'PENDING_CREATOR') {
+        // Phase 2: Support ACTIVE_ACCEPTING_APPLICATIONS status
+        if (campaign.status !== 'ACTIVE' && campaign.status !== 'ACTIVE_ACCEPTING_APPLICATIONS' && campaign.status !== 'PENDING_CREATOR') {
             console.error('[Apply] Campaign status not accepting applications:', campaign.status);
             return ApiResponse.error('Campaign is not accepting applications', 400);
         }

@@ -23,12 +23,33 @@ const createCampaignSchema = z.object({
     platforms: z.array(z.enum(['TIKTOK', 'INSTAGRAM', 'FACEBOOK'])).optional(),
     videoLength: z.string().optional(),
     talkingPoints: z.array(z.string()).optional(),
-    dos: z.array(z.string()).optional(),
-    donts: z.array(z.string()).optional(),
+    tone: z.string().optional(),
+    productCategory: z.string().optional(),
+    campaignDuration: z.number().int().optional(),
+    mustHaves: z.array(z.string()).optional(),
+    dontWants: z.array(z.string()).optional(),
     hashtags: z.string().optional(),
     guaranteedSpend: z.boolean().optional(),
     targetViews: z.number().int().optional(),
+    // Phase 1: Creator eligibility criteria
+    creatorCriteria: z.object({
+      niche: z.array(z.string()).optional(),
+      minFollowers: z.number().int().optional(),
+      maxFollowers: z.number().int().optional(),
+      platforms: z.array(z.enum(['TIKTOK', 'INSTAGRAM', 'FACEBOOK'])).optional(),
+      languages: z.array(z.string()).optional(),
+      minRating: z.number().min(0).max(5).optional(),
+      location: z.string().optional(),
+      minExperience: z.number().int().optional(),
+      certifiedOnly: z.boolean().optional(),
+    }).optional(),
   }).optional(),
+  // Attribution settings
+  enableCreatorCodes: z.boolean().optional(),
+  autoGenerateCodes: z.boolean().optional(),
+  conversionCommission: z.number().optional().nullable(),
+  codeDiscountType: z.enum(['PERCENTAGE', 'FIXED_AMOUNT', 'FREE_TRIAL']).optional().nullable(),
+  codeDiscountValue: z.number().optional().nullable(),
 });
 
 /**
@@ -41,6 +62,7 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
     // Validate input
     const validation = createCampaignSchema.safeParse(body);
     if (!validation.success) {
+      console.error('[CAMPAIGN CREATE] Validation failed:', JSON.stringify(validation.error.errors, null, 2));
       return ApiResponse.error('Validation failed', 400, validation.error.errors);
     }
 
@@ -55,12 +77,8 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
       briefData,
     } = validation.data;
 
-    // Extract budget options from briefData or root if we decide to move them
-    // For now, let's assume they might be passed in the body but not in briefData, 
-    // or we need to extract them from the validation data if we added them to the schema.
-    // Wait, I added them to briefData in the schema above? No, I added them to the root schema.
-
-    const { guaranteedSpend, targetViews } = validation.data as any;
+    // Extract creator criteria from briefData
+    const creatorCriteria = briefData?.creatorCriteria;
 
     // Calculate budget breakdown
     const baseFeebudget = baseFeePerVideo * videosRequested;
@@ -89,24 +107,60 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
       return ApiResponse.error('Founder not found', 404);
     }
 
-    // Create campaign in database (draft status)
-    // Create campaign in database (draft status)
+    // Build eligibility rules from creator criteria
+    const eligibilityRules = creatorCriteria ? {
+      niche: creatorCriteria.niche || [],
+      minFollowers: creatorCriteria.minFollowers || 0,
+      maxFollowers: creatorCriteria.maxFollowers || null,
+      platforms: creatorCriteria.platforms || briefData?.platforms || [],
+      languages: creatorCriteria.languages || ['English'],
+      minRating: creatorCriteria.minRating || 0,
+      location: creatorCriteria.location || null,
+      minExperience: creatorCriteria.minExperience || 0,
+      certifiedOnly: creatorCriteria.certifiedOnly || false,
+    } : undefined;
+
+    // Debug logging
+    console.log('Creating campaign with data:', {
+      founderId: user.userId,
+      name,
+      videosRequested,
+      totalBudget,
+      baseFeePerVideo,
+      baseFeebudget,
+      performanceBudget,
+    });
+
+    // Create campaign in database
     const campaign = await db.campaign.create({
       data: {
-        founderId: user.userId,
+        founder: {
+          connect: { id: user.userId }
+        },
         name,
         description,
-        status: 'ACTIVE', // TODO: Change back to DRAFT when payment flow is ready
+        status: 'ACTIVE_ACCEPTING_APPLICATIONS', // Phase 1: Set to accepting applications
         videosRequested,
         totalBudget,
-        baseFeeeBudget: baseFeebudget,
+        baseFeePerVideo,
+        baseFeeBudget: baseFeebudget,
         performanceBudget,
         escrowBalance: 0,
         postingFrequency,
         ...(startDate && { startDate: new Date(startDate) }),
         briefData: briefData || {},
-        guaranteedSpend: guaranteedSpend || false,
-        targetViews: targetViews || null,
+        guaranteedSpend: briefData?.guaranteedSpend || false,
+        targetViews: briefData?.targetViews || 0,
+        // Phase 1: Store eligibility rules
+        eligibilityRules,
+        notificationsSent: false,
+        acceptedCreatorsCount: 0,
+        // Attribution settings
+        enableCreatorCodes: validation.data.enableCreatorCodes || false,
+        autoGenerateCodes: validation.data.autoGenerateCodes || false,
+        conversionCommission: validation.data.conversionCommission,
+        codeDiscountType: validation.data.codeDiscountType,
+        codeDiscountValue: validation.data.codeDiscountValue,
       },
     });
 
@@ -141,23 +195,44 @@ export const POST = requireRole(['FOUNDER'], async (request: NextRequest, user) 
       // Campaign is still created, just without payment processing
     }
 
+    // Phase 1: Trigger notification to eligible creators (async, don't wait)
+    if (eligibilityRules) {
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/campaigns/${campaign.id}/notify-eligible-creators`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': request.headers.get('Authorization') || '',
+        },
+      }).catch(err => console.error('Failed to trigger creator notifications:', err));
+    }
+
     return ApiResponse.created({
       campaign: {
         id: campaign.id,
         name: campaign.name,
         status: campaign.status,
         totalBudget: campaign.totalBudget.toNumber(),
-        // baseFeebudget: campaign.baseFeeBudget.toNumber(), // TODO: Add to database
-        // performanceBudget: campaign.performanceBudget.toNumber(), // TODO: Add to database
         videosRequested: campaign.videosRequested,
+        eligibilityRules: campaign.eligibilityRules,
       },
       ...(paymentData && { payment: paymentData }),
       message: paymentData
         ? 'Campaign created successfully. Complete payment to activate.'
-        : 'Campaign created successfully. Payment processing is not configured.',
+        : 'Campaign created successfully. Notifying eligible creators.',
     });
   } catch (error) {
-    console.error('Campaign creation error:', error);
-    return ApiResponse.error('Failed to create campaign', 500);
+    console.error('========================================');
+    console.error('[CAMPAIGN CREATE] FATAL ERROR');
+    console.error('========================================');
+    console.error('[CAMPAIGN CREATE] Error object:', error);
+    console.error('[CAMPAIGN CREATE] Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('[CAMPAIGN CREATE] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[CAMPAIGN CREATE] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    if (error && typeof error === 'object') {
+      console.error('[CAMPAIGN CREATE] Error keys:', Object.keys(error));
+      console.error('[CAMPAIGN CREATE] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    }
+    console.error('========================================');
+    return ApiResponse.error(`Failed to create campaign: ${error instanceof Error ? error.message : String(error)}`, 500);
   }
 });

@@ -67,7 +67,7 @@ export async function GET(
     }
 }
 
-// POST - Create new A/B test
+// POST - Create new A/B test with guided workflow
 export async function POST(
     req: NextRequest,
     { params }: { params: { id: string } }
@@ -78,12 +78,49 @@ export async function POST(
         const body = await req.json();
 
         // Validate request body
-        const validation = createABTestSchema.safeParse(body);
+        const createSchema = z.object({
+            name: z.string().min(1, 'Test name is required'),
+            hypothesis: z.string().optional(),
+            testGoal: z.enum(['BEST_HOOK', 'BEST_CREATOR', 'BEST_FORMAT', 'BEST_CTA', 'BEST_OVERALL']),
+            successMetric: z.enum(['VIEW_THROUGH_RATE', 'CONVERSION_RATE', 'ENGAGEMENT_RATE', 'COST_PER_VIEW', 'TOTAL_VIEWS']),
+            testVariables: z.object({
+                variantA: z.object({
+                    title: z.string(),
+                    description: z.string(),
+                    talkingPoints: z.array(z.string()),
+                    tone: z.string(),
+                    visualStyle: z.string().optional(),
+                    requiredLength: z.string().optional(),
+                }),
+                variantB: z.object({
+                    title: z.string(),
+                    description: z.string(),
+                    talkingPoints: z.array(z.string()),
+                    tone: z.string(),
+                    visualStyle: z.string().optional(),
+                    requiredLength: z.string().optional(),
+                }),
+            }),
+            assignedCreatorIds: z.array(z.string()).min(1, 'At least one creator must be assigned'),
+            trackingMetrics: z.array(z.string()).optional(),
+            testDurationDays: z.number().min(1).max(30).default(7),
+        });
+
+        const validation = createSchema.safeParse(body);
         if (!validation.success) {
             return ApiResponse.error('Validation failed', 400, validation.error.errors);
         }
 
-        const { name, description, videoIds, testDurationDays, metrics } = validation.data;
+        const {
+            name,
+            hypothesis,
+            testGoal,
+            successMetric,
+            testVariables,
+            assignedCreatorIds,
+            trackingMetrics,
+            testDurationDays
+        } = validation.data;
 
         // Verify campaign ownership
         const campaign = await db.campaign.findUnique({
@@ -99,16 +136,16 @@ export async function POST(
             return ApiResponse.error('Unauthorized', 403);
         }
 
-        // Verify all videos belong to this campaign
-        const videos = await db.video.findMany({
+        // Verify all assigned creators exist
+        const creators = await db.user.findMany({
             where: {
-                id: { in: videoIds },
-                campaignId,
+                id: { in: assignedCreatorIds },
+                role: 'CREATOR',
             },
         });
 
-        if (videos.length !== videoIds.length) {
-            return ApiResponse.error('One or more videos not found or do not belong to this campaign', 400);
+        if (creators.length !== assignedCreatorIds.length) {
+            return ApiResponse.error('One or more creators not found', 400);
         }
 
         // Create A/B test with variants
@@ -119,36 +156,53 @@ export async function POST(
             data: {
                 campaignId,
                 name,
-                description,
-                status: 'ACTIVE',
+                hypothesis,
+                testGoal,
+                successMetric,
+                testVariables,
+                assignedCreatorIds,
+                trackingMetrics,
+                status: 'PENDING_CONTENT',
                 startDate: new Date(),
                 endDate,
                 variants: {
-                    create: videoIds.map((videoId, index) => ({
-                        videoId,
-                        variantName: `Variant ${String.fromCharCode(65 + index)}`, // A, B, C, etc.
-                        status: 'ACTIVE',
-                    })),
+                    create: [
+                        {
+                            variantName: 'Variant A',
+                            label: testVariables.variantA.title,
+                            description: testVariables.variantA.description,
+                            variantType: 'CUSTOM',
+                            variantInstructions: testVariables.variantA,
+                            approvalStatus: 'PENDING_UPLOAD',
+                        },
+                        {
+                            variantName: 'Variant B',
+                            label: testVariables.variantB.title,
+                            description: testVariables.variantB.description,
+                            variantType: 'CUSTOM',
+                            variantInstructions: testVariables.variantB,
+                            approvalStatus: 'PENDING_UPLOAD',
+                        },
+                    ],
                 },
             },
             include: {
-                variants: {
-                    include: {
-                        video: {
-                            select: {
-                                id: true,
-                                thumbnailUrl: true,
-                                finalPostUrl: true,
-                                currentViewCount: true,
-                                likes: true,
-                                comments: true,
-                                shares: true,
-                            },
-                        },
-                    },
-                },
+                variants: true,
             },
         });
+
+        // Send notifications to assigned creators
+        for (const creatorId of assignedCreatorIds) {
+            await db.notification.create({
+                data: {
+                    userId: creatorId,
+                    type: 'AB_TEST_ASSIGNED',
+                    title: 'New A/B Test Assignment',
+                    message: `You've been assigned to A/B test: ${name}`,
+                    link: `/creator/ab-tests/${abTest.id}`,
+                },
+            });
+        }
 
         return ApiResponse.success(abTest, 201);
     } catch (error: any) {

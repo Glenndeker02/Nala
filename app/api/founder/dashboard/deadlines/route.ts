@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
                 task: `Campaign deadline: ${campaign.name}`,
                 date: dateStr,
                 priority,
-                link: `/founder/campaigns/${campaign.id}`
+                actionUrl: `/founder/campaigns/${campaign.id}`
             });
         });
 
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
                 task: `Review video for "${video.campaign.name}"`,
                 date: video.submittedAt ? formatDistanceToNow(video.submittedAt, { addSuffix: true }) : 'Recently',
                 priority: 'high' as const,
-                link: `/founder/campaigns/${video.campaignId}`
+                actionUrl: `/founder/campaigns/${video.campaignId}`
             });
         });
 
@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
                 task: `Revision due: ${revision.video.campaign.name}`,
                 date: formatDistanceToNow(revision.deadline, { addSuffix: true }),
                 priority,
-                link: `/founder/campaigns/${revision.video.campaignId}`
+                actionUrl: `/founder/campaigns/${revision.video.campaignId}`
             });
         });
 

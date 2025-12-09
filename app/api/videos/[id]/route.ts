@@ -32,7 +32,17 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user, {
         }
 
         return ApiResponse.success({
-            video,
+            video: {
+                ...video,
+                campaign: {
+                    ...video.campaign,
+                    briefData: video.campaign.briefData || {},
+                    baseFeePerVideo: video.campaign.baseFeePerVideo,
+                    performanceRate: video.campaign.performanceRate,
+                    deadline: video.campaign.deadline,
+                    platform: video.campaign.platform
+                }
+            }
         });
     } catch (error) {
         console.error('Error fetching video:', error);

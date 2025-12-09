@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Platform } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { subDays, format, startOfDay } from 'date-fns';
 
@@ -33,13 +33,21 @@ export async function GET(req: NextRequest) {
 
         // Get query parameters
         const { searchParams } = new URL(req.url);
-        const timeframe = searchParams.get('timeframe') || 'weekly';
+        const timeframe = searchParams.get('period') || 'week'; // week, month, year
+        const platformParam = searchParams.get('platform') || 'all'; // all, tiktok, instagram, facebook
+
+        // Parse platform filter
+        let platformFilter: Platform | undefined;
+        if (platformParam !== 'all') {
+            platformFilter = platformParam.toUpperCase() as Platform;
+        }
 
         // Calculate overall stats
         const videos = await prisma.video.findMany({
             where: {
                 creatorId: userId,
-                status: { in: ['POSTED', 'LOCKED'] }
+                status: { in: ['POSTED', 'LOCKED'] },
+                ...(platformFilter && { platform: platformFilter })
             },
             include: {
                 viewSnapshots: {
@@ -56,59 +64,96 @@ export async function GET(req: NextRequest) {
             if (video.viewSnapshots.length > 0) {
                 const views = video.viewSnapshots[0].viewCount;
                 totalViews += views;
-                // Mock engagement calculation
-                totalEngagement += views * 0.05; // 5% engagement rate
+                // Mock engagement calculation (5% engagement rate)
+                totalEngagement += views * 0.05;
             }
         });
 
         const videosCreated = videos.length;
-        const engagementRate = videosCreated > 0
-            ? Number(((totalEngagement / totalViews) * 100).toFixed(1)) || 0
+        const engagementRate = totalViews > 0
+            ? Number(((totalEngagement / totalViews) * 100).toFixed(1))
+            : 0;
+
+        // Calculate completion rate
+        const totalAssignedVideos = await prisma.video.count({
+            where: {
+                creatorId: userId,
+                ...(platformFilter && { platform: platformFilter })
+            }
+        });
+
+        const completionRate = totalAssignedVideos > 0
+            ? Math.round((videosCreated / totalAssignedVideos) * 100)
             : 0;
 
         // Get historical data for charts
-        const daysToFetch = timeframe === 'weekly' ? 7 : 30;
+        const daysToFetch = timeframe === 'week' ? 7 : timeframe === 'month' ? 30 : 365;
         const startDate = subDays(new Date(), daysToFetch);
 
         const allSnapshots = await prisma.viewSnapshot.findMany({
             where: {
-                video: { creatorId: userId },
+                video: {
+                    creatorId: userId,
+                    ...(platformFilter && { platform: platformFilter })
+                },
                 snapshotAt: { gte: startDate }
             },
             orderBy: { snapshotAt: 'asc' }
         });
 
         // Aggregate by day
-        const dataByDay = new Map<string, { views: number; rate: number }>();
+        const dataByDay = new Map<string, { views: number; engagement: number; earnings: number }>();
 
         for (let i = 0; i < daysToFetch; i++) {
             const date = subDays(new Date(), daysToFetch - i - 1);
             const dayKey = format(startOfDay(date), 'yyyy-MM-dd');
-            dataByDay.set(dayKey, { views: 0, rate: 0 });
+            dataByDay.set(dayKey, { views: 0, engagement: 0, earnings: 0 });
         }
 
         allSnapshots.forEach(snapshot => {
             const dayKey = format(startOfDay(snapshot.snapshotAt), 'yyyy-MM-dd');
-            const existing = dataByDay.get(dayKey) || { views: 0, rate: 0 };
+            const existing = dataByDay.get(dayKey) || { views: 0, engagement: 0, earnings: 0 };
             existing.views += snapshot.viewCount;
-            existing.rate = 4.5; // Mock engagement rate
+            existing.engagement = 4.5; // Mock engagement rate
             dataByDay.set(dayKey, existing);
         });
 
+        // Get earnings data for the period
+        const earningsData = await prisma.payment.findMany({
+            where: {
+                recipientId: userId,
+                type: { in: ['BASE_FEE', 'PERFORMANCE_BONUS'] },
+                status: 'COMPLETED',
+                createdAt: { gte: startDate }
+            },
+            select: {
+                amount: true,
+                createdAt: true
+            }
+        });
+
+        // Add earnings to chart data
+        earningsData.forEach(payment => {
+            const dayKey = format(startOfDay(payment.createdAt), 'yyyy-MM-dd');
+            const existing = dataByDay.get(dayKey);
+            if (existing) {
+                existing.earnings += Number(payment.amount);
+            }
+        });
+
         // Format for charts
-        const viewsHistory = Array.from(dataByDay.entries())
+        const chartData = Array.from(dataByDay.entries())
             .sort((a, b) => a[0].localeCompare(b[0]))
             .map(([dateStr, data]) => ({
                 date: format(new Date(dateStr), 'MMM d'),
-                views: data.views
+                views: data.views,
+                engagement: data.engagement,
+                earnings: data.earnings
             }));
 
-        const engagementHistory = Array.from(dataByDay.entries())
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([dateStr, data]) => ({
-                date: format(new Date(dateStr), 'MMM d'),
-                rate: data.rate
-            }));
+        // Legacy format for backward compatibility
+        const viewsHistory = chartData.map(d => ({ date: d.date, views: d.views }));
+        const engagementHistory = chartData.map(d => ({ date: d.date, rate: d.engagement }));
 
         return NextResponse.json({
             success: true,
@@ -116,8 +161,11 @@ export async function GET(req: NextRequest) {
                 views: totalViews,
                 engagementRate,
                 videosCreated,
+                completionRate,
                 viewsHistory,
-                engagementHistory
+                engagementHistory,
+                chartData,
+                platform: platformParam
             }
         });
 

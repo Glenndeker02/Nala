@@ -6,11 +6,11 @@ export default function Footer() {
             <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                     <div className="col-span-2 md:col-span-1">
-                        <Link href="/" className="text-2xl font-bold text-primary-DEFAULT tracking-tight">
-                            Nala
+                        <Link href="/" className="flex items-center gap-2 mb-4">
+                            <img src="/logo.svg" alt="Tupstory Logo" className="h-10 w-auto" />
                         </Link>
                         <p className="mt-4 text-sm text-gray-500">
-                            The modern platform for UGC. Connect, collaborate, and grow with the best creators in the world.
+                            Organic Growth for Startups. Connect, collaborate, and grow with the best creators in the world.
                         </p>
                     </div>
 
@@ -42,7 +42,7 @@ export default function Footer() {
                     </div>
                 </div>
                 <div className="mt-8 border-t border-gray-200 pt-8 md:flex md:items-center md:justify-between">
-                    <p className="text-base text-gray-400">&copy; 2024 Nala Platform. All rights reserved.</p>
+                    <p className="text-base text-gray-400">&copy; 2024 Tupstory. All rights reserved.</p>
                 </div>
             </div>
         </footer>

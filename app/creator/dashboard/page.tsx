@@ -8,8 +8,9 @@ import ActiveAssignmentsCard from "@/app/creator/components/dashboard/ActiveAssi
 import CreatorContentLibraryCard from "@/app/creator/components/dashboard/CreatorContentLibraryCard";
 import TasksDeadlinesCard from "@/app/creator/components/dashboard/TasksDeadlinesCard";
 import CreatorRankingCard from "@/app/creator/components/dashboard/CreatorRankingCard";
-import MessagesNotificationsCard from "@/app/creator/components/dashboard/MessagesNotificationsCard";
+import CampaignRequirementsCard from "@/app/creator/components/dashboard/CampaignRequirementsCard";
 import SuggestedOpportunitiesCard from "@/app/creator/components/dashboard/SuggestedOpportunitiesCard";
+import CertificationBanner from "@/components/creator/CertificationBanner";
 import { Button } from "@/components/ui/Button";
 import { Plus } from "lucide-react";
 
@@ -53,26 +54,27 @@ export default function CreatorDashboard() {
           </div>
         </div>
 
+        {/* Certification Banner */}
+        <CertificationBanner />
+
         {/* Top Stats Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <EarningsOverviewCard />
+          </div>
+          <div className="lg:col-span-1">
+            <TasksDeadlinesCard />
           </div>
           <div className="lg:col-span-1">
             <CreatorRankingCard />
           </div>
         </div>
 
-        {/* Second Row - Opportunities and Notifications/Tasks */}
+        {/* Second Row - Opportunities and Campaign Requirements */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <SuggestedOpportunitiesCard />
-          <div className="flex flex-col gap-6 h-full">
-            <div className="flex-1">
-              <MessagesNotificationsCard />
-            </div>
-            <div className="flex-1">
-              <TasksDeadlinesCard />
-            </div>
+          <div className="h-full">
+            <CampaignRequirementsCard />
           </div>
         </div>
 

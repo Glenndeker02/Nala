@@ -15,12 +15,12 @@ export const GET = requireRole(['CREATOR', 'FOUNDER'], async (request: NextReque
             whereClause = { founderId: user.userId };
             if (status) whereClause.status = status;
         } else if (role === 'CREATOR') {
-            // Creators see ACTIVE campaigns (briefs) they can apply to
-            // Or campaigns they are assigned to (handled by a separate endpoint usually, but can be here)
-            // For "Briefs", we want unassigned or open campaigns.
-            // For now, let's return all ACTIVE campaigns.
+            // Creators see campaigns they can apply to
+            // Include both ACTIVE and ACTIVE_ACCEPTING_APPLICATIONS statuses
             whereClause = {
-                status: 'ACTIVE',
+                status: {
+                    in: ['ACTIVE', 'ACTIVE_ACCEPTING_APPLICATIONS']
+                },
                 // In a real app, we'd filter out ones they are already assigned to
             };
         }
@@ -44,7 +44,7 @@ export const GET = requireRole(['CREATOR', 'FOUNDER'], async (request: NextReque
         const formattedCampaigns = campaigns.map(campaign => ({
             ...campaign,
             totalBudget: campaign.totalBudget.toNumber(),
-            baseFeeBudget: campaign.baseFeeeBudget.toNumber(),
+            baseFeeBudget: campaign.baseFeeBudget.toNumber(),
             performanceBudget: campaign.performanceBudget.toNumber(),
             escrowBalance: campaign.escrowBalance.toNumber(),
         }));

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import InstructionsCard from "../components/InstructionsCard";
 
 type Task = {
     id: string;
@@ -52,34 +53,39 @@ export default function VideoUploadPage() {
     const fetchTaskDetails = async () => {
         const token = localStorage.getItem("token");
         try {
-            const mockTask: Task = {
-                id: taskId,
-                campaignId: "1",
-                campaignName: "Acme Product Launch",
-                founderName: "Mike Johnson",
-                status: "ASSIGNED",
-                deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-                baseFee: 50,
-                briefData: {
-                    description: "Showcase our new SaaS product with professional yet casual tone.",
-                    talkingPoints: [
-                        "Showcase the intuitive dashboard",
-                        "Demonstrate automation features",
-                        "Highlight analytics capabilities"
-                    ],
-                    mustHaves: [
-                        "Clear product demo",
-                        "Mention 14-day free trial",
-                        "Include brand name 'Acme' twice"
-                    ],
-                    videoLength: "30-60 seconds",
-                    tone: "Professional yet casual",
-                    platforms: ["TIKTOK", "INSTAGRAM"]
-                },
-                revisionFeedback: undefined
-            };
+            const response = await fetch(`/api/videos/${taskId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-            setTask(mockTask);
+            if (response.ok) {
+                const result = await response.json();
+                const video = result.data.video;
+                const campaign = video.campaign;
+                const brief = campaign.briefData || {};
+
+                const mappedTask: Task = {
+                    id: video.id,
+                    campaignId: campaign.id,
+                    campaignName: campaign.name,
+                    founderName: campaign.founder.companyName || campaign.founder.fullName,
+                    status: video.status,
+                    deadline: video.revisionDeadline || video.deadline || campaign.deadline,
+                    baseFee: Number(video.baseFeeAmount || campaign.baseFeePerVideo || 0),
+                    briefData: {
+                        description: brief.description || "No description provided.",
+                        talkingPoints: brief.talkingPoints || [],
+                        mustHaves: brief.mustHaves || [],
+                        videoLength: brief.videoLength || "Not specified",
+                        tone: brief.tone || "Not specified",
+                        platforms: brief.platforms || [campaign.platform || "TIKTOK"]
+                    },
+                    revisionFeedback: video.founderComments
+                };
+
+                setTask(mappedTask);
+            } else {
+                console.error("Failed to fetch task details");
+            }
         } catch (error) {
             console.error("Error fetching task:", error);
         } finally {
@@ -295,8 +301,8 @@ export default function VideoUploadPage() {
                                             onDrop={handleDrop}
                                             onClick={() => fileInputRef.current?.click()}
                                             className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${isDragging
-                                                    ? 'border-primary-DEFAULT bg-primary-50'
-                                                    : 'border-gray-300 hover:border-primary-DEFAULT hover:bg-gray-50'
+                                                ? 'border-primary-DEFAULT bg-primary-50'
+                                                : 'border-gray-300 hover:border-primary-DEFAULT hover:bg-gray-50'
                                                 }`}
                                         >
                                             <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -442,41 +448,9 @@ export default function VideoUploadPage() {
                         </div>
 
                         <div className="space-y-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Campaign Brief</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-900 mb-1">Description</p>
-                                        <p className="text-sm text-gray-700">{task.briefData.description}</p>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-900 mb-2">Key Talking Points</p>
-                                        <ul className="space-y-1">
-                                            {task.briefData.talkingPoints.map((point, index) => (
-                                                <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                                                    <span className="text-primary-DEFAULT mt-0.5">•</span>
-                                                    <span>{point}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-900 mb-2">Must-Haves</p>
-                                        <ul className="space-y-1">
-                                            {task.briefData.mustHaves.map((item, index) => (
-                                                <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                                                    <span className="text-green-600 mt-0.5">✓</span>
-                                                    <span>{item}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <div className="mb-6">
+                                <InstructionsCard campaignId={task.campaignId} briefData={task.briefData} />
+                            </div>
 
                             <Card>
                                 <CardHeader>

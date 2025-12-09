@@ -11,7 +11,7 @@ const faqs = [
     },
     {
         question: "Do I have to manage the creators?",
-        answer: "Not at all. Nala handles the entire process—from finding vetted creators to briefing, negotiations, and payments. You simply review the final content and approve it for posting."
+        answer: "Not at all. Tupstory handles the entire process—from finding vetted creators to briefing, negotiations, and payments. You simply review the final content and approve it for posting."
     },
     {
         question: "What kind of content will I get?",
@@ -36,7 +36,7 @@ export default function FAQ() {
                 <div className="text-center mb-16">
                     <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-4">Frequently Asked Questions</h2>
                     <p className="text-lg text-gray-600">
-                        Everything you need to know about scaling with Nala.
+                        Everything you need to know about scaling with Tupstory.
                     </p>
                 </div>
 

@@ -65,7 +65,7 @@ export default function AdminLoginPage() {
                         </div>
                     </div>
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-                        Nala Admin Portal
+                        Tupstory Admin Portal
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-300">
                         Restricted Access - Administrators Only
@@ -103,7 +103,7 @@ export default function AdminLoginPage() {
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm"
-                                placeholder="admin@nala.com"
+                                placeholder="admin@tupstory.com"
                             />
                         </div>
 
@@ -153,7 +153,7 @@ export default function AdminLoginPage() {
                 {/* Security Notice */}
                 <div className="text-center">
                     <p className="text-xs text-gray-400">
-                        🔒 This portal is for authorized Nala administrators only.
+                        🔒 This portal is for authorized Tupstory administrators only.
                         <br />
                         All access attempts are logged and monitored.
                     </p>

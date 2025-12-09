@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type EarningsSummary = {
     totalEarnings: number;
@@ -398,3 +398,4 @@ export default function CreatorEarningsPage() {
         </div>
     );
 }
+

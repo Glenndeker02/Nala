@@ -38,6 +38,31 @@ export const POST = requireRole(['CREATOR'], async (request: NextRequest, user) 
       return ApiResponse.error('Video is not in a state that accepts uploads', 400);
     }
 
+    // Check if creator has acknowledged all required campaign instructions
+    const instructions = await db.instruction.findMany({
+      where: {
+        campaignId: video.campaignId,
+        requiresAcknowledgment: true,
+      },
+    });
+
+    const unacknowledged = instructions.filter(
+      (inst) => !inst.acknowledgedBy.includes(user.userId)
+    );
+
+    if (unacknowledged.length > 0) {
+      return ApiResponse.error(
+        `You must acknowledge all campaign requirements before uploading. ${unacknowledged.length} instruction(s) pending acknowledgment.`,
+        403,
+        {
+          requiresAcknowledgment: true,
+          unacknowledgedCount: unacknowledged.length,
+          campaignId: video.campaignId,
+        }
+      );
+    }
+
+
     // Validate file type
     const validTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
     if (!validTypes.includes(file.type)) {

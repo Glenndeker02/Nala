@@ -1,64 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import { subDays } from 'date-fns';
+import db from '@/lib/db';
+import { requireRole } from '@/lib/auth';
 
-const prisma = new PrismaClient();
-
-export async function GET(req: NextRequest) {
+export const GET = requireRole(['FOUNDER'], async (request: NextRequest, user) => {
     try {
-        // Extract and verify JWT token
-        const authHeader = req.headers.get('authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
+        // Calculate weekly date range
+        const now = new Date();
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - 7);
 
-        const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
-            userId: string;
-            role: string;
-        };
-
-        if (decoded.role !== 'FOUNDER') {
-            return NextResponse.json(
-                { success: false, error: 'Access denied. Founder role required.' },
-                { status: 403 }
-            );
-        }
-
-        const userId = decoded.userId;
-        const weekAgo = subDays(new Date(), 7);
-
-        // Calculate weekly spend from payments
+        // Get total spent this week
         const weeklyPayments = await prisma.payment.aggregate({
             where: {
-                campaign: { founderId: userId },
-                createdAt: { gte: weekAgo },
-                type: { in: ['BASE_FEE', 'PERFORMANCE_BONUS'] },
-                status: 'COMPLETED'
+                campaign: {
+                    founderId: user.userId
+                },
+                createdAt: {
+                    gte: weekStart
+                },
+                status: {
+                    in: ['COMPLETED', 'PROCESSING']
+                }
             },
-            _sum: { amount: true }
+            _sum: {
+                amount: true
+            }
         });
 
         const totalSpent = Number(weeklyPayments._sum.amount || 0);
 
-        // Count new videos created this week
+        // Get new videos this week
         const newVideos = await prisma.video.count({
             where: {
-                campaign: { founderId: userId },
-                createdAt: { gte: weekAgo }
+                campaign: {
+                    founderId: user.userId
+                },
+                createdAt: {
+                    gte: weekStart
+                }
             }
         });
 
-        // Count active creators (unique creators who submitted videos this week)
-        const activeCreatorsData = await prisma.video.findMany({
+        // Get active creators this week
+        const activeCreators = await prisma.video.findMany({
             where: {
-                campaign: { founderId: userId },
-                createdAt: { gte: weekAgo },
-                creatorId: { not: null }
+                campaign: {
+                    founderId: user.userId
+                },
+                updatedAt: {
+                    gte: weekStart
+                }
             },
             select: {
                 creatorId: true
@@ -66,30 +57,72 @@ export async function GET(req: NextRequest) {
             distinct: ['creatorId']
         });
 
-        const activeCreators = activeCreatorsData.length;
+        // Get views achieved this week
+        const videosThisWeek = await prisma.video.findMany({
+            where: {
+                campaign: {
+                    founderId: user.userId,
+                    status: {
+                        in: ['ACTIVE', 'IN_PROGRESS', 'ACTIVE_ACCEPTING_APPLICATIONS']
+                    }
+                },
+                status: {
+                    in: ['POSTED', 'COMPLETED']
+                }
+            },
+            select: {
+                views: true,
+                campaign: {
+                    select: {
+                        targetViews: true
+                    }
+                }
+            }
+        });
+
+        let viewsAchieved = 0;
+        let targetViews = 0;
+
+        videosThisWeek.forEach(video => {
+            viewsAchieved += video.views || 0;
+            targetViews += Number(video.campaign.targetViews || 0);
+        });
+
+        // If no target views set, calculate based on active campaigns
+        if (targetViews === 0) {
+            const activeCampaigns = await prisma.campaign.findMany({
+                where: {
+                    founderId: user.userId,
+                    status: {
+                        in: ['ACTIVE', 'IN_PROGRESS', 'ACTIVE_ACCEPTING_APPLICATIONS']
+                    }
+                },
+                select: {
+                    targetViews: true
+                }
+            });
+
+            targetViews = activeCampaigns.reduce((sum, campaign) => {
+                return sum + Number(campaign.targetViews || 0);
+            }, 0);
+        }
 
         return NextResponse.json({
             success: true,
             data: {
                 totalSpent,
                 newVideos,
-                activeCreators
+                activeCreators: activeCreators.length,
+                viewsAchieved,
+                targetViews
             }
         });
 
     } catch (error: any) {
         console.error('Error fetching weekly summary:', error);
-
-        if (error.name === 'JsonWebTokenError') {
-            return NextResponse.json(
-                { success: false, error: 'Invalid token' },
-                { status: 401 }
-            );
-        }
-
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: error.message || 'Internal server error' },
             { status: 500 }
         );
     }
-}
+});

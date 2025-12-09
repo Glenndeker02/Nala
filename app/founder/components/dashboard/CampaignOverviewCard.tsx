@@ -12,44 +12,49 @@ interface CampaignOverviewData {
     avgEngagementRate: number;
 }
 
+type PeriodType = 'weekly' | 'monthly' | 'yearly';
+
 export default function CampaignOverviewCard() {
     const [data, setData] = useState<CampaignOverviewData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [period, setPeriod] = useState<PeriodType>('weekly');
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    setError("Not authenticated");
-                    setLoading(false);
-                    return;
-                }
+        fetchData(period);
+    }, [period]);
 
-                const response = await fetch("/api/founder/dashboard/campaign-overview", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setData(result.data);
-                } else {
-                    setError(result.error || "Failed to fetch data");
-                }
-            } catch (err) {
-                console.error("Error fetching campaign overview:", err);
-                setError("Failed to load campaign overview");
-            } finally {
+    const fetchData = async (selectedPeriod: PeriodType) => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem("token");
+            if (!token) {
+                setError("Not authenticated");
                 setLoading(false);
+                return;
             }
-        };
 
-        fetchData();
-    }, []);
+            const response = await fetch(`/api/founder/dashboard/campaign-overview?period=${selectedPeriod}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setData(result.data);
+                setError(null);
+            } else {
+                setError(result.error || "Failed to fetch data");
+            }
+        } catch (err) {
+            console.error("Error fetching campaign overview:", err);
+            setError("Failed to load campaign overview");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const items = data ? [
         {
@@ -85,7 +90,23 @@ export default function CampaignOverviewCard() {
     return (
         <Card className="h-full border-none shadow-sm hover:shadow-md transition-shadow duration-200">
             <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold text-gray-800">Campaign Overview</CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-semibold text-gray-800">Campaign Overview</CardTitle>
+                    <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                        {(['weekly', 'monthly', 'yearly'] as PeriodType[]).map((p) => (
+                            <button
+                                key={p}
+                                onClick={() => setPeriod(p)}
+                                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${period === p
+                                        ? 'bg-white text-primary-600 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                    }`}
+                            >
+                                {p.charAt(0).toUpperCase() + p.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
                 {loading ? (

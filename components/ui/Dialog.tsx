@@ -40,3 +40,18 @@ export function DialogDescription({ children, className = '' }: { children: Reac
 export function DialogFooter({ children, className = '' }: { children: React.ReactNode; className?: string }) {
     return <div className={`p-6 pt-4 border-t flex justify-end gap-2 ${className}`}>{children}</div>;
 }
+
+// DialogTrigger is a no-op in this custom implementation since Dialog is controlled
+// The actual dialog open/close is handled by parent state
+export function DialogTrigger({ children, asChild, onClick }: { children: React.ReactNode; asChild?: boolean; onClick?: () => void }) {
+    if (asChild && React.isValidElement(children)) {
+        return React.cloneElement(children as React.ReactElement<any>, {
+            onClick: (e: React.MouseEvent) => {
+                onClick?.();
+                (children as React.ReactElement<any>).props.onClick?.(e);
+            }
+        });
+    }
+    return <span onClick={onClick}>{children}</span>;
+}
+

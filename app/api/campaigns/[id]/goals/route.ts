@@ -12,6 +12,45 @@ const createGoalSchema = z.object({
     description: z.string().optional(),
 });
 
+// Helper to calculate current value based on metrics
+async function calculateCurrentValue(campaignId: string, type: string): Promise<number> {
+    try {
+        if (type === 'VIEWS') {
+            const aggregate = await db.video.aggregate({
+                where: { campaignId },
+                _sum: { currentViewCount: true }
+            });
+            return aggregate._sum.currentViewCount || 0;
+        }
+
+        if (['LIKES', 'SHARES', 'COMMENTS'].includes(type)) {
+            const videos = await db.video.findMany({
+                where: { campaignId },
+                select: { performanceMetrics: true }
+            });
+
+            return videos.reduce((sum, video) => {
+                const metrics = video.performanceMetrics as any || {};
+                // Map type to key: LIKES -> likes, SHARES -> shares, etc.
+                const key = type.toLowerCase();
+                const val = Number(metrics[key] || 0);
+                return sum + val;
+            }, 0);
+        }
+
+        if (type === 'REVENUE') {
+            const campaign = await db.campaign.findUnique({
+                where: { id: campaignId },
+                select: { platformRevenue: true }
+            });
+            return Number(campaign?.platformRevenue || 0);
+        }
+    } catch (error) {
+        console.error(`Error calculating current value for ${type}:`, error);
+    }
+    return 0;
+}
+
 // GET - List goals for a campaign
 export async function GET(
     req: NextRequest,
@@ -41,7 +80,32 @@ export async function GET(
             orderBy: { createdAt: 'desc' },
         });
 
-        return ApiResponse.success(goals);
+        // Update current values and status for all goals
+        const updatedGoals = await Promise.all(goals.map(async (goal) => {
+            const currentValue = await calculateCurrentValue(campaignId, goal.type);
+            let status = goal.status;
+
+            // Auto-complete if target reached
+            if (currentValue >= Number(goal.targetValue) && status !== 'COMPLETED') {
+                status = 'COMPLETED';
+            }
+
+            // Mark as failed if deadline passed and not completed
+            if (goal.deadline && new Date(goal.deadline) < new Date() && status !== 'COMPLETED' && currentValue < Number(goal.targetValue)) {
+                status = 'FAILED';
+            }
+
+            // Only update DB if value or status changed
+            if (Number(goal.currentValue) !== currentValue || goal.status !== status) {
+                return await db.campaignGoal.update({
+                    where: { id: goal.id },
+                    data: { currentValue, status },
+                });
+            }
+            return goal;
+        }));
+
+        return ApiResponse.success(updatedGoals);
     } catch (error: any) {
         console.error('Error fetching campaign goals:', error);
         return ApiResponse.error(error.message || 'Failed to fetch goals', 500);
@@ -58,9 +122,12 @@ export async function POST(
         const campaignId = params.id;
         const body = await req.json();
 
+        console.log('Creating goal for campaign:', campaignId, 'Body:', body);
+
         // Validate request body
         const validation = createGoalSchema.safeParse(body);
         if (!validation.success) {
+            console.error('Validation error:', validation.error);
             return ApiResponse.error('Validation failed', 400, validation.error.errors);
         }
 
@@ -80,19 +147,24 @@ export async function POST(
             return ApiResponse.error('Unauthorized', 403);
         }
 
+        // Calculate initial current value (e.g. if campaign already has views)
+        const currentValue = await calculateCurrentValue(campaignId, type);
+
         // Create goal
         const goal = await db.campaignGoal.create({
             data: {
                 campaignId,
+                name: `${type} Goal`, // Default name
                 type,
                 targetValue,
-                currentValue: 0, // Initial value is 0
+                currentValue,
                 deadline,
                 description,
                 status: 'IN_PROGRESS',
             },
         });
 
+        console.log('Goal created successfully:', goal);
         return ApiResponse.success(goal, 201);
     } catch (error: any) {
         console.error('Error creating campaign goal:', error);

@@ -73,7 +73,10 @@ export async function GET(req: NextRequest) {
                     id: 'budget-opt-1',
                     title: 'Increase budget for high-performing campaigns',
                     description: 'Your videos are getting great engagement. Consider increasing budget for better reach.',
-                    type: 'budget'
+                    type: 'budget',
+                    actionType: 'add_budget',
+                    actionUrl: `/founder/campaigns/${activeCampaigns[0].id}`,
+                    actionData: { campaignId: activeCampaigns[0].id }
                 });
             }
 
@@ -83,7 +86,10 @@ export async function GET(req: NextRequest) {
                     id: 'format-1',
                     title: 'Try "Day in the Life" format',
                     description: 'This format is trending and matches your campaign style',
-                    type: 'format'
+                    type: 'format',
+                    actionType: 'view_library',
+                    actionUrl: '/founder/library',
+                    actionData: {}
                 });
             }
 
@@ -97,7 +103,10 @@ export async function GET(req: NextRequest) {
                     id: 'creator-1',
                     title: 'Work with more creators',
                     description: 'Diversifying creators can help reach different audiences',
-                    type: 'strategy'
+                    type: 'strategy',
+                    actionType: 'create_campaign',
+                    actionUrl: '/founder/campaigns/create',
+                    actionData: {}
                 });
             }
         } else {
@@ -106,14 +115,20 @@ export async function GET(req: NextRequest) {
                 id: 'welcome-1',
                 title: 'Create your first campaign',
                 description: 'Start by defining your product and target audience',
-                type: 'getting-started'
+                type: 'getting-started',
+                actionType: 'create_campaign',
+                actionUrl: '/founder/campaigns/create',
+                actionData: {}
             });
 
             suggestions.push({
                 id: 'welcome-2',
                 title: 'Browse the content library',
                 description: 'See what formats work best for brands like yours',
-                type: 'getting-started'
+                type: 'getting-started',
+                actionType: 'view_library',
+                actionUrl: '/founder/library',
+                actionData: {}
             });
         }
 
@@ -122,7 +137,10 @@ export async function GET(req: NextRequest) {
             id: 'best-practice-1',
             title: 'Review videos within 24 hours',
             description: 'Quick feedback helps creators deliver better content',
-            type: 'best-practice'
+            type: 'best-practice',
+            actionType: 'view_deadlines',
+            actionUrl: '/founder/dashboard',
+            actionData: {}
         });
 
         return NextResponse.json({

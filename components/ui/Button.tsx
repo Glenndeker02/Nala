@@ -6,13 +6,13 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
 }
 
-export function Button({
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   variant = 'primary',
   size = 'md',
   className = '',
   children,
   ...props
-}: ButtonProps) {
+}, ref) => {
   const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variants = {
@@ -32,10 +32,13 @@ export function Button({
 
   return (
     <button
+      ref={ref}
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}
     </button>
   );
-}
+});
+
+Button.displayName = 'Button';

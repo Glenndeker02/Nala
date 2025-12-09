@@ -23,7 +23,7 @@ export default function RoiCalculator() {
     const MIN_BUDGET = 100; // Minimum budget $100
     const FOUNDER_RATE_PER_1000_VIEWS = 3; // $3 per 1000 views from founder
     const CREATOR_RATE_PER_1000_VIEWS = 2; // $2 per 1000 views to creator
-    const PLATFORM_RATE_PER_1000_VIEWS = 1; // $1 per 1000 views to Nala
+    const PLATFORM_RATE_PER_1000_VIEWS = 1; // $1 per 1000 views to Tupstory
     const BASE_VIDEO_COST_BULK = 10; // $10 per video for 5+ videos
     const BASE_VIDEO_COST_SMALL = 15; // $15 per video for <5 videos
     const AVG_VIEWS_PER_VIDEO = 2500;
@@ -106,7 +106,7 @@ export default function RoiCalculator() {
                                     Calculate Your ROI
                                 </h2>
                                 <p className="text-base text-gray-600">
-                                    See exactly what you can achieve with Nala's performance-driven platform.
+                                    See exactly what you can achieve with Tupstory's performance-driven platform.
                                 </p>
                             </div>
 

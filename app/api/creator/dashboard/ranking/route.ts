@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { calculateCreatorRanking, getCategoryAverageRanking } from '@/lib/ranking';
 
 const prisma = new PrismaClient();
 
@@ -30,81 +31,37 @@ export async function GET(req: NextRequest) {
 
         const userId = decoded.userId;
 
-        // Get creator's videos with latest view counts
-        const videos = await prisma.video.findMany({
-            where: {
-                creatorId: userId,
-                status: { in: ['POSTED', 'LOCKED'] }
-            },
-            include: {
-                viewSnapshots: {
-                    orderBy: { snapshotAt: 'desc' },
-                    take: 1
-                }
-            }
+        // Get creator profile
+        const profile = await prisma.creatorProfile.findUnique({
+            where: { userId },
         });
 
-        // Calculate ranking score
-        let totalViews = 0;
-        let totalEngagement = 0;
+        if (!profile) {
+            return NextResponse.json(
+                { success: false, error: 'Creator profile not found' },
+                { status: 404 }
+            );
+        }
 
-        videos.forEach(video => {
-            if (video.viewSnapshots.length > 0) {
-                const views = video.viewSnapshots[0].viewCount;
-                totalViews += views;
-                totalEngagement += views * 0.05; // Mock 5% engagement
-            }
-        });
+        // Calculate current ranking
+        const ranking = await calculateCreatorRanking(userId);
 
-        // Get on-time delivery rate
-        const completedVideos = await prisma.video.count({
-            where: {
-                creatorId: userId,
-                status: { in: ['POSTED', 'LOCKED', 'APPROVED'] }
-            }
-        });
+        // Get category average for comparison
+        const categoryAverage = await getCategoryAverageRanking(profile.categories);
 
-        const lateVideos = await prisma.video.count({
-            where: {
-                creatorId: userId,
-                status: { in: ['POSTED', 'LOCKED', 'APPROVED'] },
-                // In production, would check if submittedAt > deadline
-            }
-        });
-
-        const onTimeRate = completedVideos > 0
-            ? ((completedVideos - lateVideos) / completedVideos) * 100
-            : 100;
-
-        // Calculate ranking score (0-100)
-        const viewsScore = Math.min(100, (totalViews / 100000) * 100); // Normalize to 100k views
-        const engagementScore = Math.min(100, ((totalEngagement / totalViews) * 100) * 10); // Normalize engagement
-        const deliveryScore = onTimeRate;
-
-        const rankingScore = Math.round(
-            (viewsScore * 0.4) +
-            (engagementScore * 0.3) +
-            (deliveryScore * 0.3)
-        );
-
-        // Mock category average (in production, calculate from all creators in same category)
-        const categoryAverage = 72;
-
-        // Mock score history (in production, fetch from creator_rankings table)
-        const scoreHistory = [
-            { date: '2023-10-01', score: Math.max(60, rankingScore - 10) },
-            { date: '2023-10-15', score: Math.max(65, rankingScore - 7) },
-            { date: '2023-11-01', score: Math.max(70, rankingScore - 4) },
-            { date: '2023-11-15', score: rankingScore },
-        ];
+        // Get recent ranking history
+        const history = (profile.rankingHistory as any[]) || [];
+        const recentHistory = history.slice(-10);
 
         return NextResponse.json({
             success: true,
             data: {
-                rankingScore,
+                rankingScore: ranking.score,
                 categoryAverage,
-                scoreChange: rankingScore - scoreHistory[scoreHistory.length - 2].score,
-                scoreHistory
+                scoreChange: ranking.change,
+                factors: ranking.factors,
+                history: recentHistory,
+                lastUpdate: profile.lastRankingUpdate,
             }
         });
 

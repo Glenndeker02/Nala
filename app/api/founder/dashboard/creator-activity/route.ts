@@ -77,7 +77,8 @@ export async function GET(req: NextRequest) {
                 action,
                 time: formatDistanceToNow(video.createdAt, { addSuffix: true }),
                 campaignId: video.campaignId,
-                timestamp: video.createdAt
+                timestamp: video.createdAt,
+                actionUrl: `/founder/campaigns/${video.campaignId}`
             });
         });
 
@@ -88,7 +89,8 @@ export async function GET(req: NextRequest) {
                 action: 'applied to campaign',
                 time: formatDistanceToNow(app.createdAt, { addSuffix: true }),
                 campaignId: app.campaignId,
-                timestamp: app.createdAt
+                timestamp: app.createdAt,
+                actionUrl: `/founder/campaigns/${app.campaignId}/applications`
             });
         });
 

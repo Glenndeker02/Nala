@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import InstructionsCard from "../components/InstructionsCard";
 
 type VideoPerformance = {
     id: string;
@@ -25,6 +26,7 @@ type VideoPerformance = {
             fullName: string;
             companyName: string | null;
         };
+        briefData?: any;
     };
 };
 
@@ -114,6 +116,11 @@ export default function PerformancePage({ params }: { params: { id: string } }) 
                             )}
                         </div>
                     </div>
+                </div>
+
+                {/* Instructions Card */}
+                <div className="mb-6">
+                    <InstructionsCard campaignId={video.campaign.id} briefData={video.campaign.briefData} />
                 </div>
 
                 {/* Performance Metrics */}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     Step2Content,
     Step3Schedule,
@@ -12,6 +12,7 @@ import {
     Step5Filters,
     Step6Review
 } from "@/components/founder/CampaignCreationSteps";
+import { LegalAgreementModal } from "@/components/shared/LegalAgreementModal";
 
 // Types
 type CampaignFormData = {
@@ -57,6 +58,12 @@ type CampaignFormData = {
     // Budget Calculator Options
     guaranteedSpend: boolean;
     targetViews?: number;
+
+    // Attribution Settings
+    enableCreatorCodes: boolean;
+    conversionCommission: number;
+    codeDiscountType: string;
+    codeDiscountValue: number;
 };
 
 const STEPS = [
@@ -126,7 +133,7 @@ export default function EnhancedCampaignCreation() {
 
         // Step 4
         totalBudget: 1000,
-        baseFeePerVideo: 50,
+        baseFeePerVideo: 10,
 
         // Step 5
         minRating: 4.0,
@@ -142,7 +149,13 @@ export default function EnhancedCampaignCreation() {
 
         // Budget Calculator Options
         guaranteedSpend: false,
-        targetViews: undefined
+        targetViews: undefined,
+
+        // Attribution Settings
+        enableCreatorCodes: false,
+        conversionCommission: 15,
+        codeDiscountType: "PERCENTAGE",
+        codeDiscountValue: 20
     });
 
     // Prefill from content library or format library
@@ -198,12 +211,8 @@ export default function EnhancedCampaignCreation() {
     }, []);
 
 
-    // Budget calculations
-    const baseFeeTotal = formData.videosRequested * formData.baseFeePerVideo;
-    const performanceBudget = formData.totalBudget - baseFeeTotal;
-    const maxViews = Math.floor(performanceBudget / 0.005); // $5 per 1k views
-    const creatorEarningsPerView = 0.004; // $4 per 1k views
-    const nalaEarningsPerView = 0.001; // $1 per 1k views
+    // Budget calculations moved to Step4Budget component
+
 
     // Auto-save functionality
     useEffect(() => {
@@ -314,7 +323,7 @@ export default function EnhancedCampaignCreation() {
             case 2:
                 return !!(formData.startDate && formData.postingFrequency);
             case 3:
-                return formData.totalBudget >= 500 && performanceBudget >= 0;
+                return formData.totalBudget >= 100;
             case 4:
                 return true; // Filters are optional
             case 5:
@@ -334,62 +343,102 @@ export default function EnhancedCampaignCreation() {
 
     const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
+    const [showLegalModal, setShowLegalModal] = useState(false); // New state for legal agreement
+
+    const handlePreSubmit = () => {
+        if (!validateStep(currentStep)) return;
+        setShowLegalModal(true);
+    };
+
+    const handleLegalAgree = async () => {
+        setShowLegalModal(false);
+        await handleSubmit();
+    };
+
     const handleSubmit = async () => {
         setLoading(true);
         const token = localStorage.getItem("token");
 
+        // Debug logging
+        console.log('[CAMPAIGN CREATE] Token exists:', !!token);
+        if (token) {
+            console.log('[CAMPAIGN CREATE] Token length:', token.length);
+            console.log('[CAMPAIGN CREATE] Token preview:', token.substring(0, 20) + '...');
+        } else {
+            console.error('[CAMPAIGN CREATE] No token found in localStorage!');
+            alert('Authentication error: No token found. Please log in again.');
+            setLoading(false);
+            return;
+        }
+
         try {
+            const requestBody = {
+                name: formData.name,
+                description: formData.description,
+                videosRequested: formData.videosRequested,
+                totalBudget: formData.totalBudget,
+                baseFeePerVideo: formData.baseFeePerVideo,
+                postingFrequency: formData.postingFrequency,
+                startDate: formData.startDate ? new Date(formData.startDate).toISOString() : undefined,
+                briefData: {
+                    productDescription: formData.productDescription,
+                    targetAudience: formData.targetAudience,
+                    campaignGoal: formData.primaryGoal,
+                    platforms: formData.platforms,
+                    talkingPoints: formData.talkingPoints.filter(tp => tp.trim() !== ""),
+                    hashtags: formData.hashtags,
+                    mustHaves: formData.mustHaves.filter(m => m.trim() !== ""),
+                    dontWants: formData.dontWants.filter(d => d.trim() !== ""),
+                    videoLength: formData.videoLength,
+                    tone: formData.tone,
+                    productCategory: formData.productCategory,
+                    campaignDuration: formData.campaignDuration,
+                    guaranteedSpend: formData.guaranteedSpend,
+                    targetViews: formData.targetViews,
+                    creatorCriteria: {
+                        minRating: formData.minRating,
+                        minExperience: formData.minExperience,
+                        platforms: formData.requiredPlatforms,
+                        location: formData.location,
+                        languages: [formData.language],
+                        niche: formData.industryExperience
+                    }
+                },
+                // Attribution Settings
+                enableCreatorCodes: formData.enableCreatorCodes,
+                autoGenerateCodes: formData.enableCreatorCodes, // Auto-generate when codes enabled
+                conversionCommission: formData.enableCreatorCodes ? formData.conversionCommission : null,
+                codeDiscountType: formData.enableCreatorCodes ? formData.codeDiscountType : null,
+                codeDiscountValue: formData.enableCreatorCodes ? formData.codeDiscountValue : null,
+            };
+
+            console.log('[CAMPAIGN CREATE] Sending request to /api/campaigns/create');
+            console.log('[CAMPAIGN CREATE] Request body:', JSON.stringify(requestBody, null, 2));
+
             const response = await fetch("/api/campaigns/create", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    name: formData.name,
-                    description: formData.description,
-                    videosRequested: formData.videosRequested,
-                    totalBudget: formData.totalBudget,
-                    baseFeePerVideo: formData.baseFeePerVideo,
-                    postingFrequency: formData.postingFrequency,
-                    startDate: formData.startDate ? new Date(formData.startDate).toISOString() : undefined,
-                    guaranteedSpend: formData.guaranteedSpend,
-                    targetViews: formData.targetViews,
-                    briefData: {
-                        productDescription: formData.productDescription,
-                        targetAudience: formData.targetAudience,
-                        campaignGoal: formData.primaryGoal,
-                        platforms: formData.platforms,
-                        talkingPoints: formData.talkingPoints.filter(tp => tp.trim() !== ""),
-                        hashtags: formData.hashtags,
-                        mustHaves: formData.mustHaves.filter(m => m.trim() !== ""),
-                        dontWants: formData.dontWants.filter(d => d.trim() !== ""),
-                        videoLength: formData.videoLength,
-                        tone: formData.tone,
-                        productCategory: formData.productCategory,
-                        campaignDuration: formData.campaignDuration,
-                        creatorFilters: {
-                            minRating: formData.minRating,
-                            minExperience: formData.minExperience,
-                            requiredPlatforms: formData.requiredPlatforms,
-                            location: formData.location,
-                            industryExperience: formData.industryExperience,
-                            language: formData.language
-                        }
-                    },
-                }),
+                body: JSON.stringify(requestBody),
             });
+
+            console.log('[CAMPAIGN CREATE] Response status:', response.status);
+            console.log('[CAMPAIGN CREATE] Response headers:', Object.fromEntries(response.headers.entries()));
 
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
                 const text = await response.text();
-                console.error("Server returned non-JSON response:", text.substring(0, 500));
+                console.error('[CAMPAIGN CREATE] Server returned non-JSON response:', text.substring(0, 500));
                 throw new Error("Server error: Expected JSON response but got HTML. Please check server logs.");
             }
 
             const data = await response.json();
+            console.log('[CAMPAIGN CREATE] Response data:', data);
 
             if (!response.ok) {
+                console.error('[CAMPAIGN CREATE] Request failed:', data);
                 throw new Error(data.error || data.message || "Failed to create campaign");
             }
 
@@ -398,7 +447,7 @@ export default function EnhancedCampaignCreation() {
             setShowSuccessModal(true);
             // Don't redirect immediately - let user choose via modal
         } catch (error) {
-            console.error("Error creating campaign:", error);
+            console.error("[CAMPAIGN CREATE] Error creating campaign:", error);
             alert(error instanceof Error ? error.message : "Something went wrong");
         } finally {
             setLoading(false);
@@ -466,9 +515,9 @@ export default function EnhancedCampaignCreation() {
                             {currentStep === 0 && <Step1Basics formData={formData} onChange={handleInputChange} onAIAutoFill={handleAIAutoFill} loading={loading} />}
                             {currentStep === 1 && <Step2Content formData={formData} onChange={handleInputChange} onArrayChange={handleArrayChange} onAddItem={addArrayItem} onRemoveItem={removeArrayItem} />}
                             {currentStep === 2 && <Step3Schedule formData={formData} onChange={handleInputChange} />}
-                            {currentStep === 3 && <Step4Budget formData={formData} onChange={handleInputChange} baseFeeTotal={baseFeeTotal} performanceBudget={performanceBudget} maxViews={maxViews} creatorEarnings={creatorEarningsPerView} nalaEarnings={nalaEarningsPerView} />}
+                            {currentStep === 3 && <Step4Budget formData={formData} onChange={handleInputChange} />}
                             {currentStep === 4 && <Step5Filters formData={formData} onChange={handleInputChange} />}
-                            {currentStep === 5 && <Step6Review formData={formData} baseFeeTotal={baseFeeTotal} performanceBudget={performanceBudget} maxViews={maxViews} />}
+                            {currentStep === 5 && <Step6Review formData={formData} />}
                         </div>
 
                         {/* Navigation Buttons */}
@@ -484,8 +533,8 @@ export default function EnhancedCampaignCreation() {
 
                             {currentStep === STEPS.length - 1 ? (
                                 <Button
-                                    onClick={handleSubmit}
-                                    disabled={loading || performanceBudget < 0}
+                                    onClick={handlePreSubmit}
+                                    disabled={loading}
                                     size="lg"
                                 >
                                     {loading ? "Creating Campaign..." : "Confirm & Create Campaign"}
@@ -584,6 +633,10 @@ export default function EnhancedCampaignCreation() {
                                         productDescription: "",
                                         guaranteedSpend: false,
                                         targetViews: undefined,
+                                        enableCreatorCodes: false,
+                                        conversionCommission: 15,
+                                        codeDiscountType: "PERCENTAGE",
+                                        codeDiscountValue: 20
                                     });
                                 }}
                                 className="w-full border-2 border-primary-DEFAULT text-primary-DEFAULT hover:bg-primary-50 font-semibold py-3 rounded-xl transition-all"
@@ -614,6 +667,15 @@ export default function EnhancedCampaignCreation() {
                     </div>
                 </div>
             )}
+
+            <LegalAgreementModal
+                isOpen={showLegalModal}
+                onClose={() => setShowLegalModal(false)}
+                onAgree={handleLegalAgree}
+                role="FOUNDER"
+                agreementType="FOUNDER_CAMPAIGN_CREATE"
+                title="Campaign Creation Agreement"
+            />
         </div>
     );
 }
@@ -729,3 +791,4 @@ function Step1Basics({ formData, onChange, onAIAutoFill, loading }: any) {
         </div>
     );
 }
+

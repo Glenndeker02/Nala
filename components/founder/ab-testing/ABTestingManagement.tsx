@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2, RefreshCw } from 'lucide-react';
-import { ABTestWizard } from './ABTestWizard';
-import { ABTestResults } from './ABTestResults';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface ABTestingManagementProps {
     campaignId: string;
 }
 
 export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
+    const router = useRouter();
     const { toast } = useToast();
     const [tests, setTests] = useState<any[]>([]);
-    const [campaigns, setCampaigns] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isWizardOpen, setIsWizardOpen] = useState(false);
 
     const fetchTests = async () => {
         try {
@@ -43,66 +43,22 @@ export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
         }
     };
 
-    const fetchCampaigns = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`/api/campaigns`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch campaigns');
-            }
-
-            const data = await response.json();
-            setCampaigns(data.data?.campaigns || []);
-        } catch (err: any) {
-            console.error('Error fetching campaigns:', err);
-        }
-    };
-
     useEffect(() => {
         fetchTests();
-        fetchCampaigns();
     }, [campaignId]);
 
-    const handleCompleteTest = async (testId: string) => {
-        if (!confirm('Are you sure you want to complete this A/B test? This action cannot be undone.')) {
-            return;
-        }
+    const getStatusBadge = (status: string) => {
+        const variants: Record<string, { label: string; className: string }> = {
+            DRAFT: { label: 'Draft', className: 'bg-gray-500' },
+            PENDING_CONTENT: { label: 'Pending Upload', className: 'bg-yellow-500' },
+            IN_REVIEW: { label: 'In Review', className: 'bg-blue-500' },
+            ACTIVE: { label: 'Active', className: 'bg-green-500' },
+            COMPLETED: { label: 'Completed', className: 'bg-purple-500' },
+            CANCELLED: { label: 'Cancelled', className: 'bg-red-500' },
+        };
 
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(
-                `/api/campaigns/${campaignId}/ab-tests/${testId}/complete`,
-                {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error('Failed to complete A/B test');
-            }
-
-            toast({
-                title: 'Success',
-                description: 'A/B test completed successfully',
-            });
-
-            fetchTests();
-        } catch (err: any) {
-            console.error('Error completing A/B test:', err);
-            toast({
-                title: 'Error',
-                description: err.message || 'Failed to complete A/B test',
-                variant: 'destructive',
-            });
-        }
+        const config = variants[status] || variants.DRAFT;
+        return <Badge className={config.className}>{config.label}</Badge>;
     };
 
     if (isLoading && tests.length === 0) {
@@ -133,10 +89,10 @@ export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
                 <div>
                     <h3 className="text-lg font-medium">A/B Testing</h3>
                     <p className="text-sm text-muted-foreground">
-                        Compare video performance and optimize your content strategy.
+                        Test different content variations to optimize performance
                     </p>
                 </div>
-                <Button onClick={() => setIsWizardOpen(true)}>
+                <Button onClick={() => router.push(`/founder/campaigns/${campaignId}/ab-tests/create`)}>
                     <Plus className="w-4 h-4 mr-2" /> Create A/B Test
                 </Button>
             </div>
@@ -148,50 +104,66 @@ export function ABTestingManagement({ campaignId }: ABTestingManagementProps) {
                     </div>
                     <h3 className="text-lg font-medium mb-2">No A/B tests yet</h3>
                     <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                        Create your first A/B test to compare video performance and discover what works best.
+                        Create your first A/B test to compare content variations and discover what works best.
                     </p>
-                    <Button onClick={() => setIsWizardOpen(true)}>Create Your First A/B Test</Button>
+                    <Button onClick={() => router.push(`/founder/campaigns/${campaignId}/ab-tests/create`)}>
+                        Create Your First A/B Test
+                    </Button>
                 </div>
             ) : (
-                <div className="space-y-6">
+                <div className="grid gap-4">
                     {tests.map((test) => (
-                        <ABTestResults
+                        <Card
                             key={test.id}
-                            testName={test.name}
-                            status={test.status}
-                            startDate={test.startDate}
-                            endDate={test.endDate}
-                            winner={test.winnerVariantId ? {
-                                variantId: test.winnerVariantId,
-                                variantName: test.variants?.find((v: any) => v.id === test.winnerVariantId)?.variantName || 'Unknown',
-                                score: 0,
-                            } : undefined}
-                            confidence={test.results?.confidence}
-                            metrics={test.variants?.map((variant: any) => ({
-                                variantId: variant.id,
-                                variantName: variant.variantName,
-                                views: variant.video?.currentViewCount || 0,
-                                likes: variant.video?.likes || 0,
-                                comments: variant.video?.comments || 0,
-                                shares: variant.video?.shares || 0,
-                                engagementRate: variant.video?.currentViewCount > 0
-                                    ? ((variant.video?.likes + variant.video?.comments + variant.video?.shares) / variant.video?.currentViewCount) * 100
-                                    : 0,
-                                totalEngagement: (variant.video?.likes || 0) + (variant.video?.comments || 0) + (variant.video?.shares || 0),
-                                score: test.results?.metrics?.find((m: any) => m.variantId === variant.id)?.score,
-                            })) || []}
-                            onComplete={test.status === 'ACTIVE' ? () => handleCompleteTest(test.id) : undefined}
-                        />
+                            className="cursor-pointer hover:border-primary transition-colors"
+                            onClick={() => router.push(`/founder/campaigns/${campaignId}/ab-tests/${test.id}`)}
+                        >
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle>{test.name}</CardTitle>
+                                    {getStatusBadge(test.status)}
+                                </div>
+                                {test.hypothesis && (
+                                    <CardDescription>{test.hypothesis}</CardDescription>
+                                )}
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                        <p className="text-muted-foreground">Goal</p>
+                                        <p className="font-medium">{test.testGoal?.replace(/_/g, ' ')}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground">Metric</p>
+                                        <p className="font-medium">{test.successMetric?.replace(/_/g, ' ')}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground">Variants</p>
+                                        <p className="font-medium">{test.variants?.length || 0}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground">Creators</p>
+                                        <p className="font-medium">{test.assignedCreatorIds?.length || 0}</p>
+                                    </div>
+                                </div>
+                                {test.status === 'ACTIVE' && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="mt-4"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            router.push(`/founder/campaigns/${campaignId}/ab-tests/${test.id}/results`);
+                                        }}
+                                    >
+                                        View Results
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             )}
-
-            <ABTestWizard
-                isOpen={isWizardOpen}
-                onClose={() => setIsWizardOpen(false)}
-                onCreated={fetchTests}
-                founderCampaigns={campaigns}
-            />
         </div>
     );
 }

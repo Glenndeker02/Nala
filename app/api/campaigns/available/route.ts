@@ -11,19 +11,25 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
             return ApiResponse.error("Invalid role", 400);
         }
 
-        // Get creator's existing applications
+        // Get creator's existing applications with status
         const existingApplications = await db.application.findMany({
             where: { creatorId: user.userId },
-            select: { campaignId: true, createdAt: true }
+            select: {
+                campaignId: true,
+                createdAt: true,
+                status: true
+            }
         });
 
         const appliedCampaignIds = existingApplications.map(app => app.campaignId);
-        const applicationMap = new Map(existingApplications.map(app => [app.campaignId, app.createdAt]));
+        const applicationMap = new Map(existingApplications.map(app => [app.campaignId, app]));
 
-        // Fetch active campaigns
+        // Fetch active campaigns (including those accepting applications)
         const campaigns = await db.campaign.findMany({
             where: {
-                status: "ACTIVE"
+                status: {
+                    in: ["ACTIVE", "ACTIVE_ACCEPTING_APPLICATIONS"]
+                }
             },
             include: {
                 founder: {
@@ -48,8 +54,10 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
         // Calculate urgency and categorize campaigns
         const now = new Date();
         const enrichedCampaigns = campaigns.map(campaign => {
+            const application = applicationMap.get(campaign.id);
             const hasApplied = appliedCampaignIds.includes(campaign.id);
-            const appliedDate = applicationMap.get(campaign.id);
+            const applicationStatus = application?.status;
+            const appliedDate = application?.createdAt;
 
             // Calculate days until deadline (if exists)
             let daysUntilDeadline = null;
@@ -83,7 +91,9 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
                 platforms: platforms,
                 videosRequested: campaign.videosRequested,
                 videosCompleted: campaign._count.videos,
-                baseFeePerVideo: Number(campaign.baseFeePerVideo || 0),
+                baseFeePerVideo: campaign.videosRequested > 0
+                    ? Number(campaign.baseFeeBudget) / campaign.videosRequested
+                    : 0,
                 totalBudget: Number(campaign.totalBudget),
                 maxViews: campaign.targetViews || 150000,
                 tone: briefData.tone || "Professional",
@@ -94,6 +104,7 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
                 deadline: campaign.deadline || campaign.startDate,
                 applicationsCount: campaign._count.applications,
                 hasApplied,
+                applicationStatus, // NEW: Include status
                 appliedDate: appliedDate?.toISOString(),
 
                 // Categorization flags

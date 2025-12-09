@@ -68,7 +68,7 @@ export default function HowItWorks() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <h2 className="text-3xl font-bold sm:text-4xl mb-6 text-gray-900">
-                        {role === 'founder' ? 'Risk-Free UGC With Performance Guarantees' : 'How Nala Works for Creators'}
+                        {role === 'founder' ? 'Risk-Free UGC With Performance Guarantees' : 'How Tupstory Works for Creators'}
                     </h2>
                     <p className="text-lg text-gray-600 mb-8 leading-relaxed">
                         {role === 'founder'

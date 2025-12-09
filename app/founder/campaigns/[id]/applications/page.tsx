@@ -96,7 +96,8 @@ export default function ApplicationsPage({ params }: { params: { id: string } })
     };
 
     const handleReject = async (applicationId: string) => {
-        if (!confirm("Are you sure you want to reject this application?")) return;
+        const reason = prompt("Please provide a reason for rejection (optional):");
+        if (reason === null) return; // User cancelled
 
         setProcessing(applicationId);
         const token = localStorage.getItem("token");
@@ -105,8 +106,10 @@ export default function ApplicationsPage({ params }: { params: { id: string } })
             const response = await fetch(`/api/campaigns/${params.id}/applications/${applicationId}/reject`, {
                 method: "POST",
                 headers: {
+                    "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
+                body: JSON.stringify({ reason }),
             });
 
             const data = await response.json();

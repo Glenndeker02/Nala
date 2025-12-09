@@ -47,8 +47,9 @@ export const GET = requireRole(['CREATOR'], async (request: NextRequest, user) =
             const baseFee = Number(campaign.baseFeePerVideo) || 0;
             const views = video.views || 0;
 
-            // Calculate performance bonus: $4 per 1000 views
-            const performanceBonus = views > 0 ? (views / 1000) * 4 : 0;
+            // Calculate performance bonus using campaign's performance rate ($ per 1000 views)
+            const performanceRate = Number(campaign.performanceRate) || 4.00;
+            const performanceBonus = views > 0 ? (views / 1000) * performanceRate : 0;
             const total = baseFee + performanceBonus;
 
             // Determine if earnings are pending or paid based on video status

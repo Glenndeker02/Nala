@@ -1,88 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import jwt from 'jsonwebtoken';
+import { requireRole } from '@/lib/auth';
 
-export async function GET(req: NextRequest) {
+export const GET = requireRole(['FOUNDER'], async (request: NextRequest, user) => {
     try {
-        // Extract and verify JWT token
-        const authHeader = req.headers.get('authorization');
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
-                { status: 401 }
-            );
+        const { searchParams } = new URL(request.url);
+        const period = searchParams.get('period') || 'weekly'; // weekly, monthly, yearly
+
+        // Calculate date range
+        const now = new Date();
+        let startDate: Date;
+
+        switch (period) {
+            case 'monthly':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+            case 'yearly':
+                startDate = new Date(now.getFullYear(), 0, 1);
+                break;
+            case 'weekly':
+            default:
+                startDate = new Date(now);
+                startDate.setDate(now.getDate() - 7);
+                break;
         }
 
-        const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
-            userId: string;
-            role: string;
-        };
-
-        // Verify user is a founder
-        if (decoded.role !== 'FOUNDER') {
-            return NextResponse.json(
-                { success: false, error: 'Access denied. Founder role required.' },
-                { status: 403 }
-            );
-        }
-
-        const userId = decoded.userId;
-
-        // Get campaign counts by status
-        const [activeCampaigns, completedCampaigns, totalCampaigns] = await Promise.all([
-            db.campaign.count({
-                where: { founderId: userId, status: 'ACTIVE' }
-            }),
-            db.campaign.count({
-                where: { founderId: userId, status: 'COMPLETED' }
-            }),
-            db.campaign.count({
-                where: { founderId: userId }
-            })
-        ]);
-
-        // Get budget statistics
-        const budgetStats = await db.campaign.aggregate({
-            where: { founderId: userId },
-            _sum: {
-                totalBudget: true,
-                // escrowBalance: true // TODO: Uncomment when added
-            }
-        });
-
-        // Calculate total budget spent
-        const totalBudget = Number(budgetStats._sum.totalBudget || 0);
-        const escrowBalance = 0; // Number(budgetStats._sum.escrowBalance || 0); // TODO: Uncomment when added
-        const budgetSpent = totalBudget - escrowBalance;
-
-        // Calculate average engagement rate from posted videos
-        const videos = await db.video.findMany({
+        // Get active campaigns
+        const activeCampaigns = await db.campaign.count({
             where: {
-                campaign: { founderId: userId },
-                status: 'POSTED'
-            },
-            include: {
-                viewSnapshots: {
-                    orderBy: { snapshotAt: 'desc' },
-                    take: 1
+                founderId: user.userId,
+                status: {
+                    in: ['ACTIVE', 'IN_PROGRESS', 'ACTIVE_ACCEPTING_APPLICATIONS']
                 }
             }
         });
 
-        // Calculate engagement rate (mock calculation based on views)
-        // In production, this would use actual engagement metrics
+        // Get completed campaigns
+        const completedCampaigns = await db.campaign.count({
+            where: {
+                founderId: user.userId,
+                status: 'COMPLETED'
+            }
+        });
+
+        // Get total budget and spent
+        const budgetData = await db.campaign.aggregate({
+            where: {
+                founderId: user.userId,
+                status: {
+                    in: ['ACTIVE', 'IN_PROGRESS', 'COMPLETED', 'ACTIVE_ACCEPTING_APPLICATIONS']
+                }
+            },
+            _sum: {
+                totalBudget: true,
+                escrowBalance: true
+            }
+        });
+
+        const totalBudget = Number(budgetData._sum.totalBudget || 0);
+        const budgetSpent = totalBudget - Number(budgetData._sum.escrowBalance || 0);
+
+        // Calculate average engagement rate from videos
+        const videos = await db.video.findMany({
+            where: {
+                campaign: {
+                    founderId: user.userId
+                },
+                status: {
+                    in: ['POSTED', 'COMPLETED']
+                }
+            },
+            select: {
+                views: true,
+                performanceMetrics: true
+            }
+        });
+
         let totalEngagement = 0;
         let videoCount = 0;
 
         videos.forEach(video => {
-            if (video.viewSnapshots.length > 0) {
-                const views = video.viewSnapshots[0].viewCount;
-                // Mock engagement calculation: higher views = higher engagement
-                // This is a placeholder - real engagement would come from platform APIs
-                const engagementRate = Math.min(10, (views / 10000) * 5);
-                totalEngagement += engagementRate;
-                videoCount++;
+            if (video.performanceMetrics && typeof video.performanceMetrics === 'object') {
+                const metrics = video.performanceMetrics as any;
+                if (metrics.engagementRate) {
+                    totalEngagement += Number(metrics.engagementRate);
+                    videoCount++;
+                }
             }
         });
 
@@ -95,26 +98,18 @@ export async function GET(req: NextRequest) {
             data: {
                 activeCampaigns,
                 completedCampaigns,
-                totalCampaigns,
                 totalBudget,
                 budgetSpent,
-                avgEngagementRate
+                avgEngagementRate,
+                period
             }
         });
 
     } catch (error: any) {
         console.error('Error fetching campaign overview:', error);
-
-        if (error.name === 'JsonWebTokenError') {
-            return NextResponse.json(
-                { success: false, error: 'Invalid token' },
-                { status: 401 }
-            );
-        }
-
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: error.message || 'Internal server error' },
             { status: 500 }
         );
     }
-}
+});

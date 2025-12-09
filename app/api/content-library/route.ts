@@ -64,8 +64,8 @@ export async function GET(req: NextRequest) {
                 formatType: f.name,
                 hookStyle: uiData.hookStyle || 'Visual',
                 creator: {
-                    name: uiData.creatorName || 'Nala Creator',
-                    handle: uiData.creatorHandle || '@nalacreator',
+                    name: uiData.creatorName || 'Tupstory Creator',
+                    handle: uiData.creatorHandle || '@tupstorycreator',
                     avatarUrl: uiData.creatorAvatarUrl || ''
                 },
                 metrics: {

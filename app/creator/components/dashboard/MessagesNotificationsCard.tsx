@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, Info, CheckCircle, AlertTriangle } from "lucide-react";
 
 interface Notification {
@@ -11,9 +12,11 @@ interface Notification {
     message: string;
     time: string;
     isRead: boolean;
+    link?: string;
 }
 
 export default function MessagesNotificationsCard() {
+    const router = useRouter();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -40,6 +43,12 @@ export default function MessagesNotificationsCard() {
 
         fetchData();
     }, []);
+
+    const handleNotificationClick = (link?: string) => {
+        if (link) {
+            router.push(link);
+        }
+    };
 
     const getIcon = (type: string) => {
         switch (type) {
@@ -77,7 +86,11 @@ export default function MessagesNotificationsCard() {
                 ) : (
                     <div className="space-y-0 divide-y divide-gray-100">
                         {notifications.map((item) => (
-                            <div key={item.id} className="flex gap-3 py-3 hover:bg-gray-50 px-2 -mx-2 rounded transition-colors">
+                            <div
+                                key={item.id}
+                                onClick={() => handleNotificationClick(item.link)}
+                                className={`flex gap-3 py-3 hover:bg-gray-50 px-2 -mx-2 rounded transition-colors ${item.link ? 'cursor-pointer' : ''}`}
+                            >
                                 <div className="mt-0.5 flex-shrink-0">
                                     {getIcon(item.type)}
                                 </div>
@@ -93,3 +106,4 @@ export default function MessagesNotificationsCard() {
         </Card>
     );
 }
+

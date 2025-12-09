@@ -3,28 +3,25 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Play, Eye, Heart, TrendingUp } from "lucide-react";
+import { Play, Eye, TrendingUp, Star } from "lucide-react";
 import Link from "next/link";
 
-interface ContentFormat {
+interface ContentItem {
     id: string;
-    thumbnailUrl: string;
+    title: string;
     videoUrl: string;
+    thumbnailUrl: string;
     platform: string;
-    formatType: string;
-    hookStyle: string;
-    creator: {
-        name: string;
-    };
-    metrics: {
-        views: number;
-        engagementRate: number;
-    };
-    rankingScore?: number;
+    duration: number;
+    performanceScore: number;
+    views: number;
+    engagement: number;
+    category: string;
+    campaignName: string;
 }
 
 export default function ContentLibraryCard() {
-    const [formats, setFormats] = useState<ContentFormat[]>([]);
+    const [content, setContent] = useState<ContentItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -33,13 +30,13 @@ export default function ContentLibraryCard() {
                 const token = localStorage.getItem("token");
                 if (!token) return;
 
-                const response = await fetch("/api/content-library?limit=8", {
+                const response = await fetch("/api/content-library/recommended", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
                 const result = await response.json();
                 if (result.success) {
-                    setFormats(result.data.formats);
+                    setContent(result.data.content);
                 }
             } catch (err) {
                 console.error("Error fetching content library:", err);
@@ -57,6 +54,21 @@ export default function ContentLibraryCard() {
         return num.toString();
     };
 
+    const getPlatformColor = (platform: string) => {
+        switch (platform.toUpperCase()) {
+            case 'TIKTOK':
+                return 'bg-black text-white';
+            case 'INSTAGRAM':
+                return 'bg-gradient-to-r from-purple-500 to-pink-500 text-white';
+            case 'YOUTUBE':
+                return 'bg-red-600 text-white';
+            case 'FACEBOOK':
+                return 'bg-blue-600 text-white';
+            default:
+                return 'bg-gray-600 text-white';
+        }
+    };
+
     return (
         <Card className="border-none shadow-sm hover:shadow-md transition-shadow duration-200">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -69,79 +81,91 @@ export default function ContentLibraryCard() {
             </CardHeader>
             <CardContent>
                 {loading ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                            <div key={i} className="flex flex-col rounded-md border border-gray-200 overflow-hidden animate-pulse">
-                                <div className="aspect-video bg-gray-200"></div>
-                                <div className="p-2 space-y-2">
-                                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-                                    <div className="h-2 bg-gray-200 rounded w-1/2"></div>
-                                    <div className="h-6 bg-gray-200 rounded"></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex flex-col rounded-lg border border-gray-200 overflow-hidden animate-pulse">
+                                <div className="aspect-[9/16] bg-gray-200"></div>
+                                <div className="p-3 space-y-2">
+                                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                                    <div className="h-8 bg-gray-200 rounded"></div>
                                 </div>
                             </div>
                         ))}
                     </div>
-                ) : formats.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                        <p className="text-sm">No recommended formats available</p>
+                ) : content.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                        <p className="text-sm">No recommended content available</p>
+                        <p className="text-xs mt-1">Create campaigns to build your content library</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {formats.map((format) => {
-                            const createCampaignUrl = `/founder/campaigns/create?videoUrl=${encodeURIComponent(format.videoUrl)}&formatType=${format.formatType}&hookStyle=${format.hookStyle}&platform=${format.platform}`;
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {content.slice(0, 10).map((item) => {
+                            const createUrl = `/founder/campaigns/create?videoId=${item.id}`;
 
                             return (
-                                <div key={format.id} className="group flex flex-col rounded-md border border-gray-200 overflow-hidden hover:shadow-md transition-all">
-                                    {/* Thumbnail */}
-                                    <div className="relative aspect-video bg-gray-100">
-                                        <img
-                                            src={format.thumbnailUrl}
-                                            alt={format.formatType}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Play className="w-6 h-6 text-white fill-current" />
+                                <div key={item.id} className="group flex flex-col rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all hover:scale-105">
+                                    {/* Thumbnail - YouTube-style vertical */}
+                                    <div className="relative aspect-[9/16] bg-gray-100">
+                                        {item.thumbnailUrl ? (
+                                            <img
+                                                src={item.thumbnailUrl}
+                                                alt={item.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                                                <Play className="w-12 h-12 text-gray-400" />
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Play className="w-10 h-10 text-white fill-current drop-shadow-lg" />
                                         </div>
-                                        <div className="absolute top-1.5 left-1.5 bg-white/90 text-gray-900 text-[8px] font-semibold px-1 py-0.5 rounded shadow-sm">
-                                            {format.platform}
+                                        {/* Platform Badge */}
+                                        <div className={`absolute top-2 left-2 ${getPlatformColor(item.platform)} text-[10px] font-bold px-2 py-1 rounded shadow-lg`}>
+                                            {item.platform}
+                                        </div>
+                                        {/* Performance Score */}
+                                        {item.performanceScore >= 7 && (
+                                            <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
+                                                <Star className="w-3 h-3 fill-current" />
+                                                {item.performanceScore.toFixed(1)}
+                                            </div>
+                                        )}
+                                        {/* Duration */}
+                                        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-0.5 rounded">
+                                            {item.duration}s
                                         </div>
                                     </div>
 
-                                    {/* Content */}
-                                    <div className="p-2 flex flex-col flex-1">
-                                        <div className="flex items-start justify-between mb-1.5">
-                                            <div className="min-w-0">
-                                                <h4 className="text-xs font-semibold text-gray-900 line-clamp-1">{format.formatType}</h4>
-                                                <p className="text-[10px] text-gray-500 truncate">{format.creator.name}</p>
-                                            </div>
-                                            {format.rankingScore && format.rankingScore > 70 && (
-                                                <TrendingUp className="w-3 h-3 text-green-600 flex-shrink-0 ml-1" />
-                                            )}
-                                        </div>
+                                    {/* Content Info */}
+                                    <div className="p-3 flex flex-col flex-1 bg-white">
+                                        <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">
+                                            {item.title}
+                                        </h4>
+                                        <p className="text-xs text-gray-500 truncate mb-2">{item.campaignName}</p>
 
-                                        <div className="flex items-center gap-2 text-[10px] text-gray-500 mb-2">
-                                            <div className="flex items-center gap-0.5">
-                                                <Eye className="w-2.5 h-2.5" />
-                                                <span>{formatNumber(format.metrics.views)}</span>
+                                        {/* Metrics */}
+                                        <div className="flex items-center gap-3 text-xs text-gray-600 mb-3">
+                                            <div className="flex items-center gap-1">
+                                                <Eye className="w-3 h-3" />
+                                                <span>{formatNumber(item.views)}</span>
                                             </div>
-                                            <div className="flex items-center gap-0.5">
-                                                <Heart className="w-2.5 h-2.5" />
-                                                <span>{format.metrics.engagementRate}%</span>
+                                            <div className="flex items-center gap-1">
+                                                <TrendingUp className="w-3 h-3" />
+                                                <span>{item.engagement.toFixed(1)}%</span>
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-1.5 mt-auto">
-                                            <Link href={createCampaignUrl} className="w-full">
-                                                <Button size="sm" className="w-full h-6 text-[10px] px-0.5 bg-gray-900 hover:bg-gray-800 text-white">
-                                                    Create
-                                                </Button>
-                                            </Link>
-                                            <Link href={createCampaignUrl} className="w-full">
-                                                <Button size="sm" variant="outline" className="w-full h-6 text-[10px] px-0.5 border-gray-200 hover:bg-gray-50">
-                                                    Preview
-                                                </Button>
-                                            </Link>
-                                        </div>
+                                        {/* Action Button */}
+                                        <Link href={createUrl} className="mt-auto">
+                                            <Button
+                                                size="sm"
+                                                className="w-full h-8 text-xs bg-primary-600 hover:bg-primary-700 text-white"
+                                            >
+                                                Use Format
+                                            </Button>
+                                        </Link>
                                     </div>
                                 </div>
                             );

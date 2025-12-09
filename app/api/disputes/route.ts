@@ -41,17 +41,4 @@ export const POST = requireAuth(async (request: NextRequest, user) => {
                 userId: data.respondentId,
                 type: 'DISPUTE',
                 title: 'New Dispute Filed',
-                message: `A dispute has been filed regarding campaign ${data.campaignId}. Please review it.`,
-                link: `/disputes/${dispute.id}`,
-            },
-        });
-
-        // Notify admins (system notification placeholder)
-        // In a real app, this would email support@nala.com
-
-        return ApiResponse.created(dispute);
-    } catch (error) {
-        console.error('Error creating dispute:', error);
-        return ApiResponse.error('Failed to create dispute', 500);
-    }
-});
+            });

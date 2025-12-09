@@ -35,7 +35,7 @@ export default function PaymentStep({ onComplete, onBack }: PaymentStepProps) {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900">Stripe Connect</h3>
                 <p className="mt-2 text-sm text-gray-500">
-                    Nala uses Stripe to send you payments securely. You&apos;ll need to connect a bank account or debit card.
+                    Tupstory uses Stripe to send you payments securely. You&apos;ll need to connect a bank account or debit card.
                 </p>
 
                 <div className="mt-6">

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle, Sparkles, Clock, Users, DollarSign } from "lucide-react";
@@ -30,6 +30,7 @@ type Campaign = {
     deadline: string | null;
     applicationsCount: number;
     hasApplied: boolean;
+    applicationStatus?: string; // NEW: Application status
     appliedDate?: string;
     isUrgent: boolean;
     isNew: boolean;
@@ -156,8 +157,18 @@ export default function CreatorBriefsPage() {
             );
         }
         if (campaign.hasApplied) {
+            // Check if accepted
+            if (campaign.applicationStatus === 'ACCEPTED') {
+                return (
+                    <Badge className="bg-green-100 text-green-700 border-green-300">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Accepted ✓
+                    </Badge>
+                );
+            }
+            // Otherwise show Applied
             return (
-                <Badge className="bg-green-100 text-green-700 border-green-300">
+                <Badge className="bg-blue-100 text-blue-700 border-blue-300">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Applied
                 </Badge>
@@ -417,3 +428,4 @@ export default function CreatorBriefsPage() {
         </div>
     );
 }
+

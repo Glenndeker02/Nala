@@ -47,7 +47,7 @@ export default function Hero() {
                         <div className="space-y-4">
                             {/* Phrase 1: Animated */}
                             <motion.div
-                                className="text-4xl lg:text-6xl font-bold tracking-tight text-green-600 leading-[1.1]"
+                                className="text-4xl lg:text-6xl font-bold tracking-tight text-[#C2185B] leading-[1.1]"
                                 variants={container}
                                 initial="hidden"
                                 animate="visible"
@@ -70,7 +70,7 @@ export default function Hero() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.8, duration: 0.8 }}
                             >
-                                Scale Your Brand with <span className="text-gray-900">Authentic UGC.</span>
+                                Organic Growth for <span className="text-gray-900">Startups.</span>
                             </motion.h1>
                         </div>
 
@@ -80,7 +80,7 @@ export default function Hero() {
                             animate={{ opacity: 1 }}
                             transition={{ delay: 1.2, duration: 0.8 }}
                         >
-                            The fair marketplace for UGC. Founders get authentic content that converts, creators get paid instantly.
+                            Tupstory helps you tell your brand's story through authentic creator partnerships. No ads, just real growth.
                         </motion.p>
 
                         <motion.div
@@ -90,7 +90,7 @@ export default function Hero() {
                             transition={{ delay: 1.4, duration: 0.8 }}
                         >
                             <Link href="/auth/signup">
-                                <Button className="h-14 px-10 text-lg font-semibold bg-primary-DEFAULT hover:bg-primary-600 text-white rounded-full w-full sm:w-auto transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95">
+                                <Button className="h-14 px-10 text-lg font-semibold bg-[#C2185B] hover:bg-[#ad1457] text-white rounded-full w-full sm:w-auto transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95">
                                     Get Started
                                 </Button>
                             </Link>

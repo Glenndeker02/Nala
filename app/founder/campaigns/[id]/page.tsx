@@ -10,9 +10,13 @@ import VideoAnalyticsCard from './components/VideoAnalyticsCard';
 import PerformanceAnalysisCard from './components/PerformanceAnalysisCard';
 import ABTestingTab from './components/ABTestingTab';
 import ABTestingSummaryCard from './components/ABTestingSummaryCard';
+import BudgetBreakdownCard from './components/BudgetBreakdownCard';
+import InstructionsCard from './components/InstructionsCard';
+import CreatorCodesCard from './components/CreatorCodesCard';
 import { FounderVideosTab } from '@/components/founder/videos/FounderVideosTab';
 import { FormatTemplatesManagement } from '@/components/founder/format-templates/FormatTemplatesManagement';
 import { CampaignGoalsTab } from '@/components/founder/goals/CampaignGoalsTab';
+import { useCampaignRealtime } from "@/lib/hooks/useWebSocket";
 
 type Video = {
     id: string;
@@ -56,6 +60,7 @@ export default function CampaignDetailsPage() {
     const router = useRouter();
     const params = useParams();
     const campaignId = params.id as string;
+    const { lastEvent } = useCampaignRealtime(campaignId);
 
     const [activeTab, setActiveTab] = useState("overview");
     const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -74,17 +79,40 @@ export default function CampaignDetailsPage() {
         }
     }, [campaignId]);
 
+    // Listen for real-time updates to refresh main stats
+    useEffect(() => {
+        if (lastEvent) {
+            if (['application_submitted', 'submission_uploaded', 'submission_approved', 'payment_sent'].includes(lastEvent.type)) {
+                fetchCampaignDetails();
+            }
+        }
+    }, [lastEvent]);
+
     const fetchCampaignDetails = async () => {
         const token = localStorage.getItem("token");
+        console.log('=== Fetching Campaign Details (Frontend) ===');
+        console.log('Campaign ID:', campaignId);
+        console.log('Token exists:', !!token);
+
         try {
-            const response = await fetch(`/api/campaigns/${campaignId}`, {
+            const url = `/api/campaigns/${campaignId}`;
+            console.log('Fetching URL:', url);
+
+            const response = await fetch(url, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
+
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+
             const data = await response.json();
+            console.log('Response data:', data);
+
             if (response.ok) {
                 const campaignData = data.campaign || data.data?.campaign || data;
+                console.log('Campaign data extracted:', campaignData);
                 setCampaign(campaignData);
 
                 // Calculate stats
@@ -101,11 +129,13 @@ export default function CampaignDetailsPage() {
 
                 setStats({
                     totalApplications: applicationsCount,
-                    pendingReviews: 0,
+                    pendingReviews: campaignData.videos ? campaignData.videos.filter((v: Video) => v.status === 'DRAFT_SUBMITTED' || v.status === 'IN_REVIEW').length : 0,
                     approvedVideos,
                     totalViews,
                     budgetSpent: (campaignData.videosCompleted || 0) * (campaignData.baseFeePerVideo || ((campaignData.baseFeeBudget || 0) / (campaignData.videosRequested || 1)))
                 });
+            } else {
+                console.error('❌ API request failed:', data);
             }
         } catch (error) {
             console.error("Error fetching campaign:", error);
@@ -169,10 +199,6 @@ export default function CampaignDetailsPage() {
             </div>
         );
     }
-
-    const baseFeeTotal = campaign.baseFeeBudget || (campaign.videosRequested * (campaign.baseFeePerVideo || 0));
-    const performanceBudget = Number(campaign.performanceBudget || (campaign.totalBudget - baseFeeTotal)) || 0;
-    const budgetRemaining = campaign.totalBudget - stats.budgetSpent;
 
     return (
         <>
@@ -353,67 +379,17 @@ export default function CampaignDetailsPage() {
                                             </CardContent>
                                         </Card>
 
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle>Budget Breakdown</CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div className="space-y-4">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-gray-600">Fixed Production Costs:</span>
-                                                        <span className="font-bold text-gray-900">${baseFeeTotal.toFixed(2)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-gray-600">Performance Budget:</span>
-                                                        <span className="font-bold text-gray-900">${performanceBudget.toFixed(2)}</span>
-                                                    </div>
-                                                    <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
-                                                        <span className="font-bold text-gray-900">Total Budget:</span>
-                                                        <span className="font-bold text-primary-DEFAULT text-lg">
-                                                            ${campaign.totalBudget.toLocaleString()}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-gray-600">Budget Remaining:</span>
-                                                        <span className="font-medium text-green-600">
-                                                            ${budgetRemaining.toLocaleString()}
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                        {/* Budget Breakdown Component */}
+                                        <BudgetBreakdownCard campaignId={campaignId} />
 
-                                                {/* Budget Progress Bar */}
-                                                <div className="mt-6">
-                                                    <div className="flex justify-between text-sm text-gray-600 mb-2">
-                                                        <span>Budget Used</span>
-                                                        <span>{((stats.budgetSpent / campaign.totalBudget) * 100).toFixed(1)}%</span>
-                                                    </div>
-                                                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                                                        <div
-                                                            className="h-full bg-primary-DEFAULT rounded-full transition-all duration-300"
-                                                            style={{ width: `${(stats.budgetSpent / campaign.totalBudget) * 100}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
+                                        <InstructionsCard
+                                            campaignId={campaignId}
+                                            briefData={campaign.briefData}
+                                            videosRequested={campaign.videosRequested}
+                                        />
 
-                                        {campaign.briefData && (
-                                            <Card>
-                                                <CardHeader>
-                                                    <CardTitle>Content Brief</CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <div className="space-y-4">
-                                                        {campaign.briefData.targetAudience && (
-                                                            <div>
-                                                                <p className="text-sm font-medium text-gray-900 mb-1">Target Audience</p>
-                                                                <p className="text-gray-600">{campaign.briefData.targetAudience}</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        )}
+                                        {/* Creator Codes Card */}
+                                        <CreatorCodesCard campaignId={campaignId} />
                                     </div>
 
                                     {/* Quick Actions */}
@@ -445,6 +421,14 @@ export default function CampaignDetailsPage() {
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                                         </svg>
                                                         View Performance
+                                                    </Button>
+                                                </Link>
+                                                <Link href={`/founder/campaigns/${campaign.id}/attribution`}>
+                                                    <Button className="w-full justify-start" variant="secondary">
+                                                        <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                                                        </svg>
+                                                        Attribution & Codes
                                                     </Button>
                                                 </Link>
                                                 <Button
@@ -565,6 +549,10 @@ export default function CampaignDetailsPage() {
                                 ) : (
                                     <div className="text-center py-12 text-muted-foreground">No videos available yet.</div>
                                 )}
+                            </TabsContent>
+
+                            <TabsContent value="ab-testing">
+                                <ABTestingTab campaignId={campaignId} />
                             </TabsContent>
                         </Tabs>
                     </div>

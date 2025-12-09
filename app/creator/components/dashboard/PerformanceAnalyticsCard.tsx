@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { TrendingUp } from "lucide-react";
 
@@ -9,37 +9,44 @@ interface PerformanceData {
     views: number;
     engagementRate: number;
     videosCreated: number;
+    completionRate?: number;
     viewsHistory: Array<{ date: string; views: number }>;
     engagementHistory: Array<{ date: string; rate: number }>;
 }
 
+type PlatformFilter = 'all' | 'tiktok' | 'instagram' | 'facebook';
+type PeriodFilter = 'week' | 'month' | 'year';
+
 export default function PerformanceAnalyticsCard() {
     const [data, setData] = useState<PerformanceData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [platform, setPlatform] = useState<PlatformFilter>('all');
+    const [period, setPeriod] = useState<PeriodFilter>('week');
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) return;
+        fetchData(platform, period);
+    }, [platform, period]);
 
-                const response = await fetch("/api/creator/dashboard/performance", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+    const fetchData = async (selectedPlatform: PlatformFilter, selectedPeriod: PeriodFilter) => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem("token");
+            if (!token) return;
 
-                const result = await response.json();
-                if (result.success) {
-                    setData(result.data);
-                }
-            } catch (err) {
-                console.error("Error fetching performance:", err);
-            } finally {
-                setLoading(false);
+            const response = await fetch(`/api/creator/dashboard/performance?platform=${selectedPlatform}&period=${selectedPeriod}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                setData(result.data);
             }
-        };
-
-        fetchData();
-    }, []);
+        } catch (err) {
+            console.error("Error fetching performance:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -74,10 +81,35 @@ export default function PerformanceAnalyticsCard() {
     return (
         <Card className="h-full border-none shadow-sm hover:shadow-md transition-shadow duration-200">
             <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-primary-600" />
-                    Performance Analytics
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-primary-600" />
+                        Performance Analytics
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                        {/* Period Filter */}
+                        <select
+                            value={period}
+                            onChange={(e) => setPeriod(e.target.value as PeriodFilter)}
+                            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="year">This Year</option>
+                        </select>
+                        {/* Platform Filter */}
+                        <select
+                            value={platform}
+                            onChange={(e) => setPlatform(e.target.value as PlatformFilter)}
+                            className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                            <option value="all">All Platforms</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="facebook">Facebook</option>
+                        </select>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-3 gap-4 mb-6">
@@ -130,3 +162,4 @@ export default function PerformanceAnalyticsCard() {
         </Card>
     );
 }
+

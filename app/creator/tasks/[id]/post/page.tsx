@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import InstructionsCard from "../components/InstructionsCard";
 
 type VideoTask = {
     id: string;
@@ -181,6 +182,11 @@ export default function SubmitPostURLPage({ params }: { params: { id: string } }
                         <p className="text-sm text-gray-600 mt-1">
                             {video.campaign.name} - by {video.campaign.founder.companyName || video.campaign.founder.fullName}
                         </p>
+                    </div>
+
+                    {/* Instructions Card */}
+                    <div className="mb-6">
+                        <InstructionsCard campaignId={video.campaign.id} briefData={video.campaign.briefData} />
                     </div>
 
                     {/* Info Box */}

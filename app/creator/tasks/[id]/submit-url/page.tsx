@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import InstructionsCard from "../components/InstructionsCard";
 
 type Task = {
     id: string;
@@ -17,6 +18,7 @@ type Task = {
     platforms: string[];
     postingInstructions: string;
     draftUrl: string;
+    briefData?: any;
 };
 
 export default function SubmitPostingURLPage() {
@@ -41,22 +43,35 @@ export default function SubmitPostingURLPage() {
     const fetchTaskDetails = async () => {
         const token = localStorage.getItem("token");
         try {
-            // Mock data for demonstration
-            const mockTask: Task = {
-                id: taskId,
-                campaignId: "1",
-                campaignName: "Acme Product Launch",
-                founderName: "Mike Johnson",
-                status: "APPROVED",
-                baseFee: 50,
-                platforms: ["TIKTOK", "INSTAGRAM"],
-                postingInstructions: "Post your video on your selected platform and submit the URL here. Make sure the video is public and includes all required hashtags.",
-                draftUrl: "https://example.com/draft.mp4"
-            };
+            const response = await fetch(`/api/videos/${taskId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-            setTask(mockTask);
-            if (mockTask.platforms.length === 1) {
-                setSelectedPlatform(mockTask.platforms[0]);
+            if (response.ok) {
+                const result = await response.json();
+                const video = result.data.video;
+                const campaign = video.campaign;
+                const brief = campaign.briefData || {};
+
+                const mappedTask: Task = {
+                    id: video.id,
+                    campaignId: campaign.id,
+                    campaignName: campaign.name,
+                    founderName: campaign.founder.companyName || campaign.founder.fullName,
+                    status: video.status,
+                    baseFee: Number(video.baseFeeAmount || campaign.baseFeePerVideo || 0),
+                    platforms: brief.platforms || [campaign.platform || "TIKTOK"],
+                    postingInstructions: brief.postingInstructions || "Post your video on your selected platform and submit the URL here. Make sure the video is public and includes all required hashtags.",
+                    draftUrl: video.draftVideoUrl,
+                    briefData: brief
+                };
+
+                setTask(mappedTask);
+                if (mappedTask.platforms.length === 1) {
+                    setSelectedPlatform(mappedTask.platforms[0]);
+                }
+            } else {
+                console.error("Failed to fetch task details");
             }
         } catch (error) {
             console.error("Error fetching task:", error);
@@ -237,14 +252,9 @@ export default function SubmitPostingURLPage() {
                     </Card>
 
                     {/* Instructions */}
-                    <Card className="mb-6">
-                        <CardHeader>
-                            <CardTitle>📋 Posting Instructions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-gray-700">{task.postingInstructions}</p>
-                        </CardContent>
-                    </Card>
+                    <div className="mb-6">
+                        <InstructionsCard campaignId={task.campaignId} briefData={task.briefData} />
+                    </div>
 
                     {/* Platform Selection */}
                     <Card className="mb-6">
@@ -263,8 +273,8 @@ export default function SubmitPostingURLPage() {
                                             }
                                         }}
                                         className={`p-6 rounded-xl border-2 transition-all ${selectedPlatform === platform
-                                                ? 'border-primary-DEFAULT bg-primary-50'
-                                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                                            ? 'border-primary-DEFAULT bg-primary-50'
+                                            : 'border-gray-200 hover:border-gray-300 bg-white'
                                             }`}
                                     >
                                         <div className="text-4xl mb-2">{getPlatformIcon(platform)}</div>

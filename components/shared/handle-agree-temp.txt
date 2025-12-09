@@ -1,0 +1,5 @@
+const handleAgree = () => {
+    // Simply close the modal and proceed - no API call needed
+    // The agreement acceptance is implicit when they submit the form
+    onAgree();
+};

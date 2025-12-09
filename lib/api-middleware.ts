@@ -13,12 +13,28 @@ export interface AuthenticatedRequest extends NextRequest {
 export function extractUser(request: NextRequest): JWTPayload | null {
   const authHeader = request.headers.get('authorization');
 
+  // Debug logging
+  console.log('[AUTH DEBUG] Authorization header present:', !!authHeader);
+  if (authHeader) {
+    console.log('[AUTH DEBUG] Authorization header format:', authHeader.substring(0, 20) + '...');
+  }
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('[AUTH DEBUG] Invalid or missing Authorization header');
     return null;
   }
 
   const token = authHeader.substring(7);
-  return verifyAccessToken(token);
+  console.log('[AUTH DEBUG] Token extracted, length:', token.length);
+
+  const payload = verifyAccessToken(token);
+  if (payload) {
+    console.log('[AUTH DEBUG] Token verified successfully for user:', payload.userId, 'role:', payload.role);
+  } else {
+    console.log('[AUTH DEBUG] Token verification failed');
+  }
+
+  return payload;
 }
 
 /**

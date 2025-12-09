@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Nala - Performance-Based UGC Agency Platform",
+  title: "Tupstory - Organic Growth for Startups",
   description: "Connect SaaS Founders with content creators through performance-based payments",
 };
 

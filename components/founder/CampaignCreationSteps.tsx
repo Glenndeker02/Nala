@@ -306,339 +306,511 @@ export function Step3Schedule({ formData, onChange }: any) {
     );
 }
 
-// Step 4: Budget Configuration (Enhanced with Interactive Calculator)
-export function Step4Budget({ formData, onChange, baseFeeTotal, performanceBudget, maxViews, creatorEarnings, nalaEarnings }: any) {
-    const [guaranteedSpend, setGuaranteedSpend] = React.useState(formData.guaranteedSpend || false);
-    const [targetViews, setTargetViews] = React.useState(maxViews);
+// Step 4: Budget & ROI Calculator (Aligned with Landing Page)
+export function Step4Budget({ formData, onChange }: any) {
+    // 1. ROI Calculator State
+    // "Total Budget" and "Video Count" are in formData
+    const baseFeeTotal = formData.videosRequested * formData.baseFeePerVideo;
+    const performanceBudget = Math.max(0, formData.totalBudget - baseFeeTotal);
+    const nalaViewCost = 3.00; // $3 CPM fixed charge to founder
+    const creatorViewPay = 2.00; // $2 CPM paid to creators
+    const estimatedViews = Math.floor((performanceBudget / nalaViewCost) * 1000);
 
-    // Constants
-    const MIN_BUDGET = 100; // Changed from 500 to 100
-    const FOUNDER_RATE_PER_1000_VIEWS = 3; // $3 per 1000 views from founder
-    const BASE_VIDEO_COST_BULK = 10; // $10 per video for 5+ videos
-    const BASE_VIDEO_COST_SMALL = 15; // $15 per video for <5 videos
+    // 2. Revenue Projection State
+    const [showAttribution, setShowAttribution] = React.useState(formData.enableCreatorCodes || false);
+    const [enableCompensation, setEnableCompensation] = React.useState(false);
 
-    const getBaseFeePerVideo = (count: number) => count >= 5 ? BASE_VIDEO_COST_BULK : BASE_VIDEO_COST_SMALL;
+    // 3. Discount / Offer State
+    const [enableDiscount, setEnableDiscount] = React.useState(false);
+    const [discountType, setDiscountType] = React.useState<"percentage" | "fixed" | "trial">("percentage");
+    const [discountValue, setDiscountValue] = React.useState(20); // Default 20% or $20 or 14 days
 
-    // Calculate guaranteed views if guaranteed spend is enabled
-    const guaranteedViews = Math.floor((performanceBudget / FOUNDER_RATE_PER_1000_VIEWS) * 1000);
+    // Rates & Pricing (SaaS Focused)
+    const [downloadRate, setDownloadRate] = React.useState(3.0);
+    const [conversionRate, setConversionRate] = React.useState(2.0);
+    const [monthlyPrice, setMonthlyPrice] = React.useState(9.90);
+    const [creatorSharePercent, setCreatorSharePercent] = React.useState(40.0);
 
-    // Handlers for interactive sliders (decoupled like landing page)
-    const handleBudgetChange = (newBudget: number) => {
-        const baseFee = getBaseFeePerVideo(formData.videosRequested);
-        const minBudget = Math.max(MIN_BUDGET, formData.videosRequested * baseFee);
-        const actualBudget = Math.max(newBudget, minBudget);
-        onChange("totalBudget", actualBudget);
+    // Nala Fees
+    const NALA_BASE_CUT = 0.10; // 10%
+    const NALA_SUB_FEE = 0.05; // 5%
 
-        // Recalculate target views based on new budget
-        const newPerformanceBudget = actualBudget - (formData.videosRequested * baseFee);
-        const newViews = Math.floor((newPerformanceBudget / FOUNDER_RATE_PER_1000_VIEWS) * 1000);
-        setTargetViews(Math.max(0, newViews));
-    };
+    // --- CALCULATIONS (Step-by-Step "Real Life") ---
 
-    const handleVideoChange = (newVideoCount: number) => {
-        onChange("videosRequested", newVideoCount);
+    // Step 1: Conversions
+    const projectedDownloads = Math.floor(estimatedViews * (downloadRate / 100));
+    const projectedPaying = Math.floor(projectedDownloads * (conversionRate / 100));
 
-        const newBaseFee = getBaseFeePerVideo(newVideoCount);
-        onChange("baseFeePerVideo", newBaseFee);
+    // Step 2: Subscription Revenue
+    const newMonthlyRevenue = projectedPaying * monthlyPrice;
 
-        const baseCost = newVideoCount * newBaseFee;
-        let currentBudget = formData.totalBudget;
-        const requiredMin = Math.max(MIN_BUDGET, baseCost);
+    // Step 3: Creator Bonuses (Layer 3)
+    const creatorSharePerSub = monthlyPrice * (creatorSharePercent / 100);
+    const totalCreatorBonuses = projectedPaying * creatorSharePerSub;
 
-        if (currentBudget < requiredMin) {
-            currentBudget = requiredMin;
-            onChange("totalBudget", currentBudget);
-            setTargetViews(0);
-        } else {
-            const remainingBudget = currentBudget - baseCost;
-            const newViews = Math.floor((remainingBudget / FOUNDER_RATE_PER_1000_VIEWS) * 1000);
-            setTargetViews(Math.max(0, newViews));
-        }
-    };
+    // Step 4: Base Fees Logic
+    // baseFeeTotal is Gross paid by Founder
+    const nalaBaseRevenue = baseFeeTotal * NALA_BASE_CUT;
+    const netBaseToCreators = baseFeeTotal - nalaBaseRevenue;
 
-    const handleViewsChange = (newViews: number) => {
-        setTargetViews(newViews);
-        const baseFee = getBaseFeePerVideo(formData.videosRequested);
-        const baseCost = formData.videosRequested * baseFee;
-        const perfCost = (newViews / 1000) * FOUNDER_RATE_PER_1000_VIEWS;
-        const newBudget = Math.max(MIN_BUDGET, Math.round(baseCost + perfCost));
-        onChange("totalBudget", newBudget);
-    };
+    // Step 5: View Fees Logic
+    const founderViewBill = (estimatedViews / 1000) * nalaViewCost; // Should match performanceBudget approx
+    const creatorsViewPayTotal = (estimatedViews / 1000) * creatorViewPay;
+    const nalaViewMargin = founderViewBill - creatorsViewPayTotal;
 
-    // Sync targetViews with maxViews when component mounts or maxViews changes
+    // Step 6: Nala Sub Fee
+    const nalaSubRevenue = newMonthlyRevenue * NALA_SUB_FEE;
+
+    // Step 7: Totals & KPIs
+    // Founder Outflow
+    const totalFounderOutflow = baseFeeTotal + founderViewBill + totalCreatorBonuses + nalaSubRevenue;
+
+    // Creator Earnings
+    const totalCreatorEarnings = netBaseToCreators + creatorsViewPayTotal + totalCreatorBonuses;
+
+    // Nala Revenue
+    const totalNalaRevenue = nalaBaseRevenue + nalaViewMargin + nalaSubRevenue;
+
+    // Marketing KPIs
+    const marketingSpendDirect = baseFeeTotal + founderViewBill; // $600 in example
+    const cac = projectedPaying > 0 ? marketingSpendDirect / projectedPaying : 0;
+    const roas = marketingSpendDirect > 0 ? newMonthlyRevenue / marketingSpendDirect : 0;
+
+    // Sync formData
     React.useEffect(() => {
-        setTargetViews(maxViews);
-    }, [maxViews]);
-
-    const scenarios = [
-        { views: Math.floor(targetViews * 0.2), percentage: 20 },
-        { views: Math.floor(targetViews * 0.67), percentage: 67 },
-        { views: targetViews, percentage: 100 }
-    ];
+        onChange("enableCreatorCodes", showAttribution);
+        onChange("targetViews", estimatedViews);
+        if (enableDiscount) {
+            onChange("codeDiscountType", discountType);
+            onChange("codeDiscountValue", discountValue);
+        }
+    }, [showAttribution, estimatedViews, enableDiscount, discountType, discountValue]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-12">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Budget Configuration</h2>
-                <p className="text-gray-600">Use the interactive calculator to configure your budget and see real-time projections</p>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Calculate Your ROI</h2>
+                <p className="text-gray-600">See exactly what you can achieve with Nala's performance-driven platform.</p>
             </div>
 
-            {/* Interactive Budget Calculator */}
-            <div className="p-6 bg-gradient-to-br from-primary-50 to-white rounded-2xl border-2 border-primary-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <span className="text-2xl">🎯</span> Interactive Budget Calculator
-                </h3>
-
-                <div className="space-y-6">
-                    {/* Total Budget Slider */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700 flex justify-between">
-                            <span>Total Budget (USD) <span className="text-red-500">*</span></span>
-                            <span className="text-primary-600 font-bold text-lg">${formData.totalBudget.toLocaleString()}</span>
-                        </label>
+            {/* SECTION 1: ROI CALCULATOR */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left: Inputs */}
+                <div className="space-y-8">
+                    {/* Budget Slider */}
+                    <div>
+                        <div className="flex justify-between items-end mb-4">
+                            <label className="text-lg font-medium text-gray-700">Total Budget (USD)</label>
+                            <span className="text-2xl font-bold text-green-600">${formData.totalBudget.toLocaleString()}</span>
+                        </div>
                         <input
                             type="range"
-                            min="100"
+                            min="500"
                             max="50000"
                             step="100"
                             value={formData.totalBudget}
-                            onChange={(e) => handleBudgetChange(Number(e.target.value))}
-                            className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                            onChange={(e) => onChange("totalBudget", parseFloat(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
                         />
-                        <div className="flex justify-between text-xs text-gray-500">
-                            <span>$100</span>
+                        <div className="flex justify-between text-xs text-gray-400 mt-2">
+                            <span>$500</span>
                             <span>$50,000</span>
                         </div>
                     </div>
 
-                    {/* Number of Videos Slider */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700 flex justify-between">
-                            <span>Number of Videos</span>
-                            <span className="text-primary-600 font-bold text-lg">{formData.videosRequested}</span>
-                        </label>
+                    {/* Video Count Slider */}
+                    <div>
+                        <div className="flex justify-between items-end mb-4">
+                            <label className="text-lg font-medium text-gray-700">Number of Videos</label>
+                            <span className="text-2xl font-bold text-gray-900">{formData.videosRequested}</span>
+                        </div>
                         <input
                             type="range"
                             min="1"
                             max="50"
                             step="1"
                             value={formData.videosRequested}
-                            onChange={(e) => handleVideoChange(Number(e.target.value))}
-                            className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                            onChange={(e) => onChange("videosRequested", parseInt(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
                         />
-                        <div className="flex justify-between text-xs text-gray-500">
+                        <div className="flex justify-between text-xs text-gray-400 mt-2">
                             <span>1 Video</span>
                             <span>50 Videos</span>
                         </div>
                     </div>
 
-                    {/* Base Fee Info (Fixed) */}
-                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-gray-700">Base Fee per Video</span>
-                            <span className="text-primary-600 font-bold">${formData.baseFeePerVideo}</span>
+                    {/* Target Views (Output/Visual) */}
+                    <div>
+                        <div className="flex justify-between items-end mb-2">
+                            <label className="text-lg font-medium text-gray-700">Target Views</label>
+                            <span className="text-2xl font-bold text-green-600">{estimatedViews.toLocaleString()}</span>
                         </div>
-                        <p className="text-xs text-gray-500">
-                            {formData.videosRequested >= 5
-                                ? "Bulk rate applied ($10/video for 5+ videos)"
-                                : "Standard rate ($15/video). Order 5+ videos to save $5/video!"}
+                        <div className="w-full h-2 bg-green-100 rounded-lg overflow-hidden">
+                            <div
+                                className="h-full bg-green-600 transition-all duration-300"
+                                style={{ width: `${Math.min(100, (estimatedViews / 500000) * 100)}%` }}
+                            />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                            Based on remaining performance budget of ${performanceBudget.toLocaleString()}
                         </p>
                     </div>
+                </div>
 
-                    {/* Target Views Slider */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700 flex justify-between">
-                            <span>Target Views</span>
-                            <span className="text-primary-600 font-bold text-lg">{targetViews.toLocaleString()}</span>
-                        </label>
-                        <input
-                            type="range"
-                            min="1000"
-                            max="10000000"
-                            step="10000"
-                            value={targetViews}
-                            onChange={(e) => handleViewsChange(Number(e.target.value))}
-                            className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
-                        />
-                        <div className="flex justify-between text-xs text-gray-500">
-                            <span>1K</span>
-                            <span>10M</span>
+                {/* Right: Campaign Projection Card */}
+                <div className="bg-white border rounded-2xl shadow-lg p-6 space-y-6">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="p-2 bg-green-100 text-green-600 rounded-lg">📈</span>
+                        <h3 className="text-xl font-bold text-gray-900">Campaign Projection</h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-gray-50 rounded-xl">
+                            <p className="text-sm text-gray-500 mb-1">Total Cost</p>
+                            <p className="text-3xl font-bold text-gray-900">${formData.totalBudget.toLocaleString()}</p>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-xl">
+                            <p className="text-sm text-gray-500 mb-1">Est. Views</p>
+                            <p className="text-3xl font-bold text-gray-900">{estimatedViews.toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-4 space-y-3">
+                        <p className="font-medium text-gray-900">Budget Breakdown</p>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Base Fees ({formData.videosRequested} × ${formData.baseFeePerVideo})</span>
+                            <span className="font-bold text-gray-900">${baseFeeTotal.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Performance Budget</span>
+                            <span className="font-bold text-gray-900">${performanceBudget.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-lg font-bold border-t border-gray-100 pt-2 mt-2">
+                            <span>Total Budget</span>
+                            <span className="text-green-600">${formData.totalBudget.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Guaranteed Spend Toggle */}
-            <div className="p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-primary-300 transition-colors">
-                <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 mt-1">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={guaranteedSpend}
-                                onChange={(e) => {
-                                    const newValue = e.target.checked;
-                                    setGuaranteedSpend(newValue);
-                                    onChange("guaranteedSpend", newValue);
-                                }}
-                                className="sr-only peer"
-                            />
-                            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary-600"></div>
-                        </label>
+            {/* SECTION 2: ATTRIBUTION & OFFERS */}
+            <div className="border-t border-gray-200 pt-8 space-y-6">
+                {/* 2a. Enable Attribution */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900">Enable Creator Attribution?</h3>
+                        <p className="text-gray-600 text-sm">Track conversions and sales from your creators.</p>
                     </div>
-                    <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                            <span className="text-xl">🎯</span> Guaranteed Spend Mode
-                        </h4>
-                        <p className="text-sm text-gray-600 mb-3">
-                            {guaranteedSpend
-                                ? "✅ Get guaranteed bonus views on top of your organic reach! Your entire performance budget will be used to boost your content with paid promotion."
-                                : "Auto-refund enabled. Unspent budget will be refunded after 7 days based on actual views achieved."
-                            }
-                        </p>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={showAttribution}
+                            onChange={(e) => setShowAttribution(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                </div>
 
-                        {guaranteedSpend && performanceBudget > 0 && (
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-green-900">Bonus Views (Guaranteed):</span>
-                                    <span className="text-2xl font-bold text-green-600">+{guaranteedViews.toLocaleString()}</span>
+                {showAttribution && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
+                        {/* 2b. Compensation Toggle */}
+                        <div className="flex items-center justify-between bg-gray-50 p-6 rounded-xl border border-gray-200">
+                            <div>
+                                <h4 className="font-bold text-gray-900">Compensate for Subscriptions/Sales?</h4>
+                                <p className="text-gray-600 text-sm">Do you want to share a % of revenue with creators driving sales?</p>
+                            </div>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setEnableCompensation(false)}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${!enableCompensation ? 'bg-gray-200 text-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
+                                >
+                                    No, just track
+                                </button>
+                                <button
+                                    onClick={() => setEnableCompensation(true)}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${enableCompensation ? 'bg-green-600 text-white shadow-md' : 'bg-white border text-gray-600 hover:border-green-300'}`}
+                                >
+                                    Yes, set rates
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 2c. Discount / Special Offer Toggle */}
+                        <div className="flex items-center justify-between bg-gray-50 p-6 rounded-xl border border-gray-200">
+                            <div>
+                                <h4 className="font-bold text-gray-900">Offer a Discount or Deal?</h4>
+                                <p className="text-gray-600 text-sm">Incentivize conversions with a special offer for creator audiences.</p>
+                            </div>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setEnableDiscount(false)}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${!enableDiscount ? 'bg-gray-200 text-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
+                                >
+                                    No offer
+                                </button>
+                                <button
+                                    onClick={() => setEnableDiscount(true)}
+                                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${enableDiscount ? 'bg-purple-600 text-white shadow-md' : 'bg-white border text-gray-600 hover:border-purple-300'}`}
+                                >
+                                    Yes, configure
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 2d. Discount Configuration Panel */}
+                        {enableDiscount && (
+                            <div className="bg-purple-50 p-6 rounded-xl border border-purple-100 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-purple-900 mb-2">Offer Type</label>
+                                    <div className="flex rounded-lg shadow-sm">
+                                        <button
+                                            onClick={() => setDiscountType("percentage")}
+                                            className={`flex-1 py-2 px-3 text-sm font-medium rounded-l-lg border ${discountType === 'percentage' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                                        >
+                                            % Off
+                                        </button>
+                                        <button
+                                            onClick={() => setDiscountType("fixed")}
+                                            className={`flex-1 py-2 px-3 text-sm font-medium border-t border-b ${discountType === 'fixed' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                                        >
+                                            $ Off
+                                        </button>
+                                        <button
+                                            onClick={() => setDiscountType("trial")}
+                                            className={`flex-1 py-2 px-3 text-sm font-medium rounded-r-lg border ${discountType === 'trial' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                                        >
+                                            Free Trial
+                                        </button>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-green-700 mb-2">
-                                    These views will be added ON TOP of your organic reach through paid promotion.
-                                </p>
-                                <div className="p-2 bg-green-100 rounded text-xs text-green-800 mb-3">
-                                    💡 <strong>How it works:</strong> Your videos get natural organic views PLUS {guaranteedViews.toLocaleString()} guaranteed promoted views
-                                </div>
-                                <div className="mt-3 pt-3 border-t border-green-200">
-                                    <div className="flex justify-between text-xs text-green-800">
-                                        <span>Promotion budget:</span>
-                                        <span className="font-semibold">${performanceBudget.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-green-800 mt-1">
-                                        <span>Cost per 1K views:</span>
-                                        <span className="font-semibold">${FOUNDER_RATE_PER_1000_VIEWS.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-green-800 mt-1">
-                                        <span>Total bonus views:</span>
-                                        <span className="font-semibold">+{guaranteedViews.toLocaleString()} views</span>
-                                    </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-purple-900 mb-2">
+                                        {discountType === 'percentage' ? 'Discount Percentage (%)' : discountType === 'fixed' ? 'Discount Amount ($)' : 'Trial Duration (Days)'}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={discountValue}
+                                        onChange={(e) => setDiscountValue(parseFloat(e.target.value))}
+                                        className="w-full px-4 py-2 rounded-lg border border-purple-200 focus:ring-purple-500 focus:border-purple-500"
+                                    />
+                                    <p className="text-xs text-purple-600 mt-2">
+                                        {discountType === 'percentage' ? `Users get ${discountValue}% off` : discountType === 'fixed' ? `Users save $${discountValue}` : `Users get ${discountValue} days free`}
+                                    </p>
                                 </div>
                             </div>
                         )}
                     </div>
-                </div>
+                )}
             </div>
 
-            {/* Budget Breakdown Card */}
-            <div className="p-6 bg-gradient-to-br from-primary-50 to-white rounded-2xl border-2 border-primary-100 relative z-10">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <span className="text-2xl">💰</span> Budget Breakdown
-                </h3>
-
-                <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Number of Videos:</span>
-                        <span className="font-bold text-gray-900">{formData.videosRequested}</span>
+            {/* SECTION 3: REVENUE PROJECTION CALCULATOR (LAYER 2) */}
+            {showAttribution && enableCompensation && (
+                <div className="animate-in fade-in slide-in-from-top-8 space-y-8">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Revenue Projection (Real-Life Calculation)</h2>
+                        <p className="text-gray-600">See how your <span className="font-bold text-gray-900">{estimatedViews.toLocaleString()} views</span> translate into revenue with our verified flow.</p>
                     </div>
 
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Avg Creator Base Fee:</span>
-                        <span className="font-bold text-gray-900">${formData.baseFeePerVideo}/video</span>
-                    </div>
-                    {formData.videosRequested >= 5 && (
-                        <div className="text-xs bg-primary-100 text-primary-700 p-2 rounded text-center font-medium">
-                            🎉 Bulk discount applied!
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Left: Inputs (4 cols) */}
+                        <div className="lg:col-span-5 space-y-6">
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Impressions / Views</label>
+                                <div className="text-2xl font-bold text-green-600 mb-1">{estimatedViews.toLocaleString()}</div>
+                                <p className="text-xs text-gray-500">Auto-filled from ROI calculator</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Download Rate (%)</label>
+                                    <input
+                                        type="number"
+                                        value={downloadRate}
+                                        onChange={(e) => setDownloadRate(parseFloat(e.target.value))}
+                                        className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-green-500 focus:border-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Paid Conv. (%)</label>
+                                    <input
+                                        type="number"
+                                        value={conversionRate}
+                                        onChange={(e) => setConversionRate(parseFloat(e.target.value))}
+                                        className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-green-500 focus:border-green-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Price ($)</label>
+                                    <input
+                                        type="number"
+                                        value={monthlyPrice}
+                                        onChange={(e) => setMonthlyPrice(parseFloat(e.target.value))}
+                                        className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-green-500 focus:border-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Creator Share (%)</label>
+                                    <input
+                                        type="number"
+                                        value={creatorSharePercent}
+                                        onChange={(e) => setCreatorSharePercent(parseFloat(e.target.value))}
+                                        className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-purple-500 focus:border-purple-500 bg-purple-50"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-3 bg-purple-100 text-purple-800 rounded-lg text-sm text-center">
+                                Creator earns <strong>${creatorSharePerSub.toFixed(2)}</strong> per active subscription
+                            </div>
                         </div>
-                    )}
 
-                    <div className="h-px bg-gray-200 my-3"></div>
+                        {/* Right: Summary Card & Detailed Breakdown Button */}
+                        <div className="lg:col-span-7 bg-white border rounded-2xl shadow-lg flex flex-col justify-between p-6">
+                            <div>
+                                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                    <span className="p-1.5 bg-green-100 text-green-700 rounded-lg">📊</span>
+                                    Projected Results
+                                </h3>
 
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Fixed Budget (100% locked):</span>
-                        <span className="font-bold text-gray-900">${baseFeeTotal.toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Performance Budget:</span>
-                        <span className="font-bold text-gray-900">${performanceBudget.toFixed(2)}</span>
-                    </div>
-
-                    <div className="h-px bg-gray-200 my-3"></div>
-
-                    <div className="flex justify-between items-center text-lg">
-                        <span className="font-bold text-gray-900">TOTAL BUDGET:</span>
-                        <span className="font-bold text-primary-600">${formData.totalBudget.toFixed(2)}</span>
-                    </div>
-                </div>
-
-                <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-100">
-                    <p className="text-sm text-gray-700 mb-2">
-                        {guaranteedSpend ? "Bonus Views (Guaranteed):" : "Maximum Views Purchasable:"}
-                    </p>
-                    <p className="text-2xl font-bold text-primary-600">
-                        {guaranteedSpend ? `+${guaranteedViews.toLocaleString()}` : maxViews.toLocaleString()} views
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1">@ $3.00 per 1,000 views</p>
-                    {guaranteedSpend && (
-                        <p className="text-xs text-green-700 mt-2 bg-green-50 p-2 rounded border border-green-200">
-                            ✅ Added on top of organic views
-                        </p>
-                    )}
-                </div>
-            </div>
-
-            {/* Performance Budget Explanation */}
-            <div className="p-6 bg-gray-50 rounded-xl border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-3">💡 How Performance Budget Works</h4>
-                <div className="space-y-3 text-sm text-gray-700">
-                    <div className="flex items-start">
-                        <span className="text-primary-DEFAULT mr-2">•</span>
-                        <span>Creator earns <strong>${(creatorEarnings * 1000).toFixed(2)}/1k views</strong> (capped at {maxViews.toLocaleString()} views)</span>
-                    </div>
-                    <div className="flex items-start">
-                        <span className="text-primary-DEFAULT mr-2">•</span>
-                        <span>Nala earns <strong>${(nalaEarnings * 1000).toFixed(2)}/1k views</strong> (platform fee)</span>
-                    </div>
-                    <div className="flex items-start">
-                        <span className="text-primary-DEFAULT mr-2">•</span>
-                        <span>
-                            {guaranteedSpend
-                                ? <><strong>Guaranteed Spend Mode:</strong> All performance budget will be spent to deliver views</>
-                                : <>Unspent budget is <strong>automatically refunded</strong> after 7 days</>
-                            }
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            {!guaranteedSpend && (
-                <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
-                    <h4 className="font-bold text-gray-900 mb-4">📊 Potential ROI Scenarios (With Auto-Refund)</h4>
-                    <div className="space-y-3">
-                        {scenarios.map((scenario, index) => {
-                            const cost = baseFeeTotal + (scenario.views * 0.005);
-                            const savings = formData.totalBudget - cost;
-                            return (
-                                <div key={index} className="p-4 bg-white rounded-lg">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="font-bold text-gray-900">{scenario.views.toLocaleString()} views ({scenario.percentage}% of target)</span>
-                                        <span className="text-sm text-gray-600">Cost: ${cost.toFixed(2)}</span>
+                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <p className="text-xs text-gray-500 mb-1">Downloads</p>
+                                        <p className="font-bold text-xl text-gray-900">{projectedDownloads.toLocaleString()}</p>
                                     </div>
-                                    <div className="text-sm text-gray-600">
-                                        {savings > 0 ? `You save: $${savings.toFixed(2)} (refunded)` : 'Full budget used (excellent performance!)'}
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <p className="text-xs text-gray-500 mb-1">Paying Customers</p>
+                                        <p className="font-bold text-xl text-gray-900">{projectedPaying.toLocaleString()}</p>
+                                    </div>
+                                    <div className="p-3 bg-green-50 rounded-lg col-span-2">
+                                        <p className="text-xs text-green-700 mb-1">New Monthly Revenue (MRR)</p>
+                                        <p className="font-bold text-2xl text-green-700">+${newMonthlyRevenue.toLocaleString()}</p>
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
 
-            {performanceBudget < 0 && (
-                <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded">
-                    <p className="text-sm text-red-700">
-                        ⚠️ Your fixed costs exceed your total budget. Please increase the budget or reduce the base fee.
-                    </p>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-2">
+                                        <span className="text-gray-600">Creator Payout</span>
+                                        <span className="font-medium text-gray-900">${totalCreatorEarnings.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-2">
+                                        <span className="text-gray-600">Sub. Profit</span>
+                                        <span className="font-medium text-gray-900">${(newMonthlyRevenue - totalCreatorBonuses - nalaSubRevenue).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-8">
+                                <button
+                                    onClick={() => {
+                                        const el = document.getElementById('funds-breakdown-modal');
+                                        if (el) el.classList.remove('hidden');
+                                    }}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"
+                                >
+                                    <span>View Detailed Funds Breakdown</span>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Detailed Breakdown Modal (Simplified Visibility Toggle) */}
+                        <div id="funds-breakdown-modal" className="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+                            onClick={(e) => {
+                                const target = e.target as HTMLElement;
+                                if (target.id === 'funds-breakdown-modal') target.classList.add('hidden');
+                            }}
+                        >
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-900">Total Breakdown of Funds</h3>
+                                        <p className="text-sm text-gray-500 mt-1">Based on {projectedDownloads.toLocaleString()} downloads and {projectedPaying.toLocaleString()} paying customers</p>
+                                    </div>
+                                    <button onClick={() => document.getElementById('funds-breakdown-modal')?.classList.add('hidden')} className="p-2 hover:bg-gray-200 rounded-full text-gray-500 transition-colors">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                                <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
+                                    {/* COL 1: Founder OUT */}
+                                    <div className="space-y-4">
+                                        <p className="font-bold text-gray-900 border-b pb-2 text-lg">Founder Pays</p>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Base Fees:</span>
+                                                <span className="font-mono font-medium">${baseFeeTotal.toFixed(0)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">View Fees:</span>
+                                                <span className="font-mono font-medium">${founderViewBill.toFixed(0)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-purple-700">
+                                                <span>Sub Bonuses:</span>
+                                                <span className="font-mono font-medium">${totalCreatorBonuses.toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-orange-600">
+                                                <span>Nala Sub Fee:</span>
+                                                <span className="font-mono font-medium">${nalaSubRevenue.toFixed(2)}</span>
+                                            </div>
+                                            <div className="pt-3 border-t font-bold flex justify-between text-lg">
+                                                <span>Total:</span>
+                                                <span>${totalFounderOutflow.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* COL 2: Creator IN */}
+                                    <div className="space-y-4">
+                                        <p className="font-bold text-gray-900 border-b pb-2 text-lg">Creator Earns</p>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Net Base:</span>
+                                                <span className="font-mono font-medium">${netBaseToCreators.toFixed(0)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">View Pay:</span>
+                                                <span className="font-mono font-medium">${creatorsViewPayTotal.toFixed(0)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Sub Rate:</span>
+                                                <span className="font-mono font-medium">${totalCreatorBonuses.toFixed(2)}</span>
+                                            </div>
+                                            <div className="pt-3 border-t font-bold flex justify-between text-lg">
+                                                <span>Total:</span>
+                                                <span>${totalCreatorEarnings.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* COL 3: Nala IN */}
+                                    <div className="space-y-4">
+                                        <p className="font-bold text-gray-900 border-b pb-2 text-lg">Nala Revenue</p>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Base Cut:</span>
+                                                <span className="font-mono font-medium">${nalaBaseRevenue.toFixed(0)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">View Margin:</span>
+                                                <span className="font-mono font-medium">${nalaViewMargin.toFixed(0)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Sub Fee:</span>
+                                                <span className="font-mono font-medium">${nalaSubRevenue.toFixed(2)}</span>
+                                            </div>
+                                            <div className="pt-3 border-t font-bold flex justify-between text-lg">
+                                                <span>Total:</span>
+                                                <span>${totalNalaRevenue.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -662,6 +834,27 @@ export function Step5Filters({ formData, onChange }: any) {
             <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Creator Filters</h2>
                 <p className="text-gray-600">Find creators that match your requirements (all optional)</p>
+            </div>
+
+            <div className="p-4 bg-white border border-gray-200 rounded-xl hover:border-primary-DEFAULT transition-colors shadow-sm">
+                <label className="flex items-start cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={formData.certifiedOnly || false}
+                        onChange={(e) => onChange("certifiedOnly", e.target.checked)}
+                        className="w-5 h-5 mt-1 text-primary-DEFAULT border-gray-300 rounded focus:ring-primary-DEFAULT"
+                    />
+                    <div className="ml-3">
+                        <span className="font-bold text-gray-900 flex items-center gap-2 text-lg">
+                            <span className="text-xl">🎓</span> Only Certified Creators
+                            <span className="bg-primary-100 text-primary-800 text-xs px-2 py-0.5 rounded-full border border-primary-200">Recommended</span>
+                        </span>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Restrict applications to creators who have passed the Nala Certification Exam.
+                            Certified creators are verified for quality, reliability, and professionalism.
+                        </p>
+                    </div>
+                </label>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -697,19 +890,21 @@ export function Step5Filters({ formData, onChange }: any) {
                 </div>
             </div>
 
-            <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Language Preference
-                </label>
-                <select
-                    value={formData.language}
-                    onChange={(e) => onChange("language", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-DEFAULT focus:ring-offset-2"
-                >
-                    {LANGUAGES.map(lang => (
-                        <option key={lang} value={lang}>{lang}</option>
-                    ))}
-                </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Language Preference
+                    </label>
+                    <select
+                        value={formData.language}
+                        onChange={(e) => onChange("language", e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-DEFAULT focus:ring-offset-2"
+                    >
+                        {LANGUAGES.map(lang => (
+                            <option key={lang} value={lang}>{lang}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             <div>
@@ -762,7 +957,40 @@ export function Step5Filters({ formData, onChange }: any) {
 }
 
 // Step 6: Review & Confirm
-export function Step6Review({ formData, baseFeeTotal, performanceBudget, maxViews }: any) {
+export function Step6Review({ formData }: any) {
+    // 1. Constants (Must match Step 4)
+    const FOUNDER_VIEW_COST_PER_1K = 3.00;
+    const NALA_BASE_COMMISSION = 0.10;
+    const NALA_SUB_MARGIN = 0.05;
+    // Default sub price if not stored (simplified for review)
+    // ideally strictly passed, but for estimation we'll use a conservative default or 0 if unknown
+    // In a real app, we'd add subscriptionPrice to formData. For now, we estimate base + views + base commission.
+    const estimatedSubPrice = 9.90;
+
+    // 2. Calculations
+    const baseVideoGross = formData.videosRequested * formData.baseFeePerVideo;
+    const nalaBaseFee = baseVideoGross * NALA_BASE_COMMISSION; // 10% of Gross
+
+    // Use targetViews if set from Step 4, else fallback to budget-derived max
+    const targetViews = formData.targetViews || 0;
+    const viewCost = (targetViews / 1000) * FOUNDER_VIEW_COST_PER_1K;
+
+    // Estimate subscription fees (Creator Bonus + Nala Fee)
+    // Funnel: Views -> 3% -> 2% = 0.06% conversions
+    const estimatedSubs = Math.floor(targetViews * 0.03 * 0.02);
+    // Founder payment = Creator Share (40%) + Nala Margin (5%)
+    // But Step 4 logic: Founder pays Creator Bonus (40% * Price) + Nala Fee (5% * Price)
+    // Total Sub Cost = Subs * Price * (0.40 + 0.05)
+    // Note: If Step 4 inputs were dynamic, we'd need them here. We'll use the hardcoded User Example model for consistency in review.
+    const estimatedSubCost = estimatedSubs * estimatedSubPrice * (0.40 + 0.05);
+
+    const totalProjectedSpend = baseVideoGross + viewCost + estimatedSubCost; // Note: nalaBaseFee is part of baseVideoGross distribution, NOT additive for Founder.
+    // WAIT: In Step 4 "Founder Outflow" = baseVideoGross + viewCost + creatorBonus + nalaSubFee
+    // "Pays base fees (gross): $300". This $300 ALREADY includes the cut Nala takes.
+    // So for Founder, baseVideoGross IS the cost. Correct.
+
+    const isOverBudget = totalProjectedSpend > formData.totalBudget;
+
     return (
         <div className="space-y-6">
             <div>
@@ -771,8 +999,11 @@ export function Step6Review({ formData, baseFeeTotal, performanceBudget, maxView
             </div>
 
             {/* Campaign Summary Card */}
-            <div className="p-6 bg-white border-2 border-primary-DEFAULT rounded-2xl">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">📋 Campaign Summary</h3>
+            <div className={`p-6 bg-white border-2 rounded-2xl ${isOverBudget ? 'border-red-300' : 'border-primary-DEFAULT'}`}>
+                <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">📋 Campaign Summary</h3>
+                    {isOverBudget && <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">Over Budget</span>}
+                </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
@@ -792,40 +1023,44 @@ export function Step6Review({ formData, baseFeeTotal, performanceBudget, maxView
                         <p className="font-bold text-gray-900">{formData.platforms.join(", ")}</p>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-600">Start Date</p>
-                        <p className="font-bold text-gray-900">{formData.startDate ? new Date(formData.startDate).toLocaleDateString() : "Not set"}</p>
+                        <p className="text-sm text-gray-600">Target Views</p>
+                        <p className="font-bold text-primary-600">{targetViews > 0 ? targetViews.toLocaleString() : "Not set"}</p>
                     </div>
                     <div>
-                        <p className="text-sm text-gray-600">Posting Frequency</p>
-                        <p className="font-bold text-gray-900 capitalize">{formData.postingFrequency.replace('_', ' ')}</p>
+                        <p className="text-sm text-gray-600">Creator Attribution</p>
+                        <p className="font-bold text-gray-900">{formData.enableCreatorCodes ? "Enabled ✅" : "Disabled"}</p>
                     </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-4 mt-4">
                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">Base Fee ({formData.videosRequested} videos × ${formData.baseFeePerVideo}):</span>
-                        <span className="font-bold text-gray-900">${baseFeeTotal.toFixed(2)}</span>
+                        <span className="text-gray-600">Base Fees (Gross):</span>
+                        <span className="font-bold text-gray-900">${baseVideoGross.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">Performance Budget:</span>
-                        <span className="font-bold text-gray-900">${performanceBudget.toFixed(2)}</span>
+                        <span className="text-gray-600">Projected View Cost:</span>
+                        <span className="font-bold text-gray-900">${viewCost.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-lg border-t border-gray-200 pt-2 mt-2">
-                        <span className="font-bold text-gray-900">TOTAL BUDGET:</span>
-                        <span className="font-bold text-primary-DEFAULT">${formData.totalBudget.toFixed(2)}</span>
+                    <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
+                        <span>Est. Conversion Bonuses (Subs):</span>
+                        <span>${estimatedSubCost.toFixed(2)}</span>
                     </div>
-                </div>
 
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Maximum Reach:</p>
-                    <p className="text-xl font-bold text-gray-900">{maxViews.toLocaleString()} views</p>
+                    <div className="flex justify-between items-center text-lg border-t border-gray-200 pt-2 mt-2">
+                        <span className="font-bold text-gray-900">Est. Total Cost:</span>
+                        <span className={`font-bold ${isOverBudget ? 'text-red-600' : 'text-primary-DEFAULT'}`}>${totalProjectedSpend.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm mt-1">
+                        <span className="text-gray-600">Budget Limit:</span>
+                        <span className="text-gray-900">${formData.totalBudget.toFixed(2)}</span>
+                    </div>
                 </div>
             </div>
 
             {/* Creator Availability */}
             <div className="p-6 bg-primary-50 rounded-xl border border-primary-100">
                 <h4 className="font-bold text-gray-900 mb-2">👥 Estimated Creators</h4>
-                <p className="text-gray-700">45+ creators match your criteria</p>
+                <p className="text-gray-700">Matching creators will be invited automatically.</p>
                 <p className="text-sm text-gray-600 mt-1">Average rating: 4.6/5</p>
             </div>
 

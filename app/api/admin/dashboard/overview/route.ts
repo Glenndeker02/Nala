@@ -154,7 +154,7 @@ export const GET = requireRole('ADMIN', async (request: NextRequest) => {
         const last30DaysGMV = Number(last30DaysPayments._sum.amount || 0);
         const totalRefunds = Number(last30DaysRefunds._sum.amount || 0);
 
-        // Nala revenue (1% of GMV)
+        // Tupstory revenue (1% of GMV)
         const nalaRevenue = last30DaysGMV * 0.01;
 
         // Creator payouts (estimated 60% of GMV)

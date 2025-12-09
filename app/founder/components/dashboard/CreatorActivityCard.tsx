@@ -2,14 +2,20 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Users } from "lucide-react";
+import { Users, Video, DollarSign, FileText } from "lucide-react";
+import Link from "next/link";
 
 interface Activity {
     id: string;
-    creator: string;
-    action: string;
-    time: string;
-    campaignId: string;
+    activityType: string;
+    title: string;
+    description: string;
+    actionUrl: string;
+    timestamp: string;
+    creator: {
+        id: string;
+        name: string;
+    };
 }
 
 export default function CreatorActivityCard() {
@@ -40,6 +46,36 @@ export default function CreatorActivityCard() {
         fetchData();
     }, []);
 
+    const getActivityIcon = (type: string) => {
+        switch (type) {
+            case 'DRAFT_UPLOADED':
+            case 'REVISION_UPLOADED':
+            case 'VIDEO_POSTED':
+                return Video;
+            case 'PAYMENT_RECEIVED':
+            case 'BONUS_TRIGGERED':
+                return DollarSign;
+            case 'APPLICATION_SUBMITTED':
+                return FileText;
+            default:
+                return Users;
+        }
+    };
+
+    const getTimeAgo = (timestamp: string) => {
+        const now = new Date();
+        const past = new Date(timestamp);
+        const minutesAgo = Math.floor((now.getTime() - past.getTime()) / (1000 * 60));
+
+        if (minutesAgo < 60) {
+            return `${minutesAgo}m ago`;
+        } else if (minutesAgo < 1440) {
+            return `${Math.floor(minutesAgo / 60)}h ago`;
+        } else {
+            return `${Math.floor(minutesAgo / 1440)}d ago`;
+        }
+    };
+
     return (
         <Card className="h-full border-none shadow-sm hover:shadow-md transition-shadow duration-200">
             <CardHeader className="pb-2">
@@ -63,19 +99,25 @@ export default function CreatorActivityCard() {
                     </div>
                 ) : activities.length > 0 ? (
                     <div className="space-y-4">
-                        {activities.map((item) => (
-                            <div key={item.id} className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
-                                    {item.creator.charAt(0)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-gray-900 truncate">
-                                        <span className="font-medium">{item.creator}</span> {item.action}
-                                    </p>
-                                    <p className="text-xs text-gray-500">{item.time}</p>
-                                </div>
-                            </div>
-                        ))}
+                        {activities.map((item) => {
+                            const Icon = getActivityIcon(item.activityType);
+                            return (
+                                <Link key={item.id} href={item.actionUrl}>
+                                    <div className="flex items-start gap-3 hover:bg-gray-50 p-2 rounded-lg transition-colors cursor-pointer -mx-2">
+                                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                                            <Icon className="w-4 h-4 text-primary-600" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-gray-900 font-medium truncate">
+                                                {item.title}
+                                            </p>
+                                            <p className="text-xs text-gray-500 truncate">{item.description}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5">{getTimeAgo(item.timestamp)}</p>
+                                        </div>
+                                    </div>
+                                </Link>
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="text-sm text-gray-500 text-center py-8">No recent activity</div>

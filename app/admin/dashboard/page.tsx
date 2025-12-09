@@ -331,7 +331,7 @@ export default function AdminDashboard() {
                         <p className="text-lg font-semibold text-gray-900">{formatCurrency(metrics.financialSummary.totalGMV)}</p>
                     </div>
                     <div>
-                        <p className="text-xs text-gray-500">Nala Revenue</p>
+                        <p className="text-xs text-gray-500">Tupstory Revenue</p>
                         <p className="text-lg font-semibold text-green-600">{formatCurrency(metrics.financialSummary.nalaRevenue)}</p>
                     </div>
                     <div>

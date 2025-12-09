@@ -56,6 +56,7 @@ export default function PerformanceDashboardPage() {
     const [selectedVideo, setSelectedVideo] = useState<VideoPerformance | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (campaignId) {
@@ -66,127 +67,20 @@ export default function PerformanceDashboardPage() {
     const fetchPerformanceData = async () => {
         const token = localStorage.getItem("token");
         try {
-            // Mock data for demonstration
-            const mockData: CampaignPerformance = {
-                campaignId,
-                campaignName: "Q4 Product Launch Campaign",
-                status: "ACTIVE",
-                startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-                lockDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-                daysRemaining: 2,
-                totalBudget: 1000,
-                baseFeeTotal: 250,
-                performanceBudget: 750,
-                maxViews: 150000,
-                totalViews: 87450,
-                achievementPercent: 58.3,
-                performanceCost: 437.25,
-                refundAmount: 312.75,
-                videosPosted: 5,
-                videosTotal: 5,
-                lastUpdated: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-                videos: [
-                    {
-                        id: "1",
-                        title: "Product Feature Demo",
-                        creatorName: "Mary Thompson",
-                        creatorRating: 4.8,
-                        platform: "TikTok",
-                        postedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-                        videoUrl: "https://tiktok.com/@user/vid123",
-                        views: 26500,
-                        likes: 1243,
-                        comments: 89,
-                        shares: 156,
-                        completedViews: 18200,
-                        watchTimeHours: 892,
-                        baseFee: 50,
-                        performanceBonus: 106,
-                        totalEarnings: 156,
-                        nalaRevenue: 26.5
-                    },
-                    {
-                        id: "2",
-                        title: "User Testimonial",
-                        creatorName: "John Davis",
-                        creatorRating: 4.5,
-                        platform: "Instagram",
-                        postedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-                        videoUrl: "https://instagram.com/p/abc123",
-                        views: 21200,
-                        likes: 987,
-                        comments: 54,
-                        shares: 98,
-                        completedViews: 14300,
-                        watchTimeHours: 712,
-                        baseFee: 50,
-                        performanceBonus: 84.8,
-                        totalEarnings: 134.8,
-                        nalaRevenue: 21.2
-                    },
-                    {
-                        id: "3",
-                        title: "How-To Tutorial",
-                        creatorName: "Lisa Chen",
-                        creatorRating: 4.9,
-                        platform: "TikTok",
-                        postedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                        videoUrl: "https://tiktok.com/@user/vid456",
-                        views: 18900,
-                        likes: 845,
-                        comments: 67,
-                        shares: 123,
-                        completedViews: 12800,
-                        watchTimeHours: 634,
-                        baseFee: 50,
-                        performanceBonus: 75.6,
-                        totalEarnings: 125.6,
-                        nalaRevenue: 18.9
-                    },
-                    {
-                        id: "4",
-                        title: "Quick Tips",
-                        creatorName: "Sarah Wilson",
-                        creatorRating: 4.2,
-                        platform: "Facebook",
-                        postedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                        videoUrl: "https://facebook.com/video/789",
-                        views: 12300,
-                        likes: 567,
-                        comments: 34,
-                        shares: 78,
-                        completedViews: 8900,
-                        watchTimeHours: 412,
-                        baseFee: 50,
-                        performanceBonus: 49.2,
-                        totalEarnings: 99.2,
-                        nalaRevenue: 12.3
-                    },
-                    {
-                        id: "5",
-                        title: "Unboxing Experience",
-                        creatorName: "Tom Anderson",
-                        creatorRating: 4.0,
-                        platform: "TikTok",
-                        postedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                        videoUrl: "https://tiktok.com/@user/vid789",
-                        views: 8550,
-                        likes: 398,
-                        comments: 23,
-                        shares: 45,
-                        completedViews: 5800,
-                        watchTimeHours: 287,
-                        baseFee: 50,
-                        performanceBonus: 34.2,
-                        totalEarnings: 84.2,
-                        nalaRevenue: 8.55
-                    }
-                ]
-            };
-
-            setPerformance(mockData);
+            const response = await fetch(`/api/campaigns/${campaignId}/performance`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setPerformance(data.data);
+            } else {
+                setError(data.error || "Failed to fetch performance data");
+            }
         } catch (error) {
             console.error("Error fetching performance:", error);
+            setError("An error occurred while fetching performance data");
         } finally {
             setLoading(false);
         }
@@ -238,6 +132,19 @@ export default function PerformanceDashboardPage() {
         );
     }
 
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <Link href={`/founder/campaigns/${campaignId}`}>
+                        <Button>← Back to Campaign</Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     if (!performance) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -256,7 +163,7 @@ export default function PerformanceDashboardPage() {
         .map(v => ({
             name: v.creatorName,
             views: v.views,
-            percentage: (v.views / performance.totalViews) * 100
+            percentage: performance.totalViews > 0 ? (v.views / performance.totalViews) * 100 : 0
         }))
         .sort((a, b) => b.views - a.views);
 
@@ -513,7 +420,7 @@ export default function PerformanceDashboardPage() {
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-200">
                                                 {performance.videos.map((video) => {
-                                                    const engagementRate = ((video.likes + video.comments + video.shares) / video.views * 100).toFixed(1);
+                                                    const engagementRate = video.views > 0 ? ((video.likes + video.comments + video.shares) / video.views * 100).toFixed(1) : "0.0";
                                                     return (
                                                         <tr key={video.id} className="hover:bg-gray-50">
                                                             <td className="px-6 py-4">
@@ -609,7 +516,7 @@ export default function PerformanceDashboardPage() {
                                         <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-green-600 transition-all duration-300"
-                                                style={{ width: `${(performance.videosPosted / performance.videosTotal) * 100}%` }}
+                                                style={{ width: `${performance.videosTotal > 0 ? (performance.videosPosted / performance.videosTotal) * 100 : 0}%` }}
                                             />
                                         </div>
                                     </div>
@@ -656,7 +563,7 @@ export default function PerformanceDashboardPage() {
                                         <p className="text-2xl font-bold text-gray-900">
                                             {formatNumber(selectedVideo.likes)}
                                             <span className="text-sm text-gray-600 ml-2">
-                                                ({((selectedVideo.likes / selectedVideo.views) * 100).toFixed(1)}%)
+                                                ({selectedVideo.views > 0 ? ((selectedVideo.likes / selectedVideo.views) * 100).toFixed(1) : "0.0"}%)
                                             </span>
                                         </p>
                                     </div>
@@ -665,7 +572,7 @@ export default function PerformanceDashboardPage() {
                                         <p className="text-2xl font-bold text-gray-900">
                                             {formatNumber(selectedVideo.comments)}
                                             <span className="text-sm text-gray-600 ml-2">
-                                                ({((selectedVideo.comments / selectedVideo.views) * 100).toFixed(1)}%)
+                                                ({selectedVideo.views > 0 ? ((selectedVideo.comments / selectedVideo.views) * 100).toFixed(1) : "0.0"}%)
                                             </span>
                                         </p>
                                     </div>
@@ -674,7 +581,7 @@ export default function PerformanceDashboardPage() {
                                         <p className="text-2xl font-bold text-gray-900">
                                             {formatNumber(selectedVideo.shares)}
                                             <span className="text-sm text-gray-600 ml-2">
-                                                ({((selectedVideo.shares / selectedVideo.views) * 100).toFixed(1)}%)
+                                                ({selectedVideo.views > 0 ? ((selectedVideo.shares / selectedVideo.views) * 100).toFixed(1) : "0.0"}%)
                                             </span>
                                         </p>
                                     </div>
@@ -683,7 +590,7 @@ export default function PerformanceDashboardPage() {
                                         <p className="text-2xl font-bold text-gray-900">
                                             {formatNumber(selectedVideo.completedViews)}
                                             <span className="text-sm text-gray-600 ml-2">
-                                                ({((selectedVideo.completedViews / selectedVideo.views) * 100).toFixed(1)}%)
+                                                ({selectedVideo.views > 0 ? ((selectedVideo.completedViews / selectedVideo.views) * 100).toFixed(1) : "0.0"}%)
                                             </span>
                                         </p>
                                     </div>
@@ -723,7 +630,7 @@ export default function PerformanceDashboardPage() {
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-600">Nala Revenue ({formatNumber(selectedVideo.views)} × 1/1000):</span>
+                                        <span className="text-gray-600">Tupstory Revenue ({formatNumber(selectedVideo.views)} × 1/1000):</span>
                                         <span className="text-gray-700">{formatCurrency(selectedVideo.nalaRevenue)}</span>
                                     </div>
                                 </div>

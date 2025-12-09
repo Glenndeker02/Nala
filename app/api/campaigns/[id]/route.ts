@@ -1,27 +1,36 @@
-import { NextRequest } from 'next/server';
-import db from '@/lib/db';
-import { requireRole, ApiResponse } from '@/lib/api-middleware';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/api-middleware';
 
+// GET - Fetch campaign details
 export const GET = requireRole(['FOUNDER', 'CREATOR'], async (request: NextRequest, user, { params }: { params: { id: string } }) => {
     try {
         const campaignId = params.id;
+        const userRole = user.role;
 
-        const campaign = await db.campaign.findUnique({
+        console.log('=== GET Campaign Details ===');
+        console.log('Campaign ID:', campaignId);
+        console.log('User Role:', userRole);
+        console.log('User ID:', user.userId);
+
+        // Build the query based on user role
+        const campaign = await prisma.campaign.findUnique({
             where: { id: campaignId },
             include: {
                 founder: {
                     select: {
+                        id: true,
                         fullName: true,
                         companyName: true,
-                    },
+                        email: true
+                    }
                 },
                 videos: {
                     include: {
                         creator: {
                             select: {
                                 id: true,
-                                fullName: true,
-                                email: true,
+                                fullName: true
                             }
                         }
                     },
@@ -29,174 +38,194 @@ export const GET = requireRole(['FOUNDER', 'CREATOR'], async (request: NextReque
                         createdAt: 'desc'
                     }
                 },
-                applications: {
-                    include: {
-                        creator: {
-                            select: {
-                                id: true,
-                                fullName: true,
-                                email: true,
-                                creatorProfile: {
-                                    select: {
-                                        verificationStatus: true,
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                payments: {
-                    include: {
-                        recipient: {
-                            select: {
-                                fullName: true,
-                            }
-                        }
-                    },
-                    orderBy: {
-                        createdAt: 'desc'
+                _count: {
+                    select: {
+                        videos: true,
+                        applications: true
                     }
                 }
-            },
-        });
-
-        if (!campaign) {
-            return ApiResponse.error('Campaign not found', 404);
-        }
-
-        // Access control
-        if (user.role === 'FOUNDER' && campaign.founderId !== user.userId) {
-            return ApiResponse.error('Unauthorized', 403);
-        }
-
-        // Calculate aggregated metrics
-        const videos = campaign.videos || [];
-        const payments = campaign.payments || [];
-
-        // Video status counts
-        const videoStats = {
-            total: campaign.videosRequested,
-            submitted: videos.filter(v => v.status === 'DRAFT_SUBMITTED').length,
-            inReview: videos.filter(v => v.status === 'IN_REVIEW').length,
-            approved: videos.filter(v => v.status === 'APPROVED').length,
-            posted: videos.filter(v => v.status === 'POSTED').length,
-            rejected: videos.filter(v => v.status === 'REJECTED').length,
-            pending: campaign.videosRequested - videos.length,
-        };
-
-        // Performance metrics
-        const totalViews = videos.reduce((sum, v) => sum + (v.currentViewCount || 0), 0);
-        const totalLikes = videos.reduce((sum, v) => sum + (v.likes || 0), 0);
-        const totalComments = videos.reduce((sum, v) => sum + (v.comments || 0), 0);
-        const totalShares = videos.reduce((sum, v) => sum + (v.shares || 0), 0);
-
-        const performanceMetrics = {
-            totalViews,
-            totalLikes,
-            totalComments,
-            totalShares,
-            avgViewsPerVideo: videos.length > 0 ? Math.round(totalViews / videos.length) : 0,
-            engagementRate: totalViews > 0 ? ((totalLikes + totalComments + totalShares) / totalViews * 100).toFixed(2) : '0.00',
-            targetProgress: campaign.targetViews ? ((totalViews / campaign.targetViews) * 100).toFixed(1) : '0.0',
-        };
-
-        // Financial breakdown
-        const baseFeesPaid = payments
-            .filter(p => p.type === 'BASE_FEE' && p.status === 'COMPLETED')
-            .reduce((sum, p) => sum + Number(p.amount), 0);
-
-        const bonusesPaid = payments
-            .filter(p => p.type === 'PERFORMANCE_BONUS' && p.status === 'COMPLETED')
-            .reduce((sum, p) => sum + Number(p.amount), 0);
-
-        const totalSpent = baseFeesPaid + bonusesPaid;
-        const remainingBudget = Number(campaign.totalBudget) - totalSpent;
-        const refundedAmount = Number(campaign.totalRefundedToFounder || 0);
-
-        const financialData = {
-            totalBudget: Number(campaign.totalBudget),
-            baseFeesPaid,
-            bonusesPaid,
-            totalSpent,
-            remainingBudget,
-            refundedAmount,
-            budgetUsedPercentage: ((totalSpent / Number(campaign.totalBudget)) * 100).toFixed(1),
-            platformRevenue: Number(campaign.platformRevenue || 0),
-        };
-
-        // Creator statistics
-        const uniqueCreators = Array.from(new Set(videos.map(v => v.creatorId).filter(Boolean)));
-        const creatorStats = uniqueCreators.map(creatorId => {
-            const creatorVideos = videos.filter(v => v.creatorId === creatorId);
-            const creator = creatorVideos[0]?.creator;
-            const creatorPayments = payments.filter(p => p.recipientId === creatorId);
-
-            return {
-                id: creatorId,
-                name: creator?.fullName || 'Unknown',
-                email: creator?.email,
-                videosCount: creatorVideos.length,
-                totalViews: creatorVideos.reduce((sum, v) => sum + (v.currentViewCount || 0), 0),
-                totalEarned: creatorPayments.reduce((sum, p) => sum + Number(p.amount), 0),
-                avgViewsPerVideo: creatorVideos.length > 0
-                    ? Math.round(creatorVideos.reduce((sum, v) => sum + (v.currentViewCount || 0), 0) / creatorVideos.length)
-                    : 0,
-            };
-        });
-
-        // Timeline calculations
-        const now = new Date();
-        const startDate = campaign.startDate ? new Date(campaign.startDate) : null;
-        const deadline = campaign.deadline ? new Date(campaign.deadline) : null;
-
-        let timelineData = null;
-        if (startDate && deadline) {
-            const totalDays = Math.ceil((deadline.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-            const elapsedDays = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-            const remainingDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-            timelineData = {
-                startDate: startDate.toISOString(),
-                deadline: deadline.toISOString(),
-                totalDays,
-                elapsedDays: Math.max(0, elapsedDays),
-                remainingDays: Math.max(0, remainingDays),
-                percentComplete: totalDays > 0 ? Math.min(100, (elapsedDays / totalDays) * 100).toFixed(1) : '0.0',
-                isOverdue: now > deadline,
-            };
-        }
-
-        // ROI calculation (for completed campaigns)
-        let roiData = null;
-        if (campaign.status === 'COMPLETED') {
-            const costPerView = totalViews > 0 ? (totalSpent / totalViews).toFixed(4) : '0.0000';
-            const targetAchievement = campaign.targetViews
-                ? ((totalViews / campaign.targetViews) * 100).toFixed(1)
-                : '0.0';
-
-            roiData = {
-                totalSpent,
-                totalViews,
-                costPerView,
-                targetAchievement,
-                videosCompleted: videoStats.posted,
-                completionDate: campaign.completedAt?.toISOString() || null,
-            };
-        }
-
-        return ApiResponse.success({
-            campaign,
-            analytics: {
-                videoStats,
-                performanceMetrics,
-                financialData,
-                creatorStats,
-                timelineData,
-                roiData,
             }
         });
-    } catch (error) {
-        console.error('Error fetching campaign:', error);
-        return ApiResponse.error('Failed to fetch campaign', 500);
+
+        console.log('Campaign found:', campaign ? 'YES' : 'NO');
+        if (campaign) {
+            console.log('Campaign Name:', campaign.name);
+            console.log('Campaign Founder ID:', campaign.founderId);
+        }
+
+        if (!campaign) {
+            console.log('❌ Campaign not found in database');
+            return NextResponse.json(
+                { success: false, error: 'Campaign not found' },
+                { status: 404 }
+            );
+        }
+
+        // Authorization check for founders - they can only view their own campaigns
+        if (userRole === 'FOUNDER' && campaign.founderId !== user.userId) {
+            return NextResponse.json(
+                { success: false, error: 'Unauthorized - You can only view your own campaigns' },
+                { status: 403 }
+            );
+        }
+
+        // Parse briefData if it's a string
+        let briefData = campaign.briefData;
+        if (typeof briefData === 'string') {
+            try {
+                briefData = JSON.parse(briefData);
+            } catch (e) {
+                briefData = {};
+            }
+        }
+
+        // Format the response
+        const response = {
+            success: true,
+            campaign: {
+                id: campaign.id,
+                name: campaign.name,
+                title: campaign.name, // Alias for compatibility
+                description: campaign.description,
+                status: campaign.status,
+                totalBudget: Number(campaign.totalBudget),
+                baseFeePerVideo: Number(campaign.baseFeePerVideo),
+                baseFeeBudget: Number(campaign.baseFeeBudget),
+                performanceBudget: Number(campaign.performanceBudget),
+                performanceRate: Number(campaign.performanceRate),
+                videosRequested: campaign.videosRequested,
+                videosCompleted: campaign.videosCompleted,
+                targetViews: campaign.targetViews,
+                startDate: campaign.startDate,
+                deadline: campaign.deadline,
+                postingFrequency: campaign.postingFrequency,
+                createdAt: campaign.createdAt,
+                updatedAt: campaign.updatedAt,
+                briefData: briefData,
+                founder: campaign.founder,
+                videos: campaign.videos,
+                _count: campaign._count
+            }
+        };
+
+        console.log('✅ Successfully fetched campaign');
+        return NextResponse.json(response);
+
+    } catch (error: any) {
+        console.error('Error fetching campaign details:', error);
+        return NextResponse.json(
+            { success: false, error: error.message || 'Internal server error' },
+            { status: 500 }
+        );
+    }
+});
+
+// PUT - Edit campaign (with idempotency)
+export const PUT = requireRole(['FOUNDER'], async (request: NextRequest, user, { params }: { params: { id: string } }) => {
+    try {
+        const campaignId = params.id;
+        const body = await request.json();
+        const { name, description, videosRequested, totalBudget, baseFeePerVideo, performanceRate, targetViews, deadline, postingFrequency } = body;
+
+        // Verify campaign exists and belongs to founder
+        const existingCampaign = await prisma.campaign.findUnique({
+            where: { id: campaignId },
+            select: {
+                founderId: true,
+                videosRequested: true,
+                _count: {
+                    select: {
+                        videos: true
+                    }
+                }
+            }
+        });
+
+        if (!existingCampaign) {
+            return NextResponse.json(
+                { success: false, error: 'Campaign not found' },
+                { status: 404 }
+            );
+        }
+
+        if (existingCampaign.founderId !== user.userId) {
+            return NextResponse.json(
+                { success: false, error: 'Unauthorized' },
+                { status: 403 }
+            );
+        }
+
+        // Validate videosRequested change
+        if (videosRequested !== undefined && videosRequested < existingCampaign._count.videos) {
+            return NextResponse.json(
+                { success: false, error: `Cannot reduce videos requested below current video count (${existingCampaign._count.videos})` },
+                { status: 400 }
+            );
+        }
+
+        // Build update data (only include provided fields)
+        const updateData: any = {};
+        if (name !== undefined) updateData.name = name;
+        if (description !== undefined) updateData.description = description;
+        if (videosRequested !== undefined) updateData.videosRequested = videosRequested;
+        if (targetViews !== undefined) updateData.targetViews = targetViews;
+        if (deadline !== undefined) updateData.deadline = deadline ? new Date(deadline) : null;
+        if (postingFrequency !== undefined) updateData.postingFrequency = postingFrequency;
+
+        // Attribution settings
+        if (body.enableCreatorCodes !== undefined) updateData.enableCreatorCodes = body.enableCreatorCodes;
+        if (body.autoGenerateCodes !== undefined) updateData.autoGenerateCodes = body.autoGenerateCodes;
+        if (body.conversionCommission !== undefined) updateData.conversionCommission = body.conversionCommission;
+        if (body.codeDiscountType !== undefined) updateData.codeDiscountType = body.codeDiscountType;
+        if (body.codeDiscountValue !== undefined) updateData.codeDiscountValue = body.codeDiscountValue;
+        if (body.attributionWindowDays !== undefined) updateData.attributionWindowDays = body.attributionWindowDays;
+
+        // Handle budget updates
+        if (totalBudget !== undefined || baseFeePerVideo !== undefined || performanceRate !== undefined) {
+            const currentTotalBudget = totalBudget !== undefined ? totalBudget : undefined;
+            const currentBaseFee = baseFeePerVideo !== undefined ? baseFeePerVideo : undefined;
+            const currentPerfRate = performanceRate !== undefined ? performanceRate : undefined;
+
+            if (currentTotalBudget !== undefined) updateData.totalBudget = currentTotalBudget;
+            if (currentBaseFee !== undefined) {
+                updateData.baseFeePerVideo = currentBaseFee;
+                // Recalculate base fee budget
+                const vids = videosRequested !== undefined ? videosRequested : existingCampaign.videosRequested;
+                updateData.baseFeeBudget = currentBaseFee * vids;
+                if (currentTotalBudget !== undefined) {
+                    updateData.performanceBudget = currentTotalBudget - (currentBaseFee * vids);
+                }
+            }
+            if (currentPerfRate !== undefined) updateData.performanceRate = currentPerfRate;
+        }
+
+        // Update campaign (idempotent - uses same ID)
+        const updated = await prisma.campaign.update({
+            where: { id: campaignId }, // Using UUID ensures idempotency
+            data: updateData
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: 'Campaign updated successfully',
+            data: {
+                id: updated.id,
+                name: updated.name,
+                description: updated.description,
+                videosRequested: updated.videosRequested,
+                totalBudget: Number(updated.totalBudget),
+                baseFeePerVideo: Number(updated.baseFeePerVideo),
+                performanceRate: Number(updated.performanceRate),
+                targetViews: updated.targetViews,
+                updatedAt: updated.updatedAt.toISOString()
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Error updating campaign:', error);
+        return NextResponse.json(
+            { success: false, error: error.message || 'Internal server error' },
+            { status: 500 }
+        );
     }
 });
